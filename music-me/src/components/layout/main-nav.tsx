@@ -12,6 +12,7 @@ import {
   Search,
   MessageSquareText,
   Library,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -95,34 +96,40 @@ export function MainNav({ user, className }: MainNavProps) {
       </header>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 w-full z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl sm:hidden">
-        <div className="flex items-center justify-around h-14">
+      <nav className="fixed bottom-0 w-full z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl sm:hidden safe-bottom">
+        <div className="flex items-center justify-around h-16 px-2">
           <Link href="/feed" className={mobileNavClass(pathname, "/feed")}>
             <Home className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Home</span>
           </Link>
           <Link
             href="/discover"
             className={mobileNavClass(pathname, "/discover")}
           >
             <Compass className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Discover</span>
           </Link>
           <Link
             href="/feed"
-            className="p-2 rounded-full bg-primary text-primary-foreground"
+            className="flex flex-col items-center justify-center -mt-4"
           >
-            <PlusCircle className="w-5 h-5" />
+            <span className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+              <PlusCircle className="w-6 h-6" />
+            </span>
           </Link>
           <Link
-            href="/messages"
-            className={mobileNavClass(pathname, "/messages")}
+            href="/forum"
+            className={mobileNavClass(pathname, "/forum", ["/messages"])}
           >
-            <MessageCircle className="w-5 h-5" />
+            <Users className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Community</span>
           </Link>
           <Link
             href={username ? `/${username}` : "/settings/profile"}
             className={mobileNavClass(pathname, `/${username}`)}
           >
             <User className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Profile</span>
           </Link>
         </div>
       </nav>
@@ -130,10 +137,15 @@ export function MainNav({ user, className }: MainNavProps) {
   );
 }
 
-function mobileNavClass(pathname: string, href: string) {
-  const active = pathname === href || pathname.startsWith(href + "/");
+function mobileNavClass(pathname: string, href: string, additionalPaths?: string[]) {
+  const active =
+    pathname === href ||
+    pathname.startsWith(href + "/") ||
+    (additionalPaths?.some(
+      (p) => pathname === p || pathname.startsWith(p + "/")
+    ) ?? false);
   return cn(
-    "p-2 rounded-lg transition-colors",
+    "flex flex-col items-center justify-center gap-0 min-w-[3rem] py-1 rounded-lg transition-colors",
     active ? "text-primary" : "text-muted-foreground"
   );
 }
