@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --muted: #1a1a2e;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
+  --ring: #8b5cf6;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --secondary: #6d28d9;
+  --accent: #a78bfa;
+  --destructive: #ef4444;
+  --success: #22c55e;
+
+  /* Profile theming - overridden per-profile via inline styles */
+  --profile-bg: #0a0a0a;
+  --profile-primary: #8b5cf6;
+  --profile-secondary: #6d28d9;
+  --profile-accent: #a78bfa;
+  --profile-font: "Inter", sans-serif;
+  --profile-heading-font: "Space Grotesk", sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, "Inter", sans-serif);
+}
+
+/* Smooth transitions for theme switching */
+.theme-transition * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Custom scrollbar for webkit */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Text effects for profile display names */
+.text-effect-glow {
+  text-shadow: 0 0 10px var(--profile-primary), 0 0 20px var(--profile-primary),
+    0 0 40px var(--profile-primary);
+}
+.text-effect-neon {
+  text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px var(--profile-primary),
+    0 0 40px var(--profile-primary), 0 0 80px var(--profile-primary);
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.text-effect-animated-gradient {
+  background: linear-gradient(
+    270deg,
+    var(--profile-primary),
+    var(--profile-accent),
+    var(--profile-secondary),
+    var(--profile-primary)
+  );
+  background-size: 300% 300%;
+  animation: gradient-shift 4s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+}
+.text-effect-glitch {
+  animation: glitch 0.3s infinite;
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+.text-effect-typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typewriter 2s steps(20) 1s forwards;
+  width: 0;
+}

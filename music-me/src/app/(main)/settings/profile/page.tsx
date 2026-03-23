@@ -1,0 +1,700 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { Save, Loader2, Upload, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
+import { useUpload } from "@/hooks/use-upload";
+
+const FONT_OPTIONS = [
+  "Inter",
+  "Space Grotesk",
+  "JetBrains Mono",
+  "Playfair Display",
+  "Outfit",
+  "Syne",
+  "DM Sans",
+  "Instrument Serif",
+  "Bebas Neue",
+  "system-ui",
+];
+
+const LAYOUT_OPTIONS = [
+  { value: "CLASSIC", label: "Classic", desc: "Traditional top-to-bottom" },
+  { value: "BENTO", label: "Bento", desc: "Grid card layout" },
+  { value: "MINIMAL", label: "Minimal", desc: "Clean and centered" },
+  { value: "MAGAZINE", label: "Magazine", desc: "Editorial two-column" },
+  { value: "MYSPACE", label: "MySpace", desc: "Throwback bordered sections" },
+];
+
+const TEXT_EFFECTS = [
+  { value: "", label: "None" },
+  { value: "glow", label: "Glow" },
+  { value: "neon", label: "Neon" },
+  { value: "animated-gradient", label: "Animated Gradient" },
+  { value: "glitch", label: "Glitch" },
+  { value: "typewriter", label: "Typewriter" },
+];
+
+const BIO_SIZES = [
+  { value: "sm", label: "Small" },
+  { value: "base", label: "Normal" },
+  { value: "lg", label: "Large" },
+  { value: "xl", label: "Extra Large" },
+];
+
+interface ProfileFormData {
+  displayName: string;
+  bio: string;
+  pronouns: string;
+  location: string;
+  website: string;
+  profilePictureUrl: string;
+  bannerUrl: string;
+  backgroundColor: string;
+  backgroundImageUrl: string;
+  backgroundOpacity: number;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  fontFamily: string;
+  headingFont: string;
+  bioFontSize: string;
+  textEffects: { type: string };
+  layoutStyle: string;
+  autoplayProfileSong: boolean;
+}
+
+const defaultForm: ProfileFormData = {
+  displayName: "",
+  bio: "",
+  pronouns: "",
+  location: "",
+  website: "",
+  profilePictureUrl: "",
+  bannerUrl: "",
+  backgroundColor: "#0a0a0a",
+  backgroundImageUrl: "",
+  backgroundOpacity: 1,
+  primaryColor: "#8b5cf6",
+  secondaryColor: "#6d28d9",
+  accentColor: "#a78bfa",
+  fontFamily: "Inter",
+  headingFont: "Space Grotesk",
+  bioFontSize: "base",
+  textEffects: { type: "" },
+  layoutStyle: "CLASSIC",
+  autoplayProfileSong: false,
+};
+
+export default function ProfileEditorPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const { upload, uploading, progress } = useUpload();
+  const [form, setForm] = useState<ProfileFormData>(defaultForm);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load current profile data
+  useEffect(() => {
+    if (!session?.user) return;
+    const username = (session.user as { username?: string }).username;
+    if (!username) return;
+
+    fetch(`/api/users/${username}`)
+      .then((r) => r.json())
+      .then((user) => {
+        setForm({
+          displayName: user.displayName ?? "",
+          bio: user.bio ?? "",
+          pronouns: user.pronouns ?? "",
+          location: user.location ?? "",
+          website: user.website ?? "",
+          profilePictureUrl: user.profile?.profilePictureUrl ?? "",
+          bannerUrl: user.profile?.bannerUrl ?? "",
+          backgroundColor: user.profile?.backgroundColor ?? "#0a0a0a",
+          backgroundImageUrl: user.profile?.backgroundImageUrl ?? "",
+          backgroundOpacity: user.profile?.backgroundOpacity ?? 1,
+          primaryColor: user.profile?.primaryColor ?? "#8b5cf6",
+          secondaryColor: user.profile?.secondaryColor ?? "#6d28d9",
+          accentColor: user.profile?.accentColor ?? "#a78bfa",
+          fontFamily: user.profile?.fontFamily ?? "Inter",
+          headingFont: user.profile?.headingFont ?? "Space Grotesk",
+          bioFontSize: user.profile?.bioFontSize ?? "base",
+          textEffects: (user.profile?.textEffects as { type: string }) ?? {
+            type: "",
+          },
+          layoutStyle: user.profile?.layoutStyle ?? "CLASSIC",
+          autoplayProfileSong: user.profile?.autoplayProfileSong ?? false,
+        });
+        setLoaded(true);
+      });
+  }, [session]);
+
+  const update = useCallback(
+    (key: keyof ProfileFormData, value: unknown) => {
+      setForm((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
+
+  const fileToDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      update("profilePictureUrl", dataUrl);
+      toast.success("Avatar uploaded");
+    } catch {
+      toast.error("Upload failed");
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      update("bannerUrl", dataUrl);
+      toast.success("Banner uploaded");
+    } catch {
+      toast.error("Upload failed");
+    }
+  };
+
+  const handleBackgroundUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      update("backgroundImageUrl", dataUrl);
+      toast.success("Background uploaded");
+    } catch {
+      toast.error("Upload failed");
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/users/me/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Save failed");
+      }
+      toast.success("Profile updated!");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)]">
+            Edit Profile
+          </h1>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            Save
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Editor panel */}
+          <div className="space-y-8">
+            {/* Basic Info */}
+            <Section title="Basic Info">
+              <div className="flex items-center gap-4 mb-4">
+                <Avatar
+                  src={form.profilePictureUrl || null}
+                  alt={form.displayName || "You"}
+                  size="xl"
+                />
+                <div>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
+                    <span className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                      <Upload className="w-3.5 h-3.5" />
+                      {uploading ? `Uploading ${progress}%` : "Upload avatar"}
+                    </span>
+                  </label>
+                  {form.profilePictureUrl && (
+                    <button
+                      onClick={() => update("profilePictureUrl", "")}
+                      className="block text-xs text-muted-foreground hover:text-destructive mt-1"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <Field label="Display Name">
+                <input
+                  type="text"
+                  value={form.displayName}
+                  onChange={(e) => update("displayName", e.target.value)}
+                  maxLength={50}
+                  className="input-field"
+                />
+              </Field>
+              <Field label="Bio">
+                <textarea
+                  value={form.bio}
+                  onChange={(e) => update("bio", e.target.value)}
+                  maxLength={500}
+                  rows={3}
+                  className="input-field resize-none"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {form.bio.length}/500
+                </span>
+              </Field>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Pronouns">
+                  <input
+                    type="text"
+                    value={form.pronouns}
+                    onChange={(e) => update("pronouns", e.target.value)}
+                    placeholder="e.g. they/them"
+                    maxLength={30}
+                    className="input-field"
+                  />
+                </Field>
+                <Field label="Location">
+                  <input
+                    type="text"
+                    value={form.location}
+                    onChange={(e) => update("location", e.target.value)}
+                    placeholder="City, Country"
+                    maxLength={100}
+                    className="input-field"
+                  />
+                </Field>
+              </div>
+              <Field label="Website">
+                <input
+                  type="url"
+                  value={form.website}
+                  onChange={(e) => update("website", e.target.value)}
+                  placeholder="https://"
+                  className="input-field"
+                />
+              </Field>
+            </Section>
+
+            {/* Appearance */}
+            <Section title="Appearance">
+              <Field label="Banner">
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerUpload}
+                      className="hidden"
+                    />
+                    <span className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                      <Upload className="w-3.5 h-3.5" /> Upload banner
+                    </span>
+                  </label>
+                  {form.bannerUrl && (
+                    <button
+                      onClick={() => update("bannerUrl", "")}
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </Field>
+
+              <Field label="Background">
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer flex-1">
+                    <input
+                      type="file"
+                      accept="image/*,video/mp4,video/webm"
+                      onChange={handleBackgroundUpload}
+                      className="hidden"
+                    />
+                    <span className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                      <Upload className="w-3.5 h-3.5" /> Upload background
+                    </span>
+                  </label>
+                  {form.backgroundImageUrl && (
+                    <button
+                      onClick={() => update("backgroundImageUrl", "")}
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </Field>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Background Color">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={form.backgroundColor}
+                      onChange={(e) =>
+                        update("backgroundColor", e.target.value)
+                      }
+                      className="w-8 h-8 rounded border border-border cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={form.backgroundColor}
+                      onChange={(e) =>
+                        update("backgroundColor", e.target.value)
+                      }
+                      className="input-field flex-1"
+                    />
+                  </div>
+                </Field>
+                <Field label="Background Opacity">
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={form.backgroundOpacity}
+                    onChange={(e) =>
+                      update("backgroundOpacity", parseFloat(e.target.value))
+                    }
+                    className="w-full"
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <ColorField
+                  label="Primary"
+                  value={form.primaryColor}
+                  onChange={(v) => update("primaryColor", v)}
+                />
+                <ColorField
+                  label="Secondary"
+                  value={form.secondaryColor}
+                  onChange={(v) => update("secondaryColor", v)}
+                />
+                <ColorField
+                  label="Accent"
+                  value={form.accentColor}
+                  onChange={(v) => update("accentColor", v)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Body Font">
+                  <select
+                    value={form.fontFamily}
+                    onChange={(e) => update("fontFamily", e.target.value)}
+                    className="input-field"
+                  >
+                    {FONT_OPTIONS.map((f) => (
+                      <option key={f} value={f}>
+                        {f}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Heading Font">
+                  <select
+                    value={form.headingFont}
+                    onChange={(e) => update("headingFont", e.target.value)}
+                    className="input-field"
+                  >
+                    {FONT_OPTIONS.map((f) => (
+                      <option key={f} value={f}>
+                        {f}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="Display Name Effect">
+                <select
+                  value={form.textEffects.type}
+                  onChange={(e) =>
+                    update("textEffects", { type: e.target.value })
+                  }
+                  className="input-field"
+                >
+                  {TEXT_EFFECTS.map((e) => (
+                    <option key={e.value} value={e.value}>
+                      {e.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Bio Font Size">
+                <div className="flex gap-2">
+                  {BIO_SIZES.map((s) => (
+                    <button
+                      key={s.value}
+                      onClick={() => update("bioFontSize", s.value)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        form.bioFontSize === s.value
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            </Section>
+
+            {/* Layout */}
+            <Section title="Layout">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {LAYOUT_OPTIONS.map((l) => (
+                  <button
+                    key={l.value}
+                    onClick={() => update("layoutStyle", l.value)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      form.layoutStyle === l.value
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:bg-muted"
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{l.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {l.desc}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </Section>
+          </div>
+
+          {/* Live preview panel */}
+          <div className="hidden lg:block">
+            <div className="sticky top-24">
+              <h2 className="text-sm font-medium text-muted-foreground mb-4">
+                Live Preview
+              </h2>
+              <div
+                className="rounded-2xl border border-border overflow-hidden"
+                style={{
+                  ["--profile-bg" as string]:
+                    form.backgroundColor,
+                  ["--profile-primary" as string]:
+                    form.primaryColor,
+                  ["--profile-secondary" as string]:
+                    form.secondaryColor,
+                  ["--profile-accent" as string]:
+                    form.accentColor,
+                  ["--profile-font" as string]: `"${form.fontFamily}", sans-serif`,
+                  ["--profile-heading-font" as string]: `"${form.headingFont}", sans-serif`,
+                  backgroundColor: form.backgroundColor,
+                  fontFamily: `"${form.fontFamily}", sans-serif`,
+                }}
+              >
+                <div className="p-6 min-h-[500px]">
+                  {/* Preview banner */}
+                  {form.bannerUrl && (
+                    <div className="relative h-32 rounded-xl overflow-hidden mb-4 -mx-2 -mt-2">
+                      <img
+                        src={form.bannerUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Preview header */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <Avatar
+                      src={form.profilePictureUrl || null}
+                      alt={form.displayName || "Preview"}
+                      size="lg"
+                    />
+                    <div>
+                      <p
+                        className={`font-bold text-lg ${
+                          form.textEffects.type
+                            ? `text-effect-${form.textEffects.type}`
+                            : ""
+                        }`}
+                        style={{
+                          fontFamily: `"${form.headingFont}", sans-serif`,
+                        }}
+                      >
+                        {form.displayName || "Your Name"}
+                      </p>
+                      <p className="text-xs opacity-60">
+                        @
+                        {(session?.user as { username?: string })?.username ??
+                          "username"}
+                        {form.pronouns && ` · ${form.pronouns}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Preview bio */}
+                  {form.bio && (
+                    <p
+                      className={`mt-2 opacity-80 ${
+                        {
+                          sm: "text-xs",
+                          base: "text-sm",
+                          lg: "text-base",
+                          xl: "text-lg",
+                        }[form.bioFontSize] ?? "text-sm"
+                      }`}
+                    >
+                      {form.bio}
+                    </p>
+                  )}
+
+                  {/* Preview meta */}
+                  <div className="mt-3 flex gap-3 text-xs opacity-50">
+                    {form.location && <span>{form.location}</span>}
+                    {form.website && (
+                      <span style={{ color: form.primaryColor }}>
+                        {form.website.replace(/https?:\/\//, "")}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Preview layout label */}
+                  <div
+                    className="mt-6 p-3 rounded-lg text-center text-xs opacity-40 border border-dashed"
+                    style={{ borderColor: form.primaryColor }}
+                  >
+                    {form.layoutStyle} layout
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        .input-field {
+          width: 100%;
+          padding: 0.5rem 0.75rem;
+          border-radius: 0.5rem;
+          background: var(--muted);
+          border: 1px solid var(--border);
+          color: var(--foreground);
+          font-size: 0.875rem;
+        }
+        .input-field:focus {
+          outline: none;
+          box-shadow: 0 0 0 2px var(--primary);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h2 className="text-lg font-semibold font-[family-name:var(--font-space-grotesk)] mb-4 pb-2 border-b border-border">
+        {title}
+      </h2>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1.5 text-muted-foreground">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Field label={label}>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-8 h-8 rounded border border-border cursor-pointer"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="input-field flex-1 text-xs"
+        />
+      </div>
+    </Field>
+  );
+}

@@ -1,0 +1,51 @@
+"use client";
+
+import { ProfileHeader } from "@/components/profile/profile-header";
+import { ProfileSong } from "@/components/profile/profile-song";
+import { PlaylistDisplay } from "@/components/profile/playlist-display";
+import { LinkSection } from "@/components/profile/link-section";
+import { VibeBoard } from "@/components/profile/vibe-board";
+import { PostGrid } from "@/components/profile/post-grid";
+import { NowPlayingBadge } from "@/components/profile/now-playing-badge";
+import type { ProfileLayoutProps } from "./types";
+
+export function ClassicLayout({ user, posts, isOwn }: ProfileLayoutProps) {
+  return (
+    <div className="max-w-2xl mx-auto w-full space-y-6">
+      {/* Banner */}
+      {user.profile?.bannerUrl && (
+        <div className="relative h-48 sm:h-64 rounded-2xl overflow-hidden -mx-4 sm:mx-0">
+          <img
+            src={user.profile.bannerUrl}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--profile-bg)] to-transparent" />
+        </div>
+      )}
+
+      {/* Now Playing */}
+      {user.nowPlaying?.track && (
+        <NowPlayingBadge track={user.nowPlaying.track} />
+      )}
+
+      {/* Profile Song */}
+      {user.profileSong && (
+        <ProfileSong
+          track={user.profileSong}
+          autoplay={user.profile?.autoplayProfileSong}
+        />
+      )}
+
+      <ProfileHeader user={user} isOwn={isOwn} />
+
+      <LinkSection links={user.links ?? []} />
+
+      <PlaylistDisplay playlists={user.playlists ?? []} />
+
+      <VibeBoard items={(user.profile?.vibeBoard as never[]) ?? []} />
+
+      <PostGrid posts={posts} />
+    </div>
+  );
+}
