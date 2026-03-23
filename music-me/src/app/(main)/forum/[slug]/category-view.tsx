@@ -13,9 +13,9 @@ import {
   Eye,
   Loader2,
   Music,
-  X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { ForumEditor } from "@/components/forum/forum-editor";
 
 interface ThreadItem {
   id: string;
@@ -56,6 +56,7 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
   const [showComposer, setShowComposer] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [audioUrl, setAudioUrl] = useState("");
   const [audioTitle, setAudioTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +72,7 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
           categoryId: category.id,
           title: title.trim(),
           content: content.trim(),
+          mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
           audioUrl: audioUrl.trim() || null,
           audioTitle: audioTitle.trim() || null,
         }),
@@ -78,6 +80,7 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
       if (!res.ok) throw new Error();
       setTitle("");
       setContent("");
+      setMediaUrls([]);
       setAudioUrl("");
       setAudioTitle("");
       setShowComposer(false);
@@ -144,7 +147,7 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
       {/* New thread composer */}
       {showComposer && (
         <div className="border-b border-border/50 p-4 bg-muted/10">
-          <div className="space-y-3 max-w-2xl">
+          <div className="space-y-3 max-w-3xl">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -152,55 +155,18 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
               maxLength={200}
               className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
             />
-            <textarea
+            <ForumEditor
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your post..."
-              rows={4}
-              maxLength={10000}
-              className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none"
+              onChange={setContent}
+              placeholder="Write your post... Use the toolbar for formatting, or type BBCode directly."
+              rows={6}
+              mediaUrls={mediaUrls}
+              onMediaUrlsChange={setMediaUrls}
+              audioUrl={audioUrl}
+              onAudioUrlChange={setAudioUrl}
+              audioTitle={audioTitle}
+              onAudioTitleChange={setAudioTitle}
             />
-            {/* Audio attachment (for indie submissions) */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setAudioUrl(audioUrl ? "" : " ")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-colors ${
-                  audioUrl
-                    ? "border-primary text-primary bg-primary/10"
-                    : "border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Music className="w-3.5 h-3.5" />
-                Attach Audio
-              </button>
-              {audioUrl && audioUrl !== " " && (
-                <button
-                  onClick={() => {
-                    setAudioUrl("");
-                    setAudioTitle("");
-                  }}
-                  className="p-1 rounded hover:bg-muted"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-            {audioUrl && (
-              <div className="space-y-2 p-3 rounded-lg border border-border/50 bg-muted/20">
-                <input
-                  value={audioTitle}
-                  onChange={(e) => setAudioTitle(e.target.value)}
-                  placeholder="Track title (e.g. My Song - Artist Name)"
-                  className="w-full px-3 py-1.5 rounded-lg bg-muted/50 border border-border text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-                />
-                <input
-                  value={audioUrl === " " ? "" : audioUrl}
-                  onChange={(e) => setAudioUrl(e.target.value)}
-                  placeholder="Audio URL (paste a direct link to mp3/wav/ogg)"
-                  className="w-full px-3 py-1.5 rounded-lg bg-muted/50 border border-border text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-                />
-              </div>
-            )}
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setShowComposer(false)}
@@ -257,7 +223,7 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                  {thread.content}
+                  {thread.content.replace(/\[[^\]]*\]/g, "").substring(0, 120)}
                 </p>
                 <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                   <span>

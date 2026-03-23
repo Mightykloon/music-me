@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const replySchema = z.object({
   content: z.string().min(1).max(10000),
+  mediaUrls: z.array(z.string()).max(4).optional(),
   audioUrl: z.string().nullable().optional(),
   parentId: z.string().nullable().optional(),
 });
@@ -34,6 +35,7 @@ export async function POST(
         threadId: id,
         authorId: session.user.id,
         content: result.data.content,
+        mediaUrls: result.data.mediaUrls ?? [],
         audioUrl: result.data.audioUrl ?? null,
         parentId: result.data.parentId ?? null,
       },

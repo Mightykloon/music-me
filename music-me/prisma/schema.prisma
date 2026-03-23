@@ -523,6 +523,7 @@ model ForumThread {
   authorId    String
   title       String
   content     String   @db.Text
+  mediaUrls   String[] // embedded images (base64 data URLs)
   audioUrl    String?  // for indie music submissions
   audioTitle  String?
   isPinned    Boolean  @default(false)
@@ -546,6 +547,7 @@ model ForumReply {
   threadId  String
   authorId  String
   content   String   @db.Text
+  mediaUrls String[] // embedded images (base64 data URLs)
   audioUrl  String?
   parentId  String?
   createdAt DateTime @default(now())

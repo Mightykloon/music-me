@@ -16,6 +16,8 @@ import {
   Volume2,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { ForumEditor } from "@/components/forum/forum-editor";
+import { ForumContent } from "@/components/forum/forum-content";
 
 interface Author {
   id: string;
@@ -31,6 +33,7 @@ interface Author {
 interface Reply {
   id: string;
   content: string;
+  mediaUrls?: string[];
   audioUrl: string | null;
   createdAt: string;
   editedAt: string | null;
@@ -41,6 +44,7 @@ interface Thread {
   id: string;
   title: string;
   content: string;
+  mediaUrls?: string[];
   audioUrl: string | null;
   audioTitle: string | null;
   isPinned: boolean;
@@ -138,6 +142,7 @@ function AudioPlayer({
 function ForumPostBlock({
   author,
   content,
+  mediaUrls,
   audioUrl,
   audioTitle,
   createdAt,
@@ -146,6 +151,7 @@ function ForumPostBlock({
 }: {
   author: Author;
   content: string;
+  mediaUrls?: string[];
   audioUrl?: string | null;
   audioTitle?: string | null;
   createdAt: string;
@@ -219,10 +225,8 @@ function ForumPostBlock({
           )}
         </div>
 
-        {/* Content */}
-        <div className="prose prose-sm prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap break-words">
-          {content}
-        </div>
+        {/* Rendered content with BBCode formatting */}
+        <ForumContent content={content} mediaUrls={mediaUrls} />
 
         {/* Audio player */}
         {audioUrl && (
@@ -244,6 +248,9 @@ export function ThreadView({
 }) {
   const router = useRouter();
   const [replyContent, setReplyContent] = useState("");
+  const [replyMediaUrls, setReplyMediaUrls] = useState<string[]>([]);
+  const [replyAudioUrl, setReplyAudioUrl] = useState("");
+  const [replyAudioTitle, setReplyAudioTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleReply = async () => {
@@ -253,10 +260,17 @@ export function ThreadView({
       const res = await fetch(`/api/forum/threads/${thread.id}/replies`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: replyContent.trim() }),
+        body: JSON.stringify({
+          content: replyContent.trim(),
+          mediaUrls: replyMediaUrls.length > 0 ? replyMediaUrls : undefined,
+          audioUrl: replyAudioUrl.trim() || null,
+        }),
       });
       if (!res.ok) throw new Error();
       setReplyContent("");
+      setReplyMediaUrls([]);
+      setReplyAudioUrl("");
+      setReplyAudioTitle("");
       router.refresh();
     } catch {
       // ignore
@@ -312,6 +326,7 @@ export function ThreadView({
       <ForumPostBlock
         author={thread.author}
         content={thread.content}
+        mediaUrls={thread.mediaUrls}
         audioUrl={thread.audioUrl}
         audioTitle={thread.audioTitle}
         createdAt={thread.createdAt}
@@ -324,6 +339,7 @@ export function ThreadView({
           key={reply.id}
           author={reply.author}
           content={reply.content}
+          mediaUrls={reply.mediaUrls}
           audioUrl={reply.audioUrl}
           createdAt={reply.createdAt}
           editedAt={reply.editedAt}
@@ -333,16 +349,20 @@ export function ThreadView({
       {/* Reply composer */}
       {!thread.isLocked && (
         <div className="p-4 border-t border-border/50">
-          <h3 className="text-sm font-semibold mb-2">Reply to this thread</h3>
-          <textarea
+          <h3 className="text-sm font-semibold mb-3">Reply to this thread</h3>
+          <ForumEditor
             value={replyContent}
-            onChange={(e) => setReplyContent(e.target.value)}
-            placeholder="Write your reply..."
-            rows={3}
-            maxLength={10000}
-            className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none"
+            onChange={setReplyContent}
+            placeholder="Write your reply... Use formatting tools above or type BBCode."
+            rows={4}
+            mediaUrls={replyMediaUrls}
+            onMediaUrlsChange={setReplyMediaUrls}
+            audioUrl={replyAudioUrl}
+            onAudioUrlChange={setReplyAudioUrl}
+            audioTitle={replyAudioTitle}
+            onAudioTitleChange={setReplyAudioTitle}
           />
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-end mt-3">
             <button
               onClick={handleReply}
               disabled={!replyContent.trim() || submitting}

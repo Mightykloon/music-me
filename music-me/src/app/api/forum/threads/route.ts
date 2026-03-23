@@ -7,6 +7,7 @@ const createThreadSchema = z.object({
   categoryId: z.string(),
   title: z.string().min(3).max(200),
   content: z.string().min(1).max(10000),
+  mediaUrls: z.array(z.string()).max(4).optional(),
   audioUrl: z.string().nullable().optional(),
   audioTitle: z.string().nullable().optional(),
 });
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { categoryId, title, content, audioUrl, audioTitle } = result.data;
+    const { categoryId, title, content, mediaUrls, audioUrl, audioTitle } = result.data;
 
     const thread = await db.forumThread.create({
       data: {
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
         authorId: session.user.id,
         title,
         content,
+        mediaUrls: mediaUrls ?? [],
         audioUrl: audioUrl ?? null,
         audioTitle: audioTitle ?? null,
       },
