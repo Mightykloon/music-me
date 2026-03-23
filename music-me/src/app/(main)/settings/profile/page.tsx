@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { Save, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import { ImageCropEditor } from "@/components/ui/image-crop-editor";
 import { useUpload } from "@/hooks/use-upload";
 
 const FONT_OPTIONS = [
@@ -35,8 +36,13 @@ const TEXT_EFFECTS = [
   { value: "glow", label: "Glow" },
   { value: "neon", label: "Neon" },
   { value: "animated-gradient", label: "Animated Gradient" },
-  { value: "glitch", label: "Glitch" },
+  { value: "glitch", label: "Glitch (RGB Split)" },
   { value: "typewriter", label: "Typewriter" },
+  { value: "wave", label: "Wave" },
+  { value: "pulse", label: "Pulse" },
+  { value: "flicker", label: "Flicker" },
+  { value: "shadow-pop", label: "Shadow Pop" },
+  { value: "rainbow", label: "Rainbow Cycle" },
 ];
 
 const BIO_SIZES = [
@@ -63,7 +69,15 @@ interface ProfileFormData {
   fontFamily: string;
   headingFont: string;
   bioFontSize: string;
-  textEffects: { type: string };
+  textEffects: {
+    type: string;
+    color?: string;
+    color2?: string;
+    color3?: string;
+    speed?: number;
+    brightness?: number;
+    displayEmoji?: string;
+  };
   layoutStyle: string;
   autoplayProfileSong: boolean;
 }
@@ -85,7 +99,7 @@ const defaultForm: ProfileFormData = {
   fontFamily: "Inter",
   headingFont: "Space Grotesk",
   bioFontSize: "base",
-  textEffects: { type: "" },
+  textEffects: { type: "", color: "#8b5cf6", color2: "#ec4899", color3: "#f59e0b", speed: 4, brightness: 1, displayEmoji: "" },
   layoutStyle: "CLASSIC",
   autoplayProfileSong: false,
 };
@@ -97,6 +111,7 @@ export default function ProfileEditorPage() {
   const [form, setForm] = useState<ProfileFormData>(defaultForm);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [cropImage, setCropImage] = useState<string | null>(null);
 
   // Load current profile data
   useEffect(() => {
@@ -124,8 +139,14 @@ export default function ProfileEditorPage() {
           fontFamily: user.profile?.fontFamily ?? "Inter",
           headingFont: user.profile?.headingFont ?? "Space Grotesk",
           bioFontSize: user.profile?.bioFontSize ?? "base",
-          textEffects: (user.profile?.textEffects as { type: string }) ?? {
+          textEffects: {
             type: "",
+            color: "#8b5cf6",
+            color2: "#ec4899",
+            color3: "#f59e0b",
+            speed: 4,
+            brightness: 1,
+            ...(user.profile?.textEffects as Record<string, unknown> ?? {}),
           },
           layoutStyle: user.profile?.layoutStyle ?? "CLASSIC",
           autoplayProfileSong: user.profile?.autoplayProfileSong ?? false,
@@ -154,11 +175,12 @@ export default function ProfileEditorPage() {
     if (!file) return;
     try {
       const dataUrl = await fileToDataUrl(file);
-      update("profilePictureUrl", dataUrl);
-      toast.success("Avatar uploaded");
+      setCropImage(dataUrl);
     } catch {
       toast.error("Upload failed");
     }
+    // Reset input so same file can be re-selected
+    e.target.value = "";
   };
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,6 +298,40 @@ export default function ProfileEditorPage() {
                   maxLength={50}
                   className="input-field"
                 />
+              </Field>
+              <Field label="Display Emoji">
+                <div className="flex items-center gap-3">
+                  {form.textEffects.displayEmoji && (
+                    <span className="text-3xl">{form.textEffects.displayEmoji}</span>
+                  )}
+                  <div className="flex flex-wrap gap-1.5 flex-1">
+                    {["🎵", "🎸", "🎤", "🎧", "🎹", "🥁", "🎺", "🎻", "🔥", "⚡", "💜", "💀", "👑", "🌟", "✨", "🦋", "🌙", "☀️", "🌈", "💎", "🎶", "🎼", "🎷", "🪗", "🎭", "🃏", "🏆", "💫", "🫧", "🍄"].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => update("textEffects", {
+                          ...form.textEffects,
+                          displayEmoji: form.textEffects.displayEmoji === emoji ? "" : emoji,
+                        })}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-lg transition-all ${
+                          form.textEffects.displayEmoji === emoji
+                            ? "bg-primary/20 ring-2 ring-primary scale-110"
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {form.textEffects.displayEmoji && (
+                  <button
+                    onClick={() => update("textEffects", { ...form.textEffects, displayEmoji: "" })}
+                    className="text-xs text-muted-foreground hover:text-destructive mt-1"
+                  >
+                    Remove emoji
+                  </button>
+                )}
               </Field>
               <Field label="Bio">
                 <textarea
@@ -459,7 +515,7 @@ export default function ProfileEditorPage() {
                 <select
                   value={form.textEffects.type}
                   onChange={(e) =>
-                    update("textEffects", { type: e.target.value })
+                    update("textEffects", { ...form.textEffects, type: e.target.value })
                   }
                   className="input-field"
                 >
@@ -470,6 +526,208 @@ export default function ProfileEditorPage() {
                   ))}
                 </select>
               </Field>
+
+              {/* Effect-specific controls */}
+              {(form.textEffects.type === "glow" || form.textEffects.type === "neon" || form.textEffects.type === "shadow-pop") && (
+                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Color</label>
+                    <input
+                      type="color"
+                      value={form.textEffects.color ?? "#8b5cf6"}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
+                      className="w-8 h-8 rounded border border-border cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={form.textEffects.color ?? "#8b5cf6"}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
+                      className="input-field flex-1 text-xs"
+                    />
+                  </div>
+                  {form.textEffects.type === "neon" && (
+                    <div className="flex items-center gap-3">
+                      <label className="text-xs text-muted-foreground w-20">Brightness</label>
+                      <input
+                        type="range"
+                        min={0.3}
+                        max={2}
+                        step={0.05}
+                        value={form.textEffects.brightness ?? 1}
+                        onChange={(e) => update("textEffects", { ...form.textEffects, brightness: parseFloat(e.target.value) })}
+                        className="flex-1 accent-primary"
+                      />
+                      <span className="text-xs text-muted-foreground w-10 text-right">
+                        {((form.textEffects.brightness ?? 1) * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {form.textEffects.type === "animated-gradient" && (
+                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Start</label>
+                    <input
+                      type="color"
+                      value={form.textEffects.color ?? "#8b5cf6"}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
+                      className="w-8 h-8 rounded border border-border cursor-pointer"
+                    />
+                    <input type="text" value={form.textEffects.color ?? "#8b5cf6"} onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })} className="input-field flex-1 text-xs" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Middle</label>
+                    <input
+                      type="color"
+                      value={form.textEffects.color2 ?? "#ec4899"}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, color2: e.target.value })}
+                      className="w-8 h-8 rounded border border-border cursor-pointer"
+                    />
+                    <input type="text" value={form.textEffects.color2 ?? "#ec4899"} onChange={(e) => update("textEffects", { ...form.textEffects, color2: e.target.value })} className="input-field flex-1 text-xs" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">End</label>
+                    <input
+                      type="color"
+                      value={form.textEffects.color3 ?? "#f59e0b"}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, color3: e.target.value })}
+                      className="w-8 h-8 rounded border border-border cursor-pointer"
+                    />
+                    <input type="text" value={form.textEffects.color3 ?? "#f59e0b"} onChange={(e) => update("textEffects", { ...form.textEffects, color3: e.target.value })} className="input-field flex-1 text-xs" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <input
+                      type="range"
+                      min={0.5}
+                      max={15}
+                      step={0.5}
+                      value={form.textEffects.speed ?? 4}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
+                      className="flex-1 accent-primary"
+                    />
+                    <span className="text-xs text-muted-foreground w-10 text-right">
+                      {form.textEffects.speed ?? 4}s
+                    </span>
+                  </div>
+                  {/* Gradient preview bar */}
+                  <div
+                    className="h-4 rounded-full"
+                    style={{
+                      background: `linear-gradient(90deg, ${form.textEffects.color ?? "#8b5cf6"}, ${form.textEffects.color2 ?? "#ec4899"}, ${form.textEffects.color3 ?? "#f59e0b"})`,
+                    }}
+                  />
+                </div>
+              )}
+
+              {form.textEffects.type === "rainbow" && (
+                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <input
+                      type="range"
+                      min={1}
+                      max={15}
+                      step={0.5}
+                      value={form.textEffects.speed ?? 6}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
+                      className="flex-1 accent-primary"
+                    />
+                    <span className="text-xs text-muted-foreground w-10 text-right">
+                      {form.textEffects.speed ?? 6}s
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {form.textEffects.type === "glitch" && (
+                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Color 1</label>
+                    <input
+                      type="color"
+                      value={form.textEffects.color ?? "#ff0000"}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
+                      className="w-8 h-8 rounded border border-border cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Color 2</label>
+                    <input
+                      type="color"
+                      value={form.textEffects.color2 ?? "#00ffff"}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, color2: e.target.value })}
+                      className="w-8 h-8 rounded border border-border cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <input
+                      type="range"
+                      min={0.5}
+                      max={5}
+                      step={0.1}
+                      value={form.textEffects.speed ?? 2}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
+                      className="flex-1 accent-primary"
+                    />
+                    <span className="text-xs text-muted-foreground w-10 text-right">
+                      {form.textEffects.speed ?? 2}s
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {(form.textEffects.type === "pulse" || form.textEffects.type === "flicker") && (
+                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Color</label>
+                    <input
+                      type="color"
+                      value={form.textEffects.color ?? "#8b5cf6"}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
+                      className="w-8 h-8 rounded border border-border cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <input
+                      type="range"
+                      min={0.5}
+                      max={5}
+                      step={0.1}
+                      value={form.textEffects.speed ?? 2}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
+                      className="flex-1 accent-primary"
+                    />
+                    <span className="text-xs text-muted-foreground w-10 text-right">
+                      {form.textEffects.speed ?? 2}s
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {form.textEffects.type === "wave" && (
+                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <input
+                      type="range"
+                      min={1}
+                      max={8}
+                      step={0.5}
+                      value={form.textEffects.speed ?? 3}
+                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
+                      className="flex-1 accent-primary"
+                    />
+                    <span className="text-xs text-muted-foreground w-10 text-right">
+                      {form.textEffects.speed ?? 3}s
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <Field label="Bio Font Size">
                 <div className="flex gap-2">
@@ -555,7 +813,7 @@ export default function ProfileEditorPage() {
                       alt={form.displayName || "Preview"}
                       size="lg"
                     />
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p
                         className={`font-bold text-lg ${
                           form.textEffects.type
@@ -564,9 +822,24 @@ export default function ProfileEditorPage() {
                         }`}
                         style={{
                           fontFamily: `"${form.headingFont}", sans-serif`,
+                          ["--te-color" as string]: form.textEffects.color ?? "#8b5cf6",
+                          ["--te-color2" as string]: form.textEffects.color2 ?? "#ec4899",
+                          ["--te-color3" as string]: form.textEffects.color3 ?? "#f59e0b",
+                          ["--te-speed" as string]: `${form.textEffects.speed ?? 4}s`,
+                          ["--te-brightness" as string]: `${form.textEffects.brightness ?? 1}`,
                         }}
+                        {...(form.textEffects.type === "glitch" ? { "data-text": form.displayName || "Your Name" } : {})}
                       >
-                        {form.displayName || "Your Name"}
+                        {form.textEffects.type === "wave"
+                          ? (form.displayName || "Your Name").split("").map((ch, i) => (
+                              <span key={i} className="text-effect-wave-char" style={{ ["--char-index" as string]: i }}>
+                                {ch === " " ? "\u00A0" : ch}
+                              </span>
+                            ))
+                          : (form.displayName || "Your Name")}
+                        {form.textEffects.displayEmoji && (
+                          <span className="ml-1">{form.textEffects.displayEmoji}</span>
+                        )}
                       </p>
                       <p className="text-xs opacity-60">
                         @
@@ -616,6 +889,21 @@ export default function ProfileEditorPage() {
           </div>
         </div>
       </div>
+
+      {/* Avatar crop editor modal */}
+      {cropImage && (
+        <ImageCropEditor
+          imageSrc={cropImage}
+          onComplete={(croppedUrl) => {
+            update("profilePictureUrl", croppedUrl);
+            setCropImage(null);
+            toast.success("Avatar updated");
+          }}
+          onCancel={() => setCropImage(null)}
+          aspectRatio={1}
+          circular={true}
+        />
+      )}
 
       <style jsx global>{`
         .input-field {
