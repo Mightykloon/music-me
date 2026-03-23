@@ -391,10 +391,11 @@ export function ForumEditor({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/gif,image/webp"
         multiple
         onChange={handleImageUpload}
-        className="hidden"
+        className="sr-only"
+        tabIndex={-1}
       />
 
       {/* Audio attachment */}
@@ -463,11 +464,12 @@ function MusicSearchPanel({
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/music/search?q=${encodeURIComponent(q)}&limit=8`
+        `/api/music/search?q=${encodeURIComponent(q)}&limit=8`,
+        { credentials: "include" }
       );
       if (res.ok) {
         const data = await res.json();
-        setResults(data);
+        setResults(Array.isArray(data) ? data : []);
       }
     } catch {
       // ignore

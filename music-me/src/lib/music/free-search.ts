@@ -29,7 +29,7 @@ export async function freeSearch(
 
     const res = await fetch(
       `https://itunes.apple.com/search?${params}`,
-      { next: { revalidate: 3600 } }
+      { cache: "no-store" }
     );
 
     if (!res.ok) return [];
