@@ -45,8 +45,18 @@ export function ProfileHeader({
   onFollow,
   className,
 }: ProfileHeaderProps) {
-  const textEffect = (user.profile?.textEffects as { type?: string })?.type;
+  const te = (user.profile?.textEffects as { type?: string; color?: string; color2?: string; color3?: string; speed?: number; brightness?: number; displayEmoji?: string }) ?? {};
+  const textEffect = te.type;
   const bioSize = user.profile?.bioFontSize ?? "base";
+  const displayName = user.displayName ?? user.username;
+
+  const teStyle: React.CSSProperties = textEffect ? {
+    ["--te-color" as string]: te.color,
+    ["--te-color2" as string]: te.color2,
+    ["--te-color3" as string]: te.color3,
+    ["--te-speed" as string]: te.speed ? `${te.speed}s` : undefined,
+    ["--te-brightness" as string]: te.brightness != null ? `${te.brightness}` : undefined,
+  } : {};
 
   const bioSizeClass = {
     sm: "text-sm",
@@ -71,9 +81,20 @@ export function ProfileHeader({
               className={`text-2xl sm:text-3xl font-bold font-[family-name:var(--profile-heading-font)] truncate ${
                 textEffect ? `text-effect-${textEffect}` : ""
               }`}
+              style={teStyle}
+              {...(textEffect === "glitch" ? { "data-text": displayName } : {})}
             >
-              {user.displayName ?? user.username}
+              {textEffect === "wave"
+                ? displayName.split("").map((ch, i) => (
+                    <span key={i} className="text-effect-wave-char" style={{ ["--char-index" as string]: i }}>
+                      {ch === " " ? "\u00A0" : ch}
+                    </span>
+                  ))
+                : displayName}
             </h1>
+            {te.displayEmoji && (
+              <span className="flex-shrink-0">{te.displayEmoji}</span>
+            )}
             {user.isVerified && (
               <BadgeCheck className="w-5 h-5 text-[var(--profile-primary)] flex-shrink-0" />
             )}

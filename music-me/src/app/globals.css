@@ -72,15 +72,27 @@ body {
 }
 
 /* Text effects for profile display names */
+
+/* --- Glow --- */
 .text-effect-glow {
-  text-shadow: 0 0 10px var(--profile-primary), 0 0 20px var(--profile-primary),
-    0 0 40px var(--profile-primary);
-}
-.text-effect-neon {
-  text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px var(--profile-primary),
-    0 0 40px var(--profile-primary), 0 0 80px var(--profile-primary);
+  text-shadow:
+    0 0 10px var(--te-color, var(--profile-primary)),
+    0 0 20px var(--te-color, var(--profile-primary)),
+    0 0 40px var(--te-color, var(--profile-primary));
 }
 
+/* --- Neon --- */
+.text-effect-neon {
+  text-shadow:
+    0 0 5px rgba(255,255,255, calc(0.8 * var(--te-brightness, 1))),
+    0 0 10px rgba(255,255,255, calc(0.6 * var(--te-brightness, 1))),
+    0 0 20px var(--te-color, var(--profile-primary)),
+    0 0 40px var(--te-color, var(--profile-primary)),
+    0 0 80px var(--te-color, var(--profile-primary));
+  filter: brightness(var(--te-brightness, 1));
+}
+
+/* --- Animated Gradient --- */
 @keyframes gradient-shift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -89,29 +101,66 @@ body {
 .text-effect-animated-gradient {
   background: linear-gradient(
     270deg,
-    var(--profile-primary),
-    var(--profile-accent),
-    var(--profile-secondary),
-    var(--profile-primary)
+    var(--te-color, var(--profile-primary)),
+    var(--te-color2, var(--profile-accent)),
+    var(--te-color3, var(--profile-secondary)),
+    var(--te-color, var(--profile-primary))
   );
   background-size: 300% 300%;
-  animation: gradient-shift 4s ease infinite;
+  animation: gradient-shift var(--te-speed, 4s) ease infinite;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-@keyframes glitch {
+/* --- Glitch (TikTok-style RGB split) --- */
+@keyframes glitch-main {
   0%, 100% { transform: translate(0); }
-  20% { transform: translate(-2px, 2px); }
-  40% { transform: translate(-2px, -2px); }
-  60% { transform: translate(2px, 2px); }
-  80% { transform: translate(2px, -2px); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(1px, -1px); }
+  60% { transform: translate(-1px, -1px); }
+  80% { transform: translate(1px, 1px); }
+}
+@keyframes glitch-r {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  10% { clip-path: inset(20% 0 60% 0); transform: translate(3px, -1px); }
+  20% { clip-path: inset(50% 0 20% 0); transform: translate(-3px, 1px); }
+  30% { clip-path: inset(10% 0 70% 0); transform: translate(2px, 0); }
+  40% { clip-path: inset(80% 0 5% 0); transform: translate(-2px, -1px); }
+  50% { clip-path: inset(30% 0 40% 0); transform: translate(3px, 1px); }
+  60% { clip-path: inset(60% 0 10% 0); transform: translate(-1px, 0); }
+  70% { clip-path: inset(5% 0 85% 0); transform: translate(2px, -1px); }
+  80% { clip-path: inset(45% 0 30% 0); transform: translate(-3px, 1px); }
+  90% { clip-path: inset(70% 0 15% 0); transform: translate(1px, 0); }
 }
 .text-effect-glitch {
-  animation: glitch 0.3s infinite;
+  position: relative;
+  animation: glitch-main var(--te-speed, 2s) infinite;
+}
+.text-effect-glitch::before,
+.text-effect-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.text-effect-glitch::before {
+  color: var(--te-color, #ff0000);
+  animation: glitch-r var(--te-speed, 2s) infinite linear alternate-reverse;
+  mix-blend-mode: screen;
+  opacity: 0.8;
+}
+.text-effect-glitch::after {
+  color: var(--te-color2, #00ffff);
+  animation: glitch-r var(--te-speed, 2s) infinite linear reverse;
+  mix-blend-mode: screen;
+  opacity: 0.8;
 }
 
+/* --- Typewriter --- */
 @keyframes typewriter {
   from { width: 0; }
   to { width: 100%; }
@@ -121,4 +170,81 @@ body {
   white-space: nowrap;
   animation: typewriter 2s steps(20) 1s forwards;
   width: 0;
+}
+
+/* --- Wave (per-character bounce) --- */
+@keyframes wave-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.text-effect-wave {
+  display: inline-flex;
+}
+.text-effect-wave-char {
+  display: inline-block;
+  animation: wave-bounce var(--te-speed, 3s) ease-in-out infinite;
+  animation-delay: calc(var(--char-index, 0) * 0.08s);
+}
+
+/* --- Pulse --- */
+@keyframes pulse-glow {
+  0%, 100% {
+    text-shadow: 0 0 4px transparent;
+    opacity: 1;
+  }
+  50% {
+    text-shadow: 0 0 12px var(--te-color, var(--profile-primary)),
+                 0 0 24px var(--te-color, var(--profile-primary));
+    opacity: 0.9;
+  }
+}
+.text-effect-pulse {
+  animation: pulse-glow var(--te-speed, 2s) ease-in-out infinite;
+}
+
+/* --- Flicker --- */
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    text-shadow: 0 0 4px var(--te-color, var(--profile-primary)),
+                 0 0 10px var(--te-color, var(--profile-primary));
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    text-shadow: none;
+    opacity: 0.4;
+  }
+}
+.text-effect-flicker {
+  animation: flicker var(--te-speed, 2s) infinite;
+}
+
+/* --- Shadow Pop --- */
+@keyframes shadow-pop {
+  0%, 100% {
+    text-shadow: 2px 2px 0 var(--te-color, var(--profile-primary));
+    transform: translate(0, 0);
+  }
+  50% {
+    text-shadow: 4px 4px 0 var(--te-color, var(--profile-primary)),
+                 6px 6px 0 color-mix(in srgb, var(--te-color, var(--profile-primary)) 50%, transparent);
+    transform: translate(-2px, -2px);
+  }
+}
+.text-effect-shadow-pop {
+  animation: shadow-pop 3s ease-in-out infinite;
+  text-shadow: 2px 2px 0 var(--te-color, var(--profile-primary));
+}
+
+/* --- Rainbow Cycle --- */
+@keyframes rainbow-hue {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+.text-effect-rainbow {
+  background: linear-gradient(90deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0088, #ff0000);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift var(--te-speed, 6s) linear infinite;
 }

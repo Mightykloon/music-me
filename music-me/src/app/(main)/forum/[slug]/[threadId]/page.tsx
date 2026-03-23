@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { ThreadView } from "./thread-view";
 
 export async function generateMetadata({
@@ -21,6 +22,8 @@ export default async function ThreadPage({
   params: Promise<{ slug: string; threadId: string }>;
 }) {
   const { slug, threadId } = await params;
+  const session = await auth();
+  const currentUserId = session?.user?.id ?? null;
 
   const thread = await db.forumThread.update({
     where: { id: threadId },
@@ -39,6 +42,9 @@ export default async function ThreadPage({
         },
       },
       category: { select: { name: true, slug: true, icon: true, color: true } },
+      reactions: {
+        select: { emoji: true, userId: true },
+      },
       replies: {
         orderBy: { createdAt: "asc" },
         include: {
@@ -50,6 +56,9 @@ export default async function ThreadPage({
               profile: { select: { profilePictureUrl: true } },
               _count: { select: { forumReplies: true } },
             },
+          },
+          reactions: {
+            select: { emoji: true, userId: true },
           },
         },
       },
@@ -75,5 +84,11 @@ export default async function ThreadPage({
     })),
   };
 
-  return <ThreadView thread={serialized as never} categorySlug={slug} />;
+  return (
+    <ThreadView
+      thread={serialized as never}
+      categorySlug={slug}
+      currentUserId={currentUserId}
+    />
+  );
 }

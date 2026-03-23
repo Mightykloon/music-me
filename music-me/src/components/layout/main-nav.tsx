@@ -11,6 +11,7 @@ import {
   User,
   Search,
   MessageSquareText,
+  Library,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ interface MainNavProps {
 const navItems = [
   { href: "/feed", icon: Home, label: "Home" },
   { href: "/discover", icon: Compass, label: "Discover" },
+  { href: "/my-music", icon: Library, label: "My Music" },
   { href: "/forum", icon: MessageSquareText, label: "Forum" },
   { href: "/search", icon: Search, label: "Search" },
   { href: "/notifications", icon: Bell, label: "Notifications" },

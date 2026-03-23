@@ -14,10 +14,18 @@ import {
   Play,
   Pause,
   Volume2,
+  SmilePlus,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { ForumEditor } from "@/components/forum/forum-editor";
 import { ForumContent } from "@/components/forum/forum-content";
+
+const EMOJI_PICKER = ["👍", "👎", "❤️", "😂", "🔥", "🎵", "🎸", "🤘", "👏", "💯", "😮", "😢"];
+
+interface ReactionData {
+  emoji: string;
+  userId: string;
+}
 
 interface Author {
   id: string;
@@ -38,6 +46,7 @@ interface Reply {
   createdAt: string;
   editedAt: string | null;
   author: Author;
+  reactions?: ReactionData[];
 }
 
 interface Thread {
@@ -54,6 +63,7 @@ interface Thread {
   author: Author;
   category: { name: string; slug: string; icon: string | null; color: string | null };
   replies: Reply[];
+  reactions?: ReactionData[];
   _count: { replies: number };
 }
 
@@ -139,6 +149,131 @@ function AudioPlayer({
   );
 }
 
+// --- Reaction Bar (Discord-style) ---
+
+function ReactionBar({
+  reactions,
+  currentUserId,
+  threadId,
+  replyId,
+  onReact,
+}: {
+  reactions: ReactionData[];
+  currentUserId: string | null;
+  threadId?: string;
+  replyId?: string;
+  onReact: () => void;
+}) {
+  const [showPicker, setShowPicker] = useState(false);
+  const [reacting, setReacting] = useState<string | null>(null);
+
+  // Group reactions by emoji
+  const grouped = new Map<string, { count: number; userReacted: boolean }>();
+  for (const r of reactions) {
+    const existing = grouped.get(r.emoji);
+    if (existing) {
+      existing.count++;
+      if (r.userId === currentUserId) existing.userReacted = true;
+    } else {
+      grouped.set(r.emoji, {
+        count: 1,
+        userReacted: r.userId === currentUserId,
+      });
+    }
+  }
+
+  const handleReact = async (emoji: string) => {
+    if (!currentUserId || reacting) return;
+    setReacting(emoji);
+    try {
+      await fetch("/api/forum/reactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          emoji,
+          ...(threadId ? { threadId } : { replyId }),
+        }),
+      });
+      onReact();
+    } catch {
+      // ignore
+    } finally {
+      setReacting(null);
+      setShowPicker(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap mt-3">
+      {/* Existing reactions */}
+      {Array.from(grouped.entries()).map(([emoji, { count, userReacted }]) => (
+        <button
+          key={emoji}
+          onClick={() => handleReact(emoji)}
+          disabled={!currentUserId || reacting === emoji}
+          className={`
+            inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+            transition-all duration-150 select-none
+            ${
+              userReacted
+                ? "bg-primary/20 border border-primary/40 text-primary hover:bg-primary/30"
+                : "bg-muted/40 border border-border/50 text-muted-foreground hover:bg-muted/60 hover:border-border"
+            }
+          `}
+        >
+          <span className="text-sm leading-none">{emoji}</span>
+          <span>{count}</span>
+        </button>
+      ))}
+
+      {/* Add reaction button */}
+      {currentUserId && (
+        <div className="relative">
+          <button
+            onClick={() => setShowPicker(!showPicker)}
+            className={`
+              inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs
+              transition-all duration-150
+              ${
+                showPicker
+                  ? "bg-muted/60 border border-border text-foreground"
+                  : "bg-transparent border border-dashed border-border/40 text-muted-foreground hover:border-border hover:text-foreground hover:bg-muted/30"
+              }
+            `}
+          >
+            <SmilePlus className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Emoji picker dropdown */}
+          {showPicker && (
+            <div className="absolute bottom-full left-0 mb-1.5 p-1.5 rounded-lg border border-border bg-background shadow-xl z-50 flex gap-0.5 flex-wrap w-[200px]">
+              {EMOJI_PICKER.map((emoji) => {
+                const already = grouped.get(emoji);
+                return (
+                  <button
+                    key={emoji}
+                    onClick={() => handleReact(emoji)}
+                    className={`
+                      w-8 h-8 rounded-md flex items-center justify-center text-base
+                      transition-colors hover:bg-muted
+                      ${already?.userReacted ? "bg-primary/20" : ""}
+                    `}
+                  >
+                    {emoji}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Forum Post Block ---
+
 function ForumPostBlock({
   author,
   content,
@@ -148,6 +283,11 @@ function ForumPostBlock({
   createdAt,
   editedAt,
   isOP,
+  reactions,
+  currentUserId,
+  threadId,
+  replyId,
+  onReact,
 }: {
   author: Author;
   content: string;
@@ -157,6 +297,11 @@ function ForumPostBlock({
   createdAt: string;
   editedAt?: string | null;
   isOP?: boolean;
+  reactions?: ReactionData[];
+  currentUserId: string | null;
+  threadId?: string;
+  replyId?: string;
+  onReact: () => void;
 }) {
   const name = author.displayName ?? author.username;
   return (
@@ -234,6 +379,15 @@ function ForumPostBlock({
             <AudioPlayer src={audioUrl} title={audioTitle} />
           </div>
         )}
+
+        {/* Reactions */}
+        <ReactionBar
+          reactions={reactions ?? []}
+          currentUserId={currentUserId}
+          threadId={threadId}
+          replyId={replyId}
+          onReact={onReact}
+        />
       </div>
     </div>
   );
@@ -242,9 +396,11 @@ function ForumPostBlock({
 export function ThreadView({
   thread,
   categorySlug,
+  currentUserId,
 }: {
   thread: Thread;
   categorySlug: string;
+  currentUserId: string | null;
 }) {
   const router = useRouter();
   const [replyContent, setReplyContent] = useState("");
@@ -278,6 +434,8 @@ export function ThreadView({
       setSubmitting(false);
     }
   };
+
+  const refreshReactions = () => router.refresh();
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -331,6 +489,10 @@ export function ThreadView({
         audioTitle={thread.audioTitle}
         createdAt={thread.createdAt}
         isOP
+        reactions={thread.reactions}
+        currentUserId={currentUserId}
+        threadId={thread.id}
+        onReact={refreshReactions}
       />
 
       {/* Replies */}
@@ -343,6 +505,10 @@ export function ThreadView({
           audioUrl={reply.audioUrl}
           createdAt={reply.createdAt}
           editedAt={reply.editedAt}
+          reactions={reply.reactions}
+          currentUserId={currentUserId}
+          replyId={reply.id}
+          onReact={refreshReactions}
         />
       ))}
 
