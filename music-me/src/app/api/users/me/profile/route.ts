@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { profileUpdateSchema } from "@/lib/auth/validation";
+import { containsProfanity } from "@/lib/utils/profanity";
 
 export async function PATCH(request: Request) {
   try {
@@ -17,6 +18,23 @@ export async function PATCH(request: Request) {
     if (!result.success) {
       return NextResponse.json(
         { error: result.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    // Server-side profanity check
+    const textToCheck = [
+      result.data.displayName,
+      result.data.bio,
+      ...(result.data.favorites?.interests ?? []),
+      ...(result.data.favorites?.hobbies ?? []),
+      ...(result.data.favorites?.books ?? []),
+      ...(result.data.favorites?.games ?? []),
+    ].filter(Boolean).join(" ");
+
+    if (containsProfanity(textToCheck)) {
+      return NextResponse.json(
+        { error: "Profile contains inappropriate language" },
         { status: 400 }
       );
     }

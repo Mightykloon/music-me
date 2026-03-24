@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Save, Loader2, Upload, X } from "lucide-react";
+import { Save, Loader2, Upload, X, Plus, Trash2, GripVertical, ExternalLink, Globe, Twitter, Instagram, Youtube, Github, Music, Twitch, Linkedin, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { ImageCropEditor } from "@/components/ui/image-crop-editor";
 import { useUpload } from "@/hooks/use-upload";
+import { containsProfanity } from "@/lib/utils/profanity";
 
 const FONT_OPTIONS = [
   "Inter",
@@ -44,6 +45,45 @@ const TEXT_EFFECTS = [
   { value: "shadow-pop", label: "Shadow Pop" },
   { value: "rainbow", label: "Rainbow Cycle" },
 ];
+
+const LINK_ICON_OPTIONS = [
+  { value: "globe", label: "Website", icon: Globe },
+  { value: "twitter", label: "Twitter / X", icon: Twitter },
+  { value: "instagram", label: "Instagram", icon: Instagram },
+  { value: "youtube", label: "YouTube", icon: Youtube },
+  { value: "github", label: "GitHub", icon: Github },
+  { value: "music", label: "Music", icon: Music },
+  { value: "twitch", label: "Twitch", icon: Twitch },
+  { value: "linkedin", label: "LinkedIn", icon: Linkedin },
+  { value: "discord", label: "Discord", icon: MessageCircle },
+  { value: "other", label: "Other", icon: ExternalLink },
+];
+
+const INTEREST_SUGGESTIONS = [
+  "Music", "Gaming", "Art", "Photography", "Coding", "Anime", "Movies",
+  "Reading", "Fashion", "Cooking", "Travel", "Fitness", "Nature", "Cats",
+  "Dogs", "Technology", "Science", "Astronomy", "History", "Philosophy",
+  "Psychology", "Design", "Film", "Theatre", "Dance", "Writing", "Poetry",
+  "Cars", "Skateboarding", "Sneakers", "Vinyl", "Retro Gaming", "Cosplay",
+  "Board Games", "Podcasts", "Investing", "Gardening", "DIY", "Streaming",
+];
+
+const HOBBY_SUGGESTIONS = [
+  "Guitar", "Piano", "Singing", "Drawing", "Painting", "Hiking", "Running",
+  "Cycling", "Swimming", "Yoga", "Meditation", "Cooking", "Baking", "Knitting",
+  "Woodworking", "Photography", "Filmmaking", "DJing", "Producing Music",
+  "3D Printing", "Rock Climbing", "Surfing", "Skiing", "Fishing", "Camping",
+  "Journaling", "Calligraphy", "Pottery", "Archery", "Martial Arts",
+  "Skateboarding", "Longboarding", "Chess", "Speedcubing", "Origami",
+];
+
+interface LinkFormItem {
+  id?: string;
+  title: string;
+  url: string;
+  iconType: string;
+  isNew?: boolean;
+}
 
 const BIO_SIZES = [
   { value: "sm", label: "Small" },
@@ -119,6 +159,7 @@ export default function ProfileEditorPage() {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [links, setLinks] = useState<LinkFormItem[]>([]);
 
   // Load current profile data
   useEffect(() => {
@@ -165,6 +206,20 @@ export default function ProfileEditorPage() {
           },
         });
         setLoaded(true);
+      });
+
+    // Load links separately
+    fetch("/api/users/me/links")
+      .then((r) => r.json())
+      .then((data) => {
+        setLinks(
+          (data.links ?? []).map((l: LinkFormItem & { id: string }) => ({
+            id: l.id,
+            title: l.title,
+            url: l.url,
+            iconType: l.iconType || "globe",
+          }))
+        );
       });
   }, [session]);
 
@@ -223,8 +278,23 @@ export default function ProfileEditorPage() {
   };
 
   const handleSave = async () => {
+    // Client-side profanity check
+    const allText = [
+      form.displayName,
+      form.bio,
+      ...form.favorites.interests,
+      ...form.favorites.hobbies,
+      ...form.favorites.books,
+      ...form.favorites.games,
+    ].join(" ");
+    if (containsProfanity(allText)) {
+      toast.error("Please remove inappropriate language before saving");
+      return;
+    }
+
     setSaving(true);
     try {
+      // Save profile
       const res = await fetch("/api/users/me/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -234,6 +304,38 @@ export default function ProfileEditorPage() {
         const err = await res.json();
         throw new Error(err.error || "Save failed");
       }
+
+      // Save links - delete removed, create new, update existing
+      const existingLinks = links.filter((l) => l.id && !l.isNew);
+      const newLinks = links.filter((l) => l.isNew || !l.id);
+
+      // Create new links
+      for (const link of newLinks) {
+        if (!link.title.trim() || !link.url.trim()) continue;
+        await fetch("/api/users/me/links", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: link.title,
+            url: link.url,
+            iconType: link.iconType || "globe",
+          }),
+        });
+      }
+
+      // Update existing links
+      for (const link of existingLinks) {
+        await fetch(`/api/users/me/links/${link.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: link.title,
+            url: link.url,
+            iconType: link.iconType || "globe",
+          }),
+        });
+      }
+
       toast.success("Profile updated!");
       router.refresh();
     } catch (err) {
@@ -790,25 +892,108 @@ export default function ProfileEditorPage() {
                 placeholder="e.g. cats, programming, music..."
                 tags={form.favorites.interests}
                 onChange={(tags) => update("favorites", { ...form.favorites, interests: tags })}
+                suggestions={INTEREST_SUGGESTIONS}
               />
               <TagInput
                 label="Hobbies"
                 placeholder="e.g. guitar, hiking, cooking..."
                 tags={form.favorites.hobbies}
                 onChange={(tags) => update("favorites", { ...form.favorites, hobbies: tags })}
+                suggestions={HOBBY_SUGGESTIONS}
               />
-              <TagInput
+              <SearchTagInput
                 label="Favorite Books"
-                placeholder="e.g. Dune, 1984..."
+                placeholder="Search for a book title..."
                 tags={form.favorites.books}
                 onChange={(tags) => update("favorites", { ...form.favorites, books: tags })}
+                searchEndpoint="/api/search/books"
               />
-              <TagInput
+              <SearchTagInput
                 label="Favorite Games"
-                placeholder="e.g. Minecraft, Elden Ring..."
+                placeholder="Search for a game title..."
                 tags={form.favorites.games}
                 onChange={(tags) => update("favorites", { ...form.favorites, games: tags })}
+                searchEndpoint="/api/search/games"
               />
+            </Section>
+
+            {/* Links */}
+            <Section title="Links & Socials">
+              <p className="text-xs text-muted-foreground -mt-2 mb-3">Add up to 20 links to your profile. Drag to reorder.</p>
+              <div className="space-y-3">
+                {links.map((link, index) => (
+                  <div key={link.id ?? `new-${index}`} className="flex items-start gap-2 p-3 rounded-xl border border-border bg-muted/30">
+                    <div className="pt-2">
+                      <GripVertical className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <select
+                          value={link.iconType}
+                          onChange={(e) => {
+                            const updated = [...links];
+                            updated[index] = { ...updated[index], iconType: e.target.value };
+                            setLinks(updated);
+                          }}
+                          className="input-field w-36 text-xs"
+                        >
+                          {LINK_ICON_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={link.title}
+                          onChange={(e) => {
+                            const updated = [...links];
+                            updated[index] = { ...updated[index], title: e.target.value };
+                            setLinks(updated);
+                          }}
+                          placeholder="Link title"
+                          className="input-field flex-1 text-sm"
+                        />
+                      </div>
+                      <input
+                        type="url"
+                        value={link.url}
+                        onChange={(e) => {
+                          const updated = [...links];
+                          updated[index] = { ...updated[index], url: e.target.value };
+                          setLinks(updated);
+                        }}
+                        placeholder="https://..."
+                        className="input-field text-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (link.id && !link.isNew) {
+                          await fetch(`/api/users/me/links/${link.id}`, { method: "DELETE" });
+                        }
+                        setLinks(links.filter((_, i) => i !== index));
+                      }}
+                      className="pt-2 text-muted-foreground hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {links.length < 20 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLinks([...links, { title: "", url: "", iconType: "globe", isNew: true }])}
+                  className="mt-2"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Add Link
+                </Button>
+              )}
             </Section>
           </div>
 
@@ -1033,21 +1218,47 @@ function TagInput({
   placeholder,
   tags,
   onChange,
+  suggestions,
 }: {
   label: string;
   placeholder: string;
   tags: string[];
   onChange: (tags: string[]) => void;
+  suggestions?: string[];
 }) {
   const [input, setInput] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const addTag = () => {
-    const value = input.trim();
-    if (value && !tags.includes(value)) {
-      onChange([...tags, value]);
+  const filtered = suggestions?.filter(
+    (s) =>
+      s.toLowerCase().includes(input.toLowerCase()) &&
+      !tags.includes(s)
+  ).slice(0, 8) ?? [];
+
+  const addTag = (value?: string) => {
+    const v = (value ?? input).trim();
+    if (!v) return;
+    if (containsProfanity(v)) {
+      toast.error("That contains inappropriate language");
+      return;
+    }
+    if (!tags.includes(v)) {
+      onChange([...tags, v]);
     }
     setInput("");
+    setShowSuggestions(false);
   };
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   return (
     <Field label={label}>
@@ -1068,29 +1279,216 @@ function TagInput({
           </span>
         ))}
       </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addTag();
-            }
-          }}
-          placeholder={placeholder}
-          className="input-field flex-1 text-sm"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={addTag}
-          disabled={!input.trim()}
-        >
-          Add
-        </Button>
+      <div className="relative" ref={wrapperRef}>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setShowSuggestions(e.target.value.length > 0);
+            }}
+            onFocus={() => input.length > 0 && setShowSuggestions(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addTag();
+              }
+            }}
+            placeholder={placeholder}
+            className="input-field flex-1 text-sm"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => addTag()}
+            disabled={!input.trim()}
+          >
+            Add
+          </Button>
+        </div>
+        {showSuggestions && filtered.length > 0 && (
+          <div className="absolute z-20 top-full mt-1 w-full rounded-lg border border-border bg-background shadow-xl max-h-48 overflow-y-auto">
+            {filtered.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => addTag(s)}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </Field>
+  );
+}
+
+interface SearchResult {
+  title: string;
+  author?: string | null;
+  coverUrl?: string | null;
+  year?: number | null;
+  platforms?: string[];
+}
+
+function SearchTagInput({
+  label,
+  placeholder,
+  tags,
+  onChange,
+  searchEndpoint,
+}: {
+  label: string;
+  placeholder: string;
+  tags: string[];
+  onChange: (tags: string[]) => void;
+  searchEndpoint: string;
+}) {
+  const [input, setInput] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout>(undefined);
+
+  const search = useCallback(
+    (query: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (query.length < 2) {
+        setResults([]);
+        return;
+      }
+      setSearching(true);
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const res = await fetch(`${searchEndpoint}?q=${encodeURIComponent(query)}`);
+          const data = await res.json();
+          setResults(data.results ?? []);
+          setShowDropdown(true);
+        } catch {
+          setResults([]);
+        } finally {
+          setSearching(false);
+        }
+      }, 400);
+    },
+    [searchEndpoint]
+  );
+
+  const addTag = (title: string) => {
+    const v = title.trim();
+    if (!v) return;
+    if (containsProfanity(v)) {
+      toast.error("That contains inappropriate language");
+      return;
+    }
+    if (!tags.includes(v)) {
+      onChange([...tags, v]);
+    }
+    setInput("");
+    setResults([]);
+    setShowDropdown(false);
+  };
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <Field label={label}>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-medium"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => onChange(tags.filter((t) => t !== tag))}
+              className="hover:text-red-400 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="relative" ref={wrapperRef}>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                search(e.target.value);
+              }}
+              onFocus={() => results.length > 0 && setShowDropdown(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addTag(input);
+                }
+              }}
+              placeholder={placeholder}
+              className="input-field text-sm"
+            />
+            {searching && (
+              <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => addTag(input)}
+            disabled={!input.trim()}
+          >
+            Add
+          </Button>
+        </div>
+        {showDropdown && results.length > 0 && (
+          <div className="absolute z-20 top-full mt-1 w-full rounded-lg border border-border bg-background shadow-xl max-h-64 overflow-y-auto">
+            {results.map((r, i) => (
+              <button
+                key={`${r.title}-${i}`}
+                type="button"
+                onClick={() => addTag(r.title)}
+                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-3"
+              >
+                {r.coverUrl ? (
+                  <img
+                    src={r.coverUrl}
+                    alt=""
+                    className="w-10 h-10 rounded object-cover flex-shrink-0 bg-muted"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-muted-foreground text-xs flex-shrink-0">
+                    ?
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{r.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {r.author && r.author}
+                    {r.year && ` (${r.year})`}
+                    {r.platforms && r.platforms.length > 0 && r.platforms.join(", ")}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </Field>
   );

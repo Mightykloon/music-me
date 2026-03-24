@@ -1,12 +1,14 @@
 "use client";
 
-import { ExternalLink, Globe, Twitter, Instagram, Youtube, Github, Music, Link2 } from "lucide-react";
+import { ExternalLink, Globe, Twitter, Instagram, Youtube, Github, Music, Link2, Twitch, Linkedin, MessageCircle } from "lucide-react";
 
 interface LinkItem { id: string; title: string; url: string; iconType: string | null; clickCount: number }
 interface LinkSectionProps { links: LinkItem[]; className?: string }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  twitter: Twitter, instagram: Instagram, youtube: Youtube, github: Github, music: Music, globe: Globe,
+  twitter: Twitter, instagram: Instagram, youtube: Youtube, github: Github,
+  music: Music, globe: Globe, twitch: Twitch, linkedin: Linkedin,
+  discord: MessageCircle, other: ExternalLink,
 };
 
 export function LinkSection({ links, className }: LinkSectionProps) {
