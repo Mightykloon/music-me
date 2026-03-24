@@ -1,33 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 252.17">
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 233.98">
   <defs>
     <style>
       .cls-1 {
-        letter-spacing: 0em;
+        fill: #8b5cf6;
       }
 
       .cls-1, .cls-2 {
-        fill: #7562ab;
-      }
-
-      .cls-3 {
-        letter-spacing: 0em;
-      }
-
-      .cls-3, .cls-4 {
-        fill: #fff;
-      }
-
-      .cls-5, .cls-2 {
         font-family: BotchRegular, Botch;
         font-size: 107.65px;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        isolation: isolate;
+      }
+
+      .cls-2 {
+        fill: #fff;
       }
 
       .cls-4 {
         letter-spacing: 0em;
       }
+
+      .cls-5 {
+        letter-spacing: 0em;
+      }
     </style>
   </defs>
-  <text class="cls-5" transform="translate(0 185.03)"><tspan class="cls-4" x="0" y="0">r</tspan><tspan class="cls-3" x="58.56" y="0">emix</tspan><tspan class="cls-1" x="357.72" y="0">d</tspan></text>
-  <text class="cls-2" transform="translate(342.27 98.88)"><tspan x="0" y="0">,</tspan></text>
+  <g class="cls-3">
+    <text class="cls-2" transform="translate(0 212.23)"><tspan x="0" y="0">r</tspan></text>
+    <text class="cls-2" transform="translate(1.4 212.23)"><tspan class="cls-5" x="0" y="0">r</tspan><tspan class="cls-4" x="58.56" y="0">emix</tspan></text>
+    <text class="cls-1" transform="translate(357.72 212.23)"><tspan x="0" y="0">d</tspan></text>
+  </g>
+  <g class="cls-3">
+    <text class="cls-1" transform="translate(336.95 98.88)"><tspan x="0" y="0">,</tspan></text>
+  </g>
 </svg>
