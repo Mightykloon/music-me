@@ -16,6 +16,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  icons: {
+    icon: "/favicon.svg",
+  },
   title: {
     default: "remixd — your sound. your identity.",
     template: "%s | remixd",
