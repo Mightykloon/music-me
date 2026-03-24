@@ -35,32 +35,34 @@ export default async function ProfilePage({
   const { username } = await params;
 
   try {
-    const user = await db.user.findUnique({
+    // Step-by-step to isolate which query fails
+    const userBasic = await db.user.findUnique({
       where: { username: username.toLowerCase() },
-      include: {
-        profile: true,
-        links: {
-          where: { isActive: true },
-          orderBy: { displayOrder: "asc" },
-        },
-        playlists: {
-          where: { isPublic: true, isPinned: true },
-          orderBy: { displayOrder: "asc" },
-        },
-        nowPlaying: {
-          include: { track: true },
-        },
-        _count: {
-          select: {
-            followers: true,
-            following: true,
-            posts: true,
-          },
-        },
-      },
     });
+    if (!userBasic) notFound();
 
-    if (!user) notFound();
+    let profile = null;
+    try { profile = await db.userProfile.findUnique({ where: { userId: userBasic.id } }); } catch (e) { console.error("[Profile] profile fetch error:", e); }
+
+    let links: { id: string; title: string; url: string; iconType: string | null; clickCount: number; displayOrder: number; isActive: boolean; userId: string }[] = [];
+    try { links = await db.link.findMany({ where: { userId: userBasic.id, isActive: true }, orderBy: { displayOrder: "asc" } }); } catch (e) { console.error("[Profile] links fetch error:", e); }
+
+    let playlists: { id: string; name: string; description: string | null; coverImageUrl: string | null; trackCount: number; provider: string; isPinned: boolean; isPublic: boolean; displayOrder: number; userId: string; providerPlaylistId: string; importedAt: Date; lastSyncedAt: Date | null; syncGroupId: string | null }[] = [];
+    try { playlists = await db.playlist.findMany({ where: { userId: userBasic.id, isPublic: true, isPinned: true }, orderBy: { displayOrder: "asc" } }); } catch (e) { console.error("[Profile] playlists fetch error:", e); }
+
+    let nowPlayingRaw = null;
+    try { nowPlayingRaw = await db.nowPlaying.findUnique({ where: { userId: userBasic.id }, include: { track: true } }); } catch (e) { console.error("[Profile] nowPlaying fetch error:", e); }
+
+    const counts = await db.user.findUnique({ where: { id: userBasic.id }, select: { _count: { select: { followers: true, following: true, posts: true } } } });
+
+    const user = {
+      ...userBasic,
+      profile,
+      links,
+      playlists,
+      nowPlaying: nowPlayingRaw,
+      _count: counts?._count ?? { followers: 0, following: 0, posts: 0 },
+    };
 
     // Get profile song
     const profileSong = user.profile?.profileSongId
