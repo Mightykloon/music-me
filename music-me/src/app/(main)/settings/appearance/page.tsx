@@ -56,7 +56,7 @@ export default function AppearanceSettingsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-xl font-bold font-[family-name:var(--font-space-grotesk)]">Appearance</h1>
-        <p className="text-sm text-muted-foreground mt-1">Customize the look of your music.me experience.</p>
+        <p className="text-sm text-muted-foreground mt-1">Customize the look of your remixd experience.</p>
       </div>
       <section className="space-y-4">
         <div className="flex items-center gap-2">

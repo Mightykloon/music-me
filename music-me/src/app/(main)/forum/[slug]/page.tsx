@@ -12,7 +12,7 @@ export async function generateMetadata({
     where: { slug },
     select: { name: true },
   });
-  return { title: category ? `${category.name} — Forum — music.me` : "Forum" };
+  return { title: category ? `${category.name} — Forum — remixd` : "Forum" };
 }
 
 export default async function ForumCategoryPage({

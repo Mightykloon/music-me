@@ -18,11 +18,11 @@ export async function generateMetadata({
   if (!user) return { title: "User not found" };
 
   return {
-    title: `${user.displayName ?? user.username} on music.me`,
-    description: user.bio ?? `Check out ${user.username}'s profile on music.me`,
+    title: `${user.displayName ?? user.username} on remixd`,
+    description: user.bio ?? `Check out ${user.username}'s profile on remixd`,
     openGraph: {
       title: `${user.displayName ?? user.username}`,
-      description: user.bio ?? `@${user.username} on music.me`,
+      description: user.bio ?? `@${user.username} on remixd`,
     },
   };
 }

@@ -22,8 +22,8 @@ export async function generateMetadata({
   const snippet = post.content?.slice(0, 100) ?? "Post";
 
   return {
-    title: `${name}: "${snippet}" — music.me`,
-    description: post.content?.slice(0, 200) ?? `Post by ${name} on music.me`,
+    title: `${name}: "${snippet}" — remixd`,
+    description: post.content?.slice(0, 200) ?? `Post by ${name} on remixd`,
   };
 }
 

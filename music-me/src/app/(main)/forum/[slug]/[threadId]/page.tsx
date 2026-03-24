@@ -13,7 +13,7 @@ export async function generateMetadata({
     where: { id: threadId },
     select: { title: true },
   });
-  return { title: thread ? `${thread.title} — Forum — music.me` : "Thread" };
+  return { title: thread ? `${thread.title} — Forum — remixd` : "Thread" };
 }
 
 export default async function ThreadPage({

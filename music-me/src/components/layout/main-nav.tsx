@@ -8,7 +8,6 @@ import {
   PlusCircle,
   Bell,
   User,
-  Search,
   Library,
   Users,
 } from "lucide-react";
@@ -27,10 +26,9 @@ interface MainNavProps {
 const navItems = [
   { href: "/feed", icon: Home, label: "Home" },
   { href: "/discover", icon: Compass, label: "Discover" },
-  { href: "/my-music", icon: Library, label: "My Music" },
   { href: "/community", icon: Users, label: "Community" },
-  { href: "/search", icon: Search, label: "Search" },
   { href: "/notifications", icon: Bell, label: "Notifications" },
+  { href: "/my-music", icon: Library, label: "Library" },
 ];
 
 export function MainNav({ user, className }: MainNavProps) {
@@ -48,7 +46,7 @@ export function MainNav({ user, className }: MainNavProps) {
       >
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/feed" className="text-xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight">
-            music<span className="text-primary">.me</span>
+            remixd
           </Link>
           <div className="flex items-center gap-1">
             {navItems.map((item) => {

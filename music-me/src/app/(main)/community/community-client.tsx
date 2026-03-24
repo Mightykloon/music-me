@@ -513,7 +513,7 @@ function MessagesTab({
 
 function LiveChatTab({ currentUserId, onlineUsers }: { currentUserId: string; onlineUsers: OnlineUser[] }) {
   const [messages, setMessages] = useState<LiveMessage[]>([
-    { id: "system-1", username: "system", displayName: "music.me", avatar: null, content: "Welcome to Live Chat! Say hello to fellow music lovers.", timestamp: new Date() },
+    { id: "system-1", username: "system", displayName: "remixd", avatar: null, content: "Welcome to Live Chat! Say hello to fellow music lovers.", timestamp: new Date() },
   ]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);

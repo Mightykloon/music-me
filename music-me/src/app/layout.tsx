@@ -17,8 +17,8 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: {
-    default: "music.me — your sound. your identity.",
-    template: "%s | music.me",
+    default: "remixd — your sound. your identity.",
+    template: "%s | remixd",
   },
   description:
     "A music-based social platform with customizable profiles, playlist imports, live lyrics, and an anti-doomscroll feed.",
@@ -26,9 +26,9 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
   ),
   openGraph: {
-    title: "music.me",
+    title: "remixd",
     description: "your sound. your identity.",
-    siteName: "music.me",
+    siteName: "remixd",
     type: "website",
   },
 };

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { CommunityClient } from "./community-client";
 
 export const metadata = {
-  title: "Community — music.me",
+  title: "Community — remixd",
 };
 
 export default async function CommunityPage() {
