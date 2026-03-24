@@ -27,41 +27,28 @@ export async function GET(request: Request) {
         );
         return NextResponse.json({ results });
       }
-    } catch { /* fall through to Wikipedia */ }
+    } catch { /* fall through */ }
   }
 
-  // Fallback: Wikipedia API search (always free, no key, has images)
+  // Fallback: Steam store search (free, no key, has cover art)
   try {
-    const wikiRes = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q + " video game")}&srnamespace=0&srlimit=8&format=json&origin=*`,
+    const steamRes = await fetch(
+      `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(q)}&l=english&cc=US`,
       { next: { revalidate: 3600 } }
     );
-    if (!wikiRes.ok) return NextResponse.json({ results: [] });
-    const wikiData = await wikiRes.json();
-    const pages = wikiData.query?.search ?? [];
+    if (!steamRes.ok) return NextResponse.json({ results: [] });
+    const steamData = await steamRes.json();
 
-    // Fetch thumbnails for each result
-    const pageIds = pages.map((p: { pageid: number }) => p.pageid).join("|");
-    if (!pageIds) return NextResponse.json({ results: [] });
-
-    const thumbRes = await fetch(
-      `https://en.wikipedia.org/w/api.php?action=query&pageids=${pageIds}&prop=pageimages|description&piprop=thumbnail&pithumbsize=200&format=json&origin=*`,
-      { next: { revalidate: 3600 } }
-    );
-    const thumbData = await thumbRes.json();
-    const pageInfo = thumbData.query?.pages ?? {};
-
-    const results = pages.map((p: { pageid: number; title: string; snippet: string }) => {
-      const info = pageInfo[String(p.pageid)];
-      // Extract year from snippet if present
-      const yearMatch = p.snippet.match(/\b(19|20)\d{2}\b/);
-      return {
-        title: p.title.replace(/ \(video game\)/i, "").replace(/ \(\d{4}.*?\)/i, ""),
-        coverUrl: info?.thumbnail?.source ?? null,
-        year: yearMatch ? parseInt(yearMatch[0]) : null,
+    const results = (steamData.items ?? []).slice(0, 8).map(
+      (item: { name: string; id: number; tiny_image?: string; metascore?: string }) => ({
+        title: item.name,
+        coverUrl: item.tiny_image
+          ? `https://cdn.akamai.steamstatic.com/steam/apps/${item.id}/header.jpg`
+          : null,
+        year: null,
         platforms: [] as string[],
-      };
-    }).filter((r: { title: string; coverUrl: string | null }) => r.coverUrl !== null);
+      })
+    );
 
     return NextResponse.json({ results });
   } catch {
