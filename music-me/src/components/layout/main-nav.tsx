@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RemixdLogo } from "@/components/ui/remixd-logo";
 
 interface MainNavProps {
   user: {
@@ -45,8 +46,8 @@ export function MainNav({ user, className }: MainNavProps) {
         )}
       >
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/feed" className="text-xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight">
-            remixd
+          <Link href="/feed">
+            <RemixdLogo height={22} />
           </Link>
           <div className="flex items-center gap-1">
             {navItems.map((item) => {

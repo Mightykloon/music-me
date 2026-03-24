@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Music, Headphones, Radio, Palette } from "lucide-react";
+import { RemixdLogo } from "@/components/ui/remixd-logo";
 
 export default function LandingPage() {
   return (
@@ -7,9 +8,7 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <span className="text-xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight">
-            music<span className="text-primary">.me</span>
-          </span>
+          <RemixdLogo height={24} />
           <div className="flex items-center gap-4">
             <Link
               href="/login"
@@ -33,9 +32,10 @@ export default function LandingPage() {
           {/* Glow effect behind title */}
           <div className="relative">
             <div className="absolute inset-0 blur-[100px] opacity-30 bg-gradient-to-r from-primary via-accent to-secondary rounded-full" />
-            <h1 className="relative text-6xl sm:text-8xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tighter">
-              music<span className="text-primary">.me</span>
-            </h1>
+            <div className="relative flex justify-center">
+              <RemixdLogo height={80} className="sm:hidden" />
+              <RemixdLogo height={120} className="hidden sm:block" />
+            </div>
           </div>
 
           <p className="text-xl sm:text-2xl text-muted-foreground font-light tracking-wide">
@@ -92,9 +92,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            music<span className="text-primary">.me</span>
-          </span>
+          <RemixdLogo height={18} />
           <span>&copy; {new Date().getFullYear()}</span>
         </div>
       </footer>
