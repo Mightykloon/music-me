@@ -3,11 +3,11 @@
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { TrendingUp, Users, Search as SearchIcon, Loader2, Music, X } from "lucide-react";
+import { TrendingUp, Users, Search as SearchIcon, Loader2, Music, X, Disc3 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { PostCard, type PostCardData } from "@/components/feed/post-card";
 
-type SearchTab = "all" | "users" | "posts" | "tracks";
+type SearchTab = "all" | "users" | "posts" | "tracks" | "playlists";
 
 interface SuggestedUser {
   id: string;
@@ -37,14 +37,30 @@ interface SearchTrack {
   provider: string;
 }
 
+interface PlaylistResult {
+  id: string;
+  name: string;
+  coverImageUrl: string | null;
+  trackCount: number;
+  provider: string;
+  description: string | null;
+  user: {
+    username: string;
+    displayName: string | null;
+    profile: { profilePictureUrl: string | null } | null;
+  };
+}
+
 interface DiscoverClientProps {
   trendingPosts: PostCardData[];
   suggestedUsers: SuggestedUser[];
+  popularPlaylists: PlaylistResult[];
 }
 
 export function DiscoverClient({
   trendingPosts,
   suggestedUsers,
+  popularPlaylists,
 }: DiscoverClientProps) {
   const [query, setQuery] = useState("");
   const [searchTab, setSearchTab] = useState<SearchTab>("all");
@@ -52,11 +68,12 @@ export function DiscoverClient({
   const [users, setUsers] = useState<SearchUser[]>([]);
   const [posts, setPosts] = useState<PostCardData[]>([]);
   const [tracks, setTracks] = useState<SearchTrack[]>([]);
+  const [playlists, setPlaylists] = useState<PlaylistResult[]>([]);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isSearching = query.length > 0;
-  const hasResults = users.length > 0 || posts.length > 0 || tracks.length > 0;
+  const hasResults = users.length > 0 || posts.length > 0 || tracks.length > 0 || playlists.length > 0;
 
   const doSearch = useCallback(
     async (q: string, t: SearchTab) => {
@@ -75,6 +92,7 @@ export function DiscoverClient({
         if (data.users) setUsers(data.users);
         if (data.posts) setPosts(data.posts);
         if (data.tracks) setTracks(data.tracks);
+        if (data.playlists) setPlaylists(data.playlists);
       } catch {
         // ignore
       } finally {
@@ -91,6 +109,7 @@ export function DiscoverClient({
       setUsers([]);
       setPosts([]);
       setTracks([]);
+      setPlaylists([]);
       return;
     }
     debounceRef.current = setTimeout(() => doSearch(value, searchTab), 300);
@@ -106,6 +125,7 @@ export function DiscoverClient({
     setUsers([]);
     setPosts([]);
     setTracks([]);
+    setPlaylists([]);
     inputRef.current?.focus();
   };
 
@@ -132,7 +152,7 @@ export function DiscoverClient({
         {/* Search tabs - only show when searching */}
         {isSearching && (
           <div className="flex gap-1 mt-2">
-            {(["all", "users", "posts", "tracks"] as SearchTab[]).map((t) => (
+            {(["all", "users", "posts", "tracks", "playlists"] as SearchTab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => handleTabChange(t)}
@@ -243,6 +263,47 @@ export function DiscoverClient({
               </div>
             )}
 
+            {/* Playlists */}
+            {playlists.length > 0 && (
+              <div>
+                {searchTab === "all" && (
+                  <p className="px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border/30">
+                    Playlists
+                  </p>
+                )}
+                {playlists.map((pl) => (
+                  <Link
+                    key={pl.id}
+                    href={`/playlist/${pl.id}`}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors border-b border-border/30"
+                  >
+                    {pl.coverImageUrl ? (
+                      <Image
+                        src={pl.coverImageUrl}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="rounded object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                        <Music className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{pl.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {pl.user.displayName ?? pl.user.username} · {pl.trackCount} tracks
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {pl.provider.toLowerCase().replace("_", " ")}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
             {/* Posts */}
             {posts.length > 0 && (
               <div>
@@ -288,6 +349,48 @@ export function DiscoverClient({
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {user._count.followers} followers · {user._count.posts} posts
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Popular Playlists */}
+          {popularPlaylists.length > 0 && (
+            <section className="px-4 py-4 border-b border-border/50">
+              <div className="flex items-center gap-2 mb-3">
+                <Disc3 className="w-4 h-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">Popular Playlists</h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {popularPlaylists.map((pl) => (
+                  <Link
+                    key={pl.id}
+                    href={`/playlist/${pl.id}`}
+                    className="group rounded-xl border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors overflow-hidden"
+                  >
+                    <div className="aspect-square relative bg-muted">
+                      {pl.coverImageUrl ? (
+                        <Image
+                          src={pl.coverImageUrl}
+                          alt={pl.name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Music className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-2">
+                      <p className="font-medium text-xs truncate group-hover:text-primary transition-colors">
+                        {pl.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {pl.user.displayName ?? pl.user.username} · {pl.trackCount} tracks
                       </p>
                     </div>
                   </Link>

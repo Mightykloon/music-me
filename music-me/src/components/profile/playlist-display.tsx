@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Music, ExternalLink, Disc3 } from "lucide-react";
 
 interface PlaylistItem {
@@ -29,7 +30,7 @@ export function PlaylistDisplay({ playlists, className }: PlaylistDisplayProps) 
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {playlists.map((pl) => (
-          <div key={pl.id} className="group relative rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden hover:bg-white/[0.05] hover:border-[var(--profile-primary)]/20 transition-all duration-300">
+          <Link href={`/playlist/${pl.id}`} key={pl.id} className="group relative rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden hover:bg-white/[0.05] hover:border-[var(--profile-primary)]/20 transition-all duration-300 block">
             <div className="flex items-center gap-3 p-3">
               {pl.coverImageUrl ? (
                 <div className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
@@ -48,7 +49,7 @@ export function PlaylistDisplay({ playlists, className }: PlaylistDisplayProps) 
               <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
             </div>
             {pl.description && <p className="text-xs text-muted-foreground px-3 pb-3 -mt-1 line-clamp-2">{pl.description}</p>}
-          </div>
+          </Link>
         ))}
       </div>
     </div>

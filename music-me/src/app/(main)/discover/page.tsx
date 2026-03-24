@@ -71,6 +71,22 @@ export default async function DiscoverPage() {
     },
   });
 
+  // Popular public playlists
+  const popularPlaylists = await db.playlist.findMany({
+    where: { isPublic: true },
+    take: 8,
+    orderBy: { trackCount: "desc" },
+    include: {
+      user: {
+        select: {
+          username: true,
+          displayName: true,
+          profile: { select: { profilePictureUrl: true } },
+        },
+      },
+    },
+  });
+
   // Serialize dates
   const serializedPosts = trendingPosts.map((p: (typeof trendingPosts)[number]) => ({
     ...p,
@@ -90,6 +106,7 @@ export default async function DiscoverPage() {
     <DiscoverClient
       trendingPosts={serializedPosts as never}
       suggestedUsers={suggestedUsers}
+      popularPlaylists={popularPlaylists}
     />
   );
 }

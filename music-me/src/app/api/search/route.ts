@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const limit = Math.min(Number(searchParams.get("limit") ?? 10), 50);
 
     if (!q || q.length < 1) {
-      return NextResponse.json({ users: [], posts: [], tracks: [] });
+      return NextResponse.json({ users: [], posts: [], tracks: [], playlists: [] });
     }
 
     const results: Record<string, unknown[]> = {};
@@ -74,6 +74,26 @@ export async function GET(request: Request) {
         take: limit,
       });
       results.tracks = tracks;
+    }
+
+    if (type === "all" || type === "playlists") {
+      const playlists = await db.playlist.findMany({
+        where: {
+          isPublic: true,
+          name: { contains: q, mode: "insensitive" },
+        },
+        take: limit,
+        include: {
+          user: {
+            select: {
+              username: true,
+              displayName: true,
+              profile: { select: { profilePictureUrl: true } },
+            },
+          },
+        },
+      });
+      results.playlists = playlists;
     }
 
     return NextResponse.json(results);

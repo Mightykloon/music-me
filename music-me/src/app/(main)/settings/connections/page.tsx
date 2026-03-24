@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
+import Image from "next/image";
 import {
   Loader2,
   CheckCircle2,
@@ -10,6 +11,12 @@ import {
   RefreshCw,
   Star,
   Unplug,
+  Eye,
+  EyeOff,
+  Pin,
+  PinOff,
+  Music,
+  ListMusic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -63,6 +70,9 @@ export default function ConnectionsPage() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [playlistsLoading, setPlaylistsLoading] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("success")) {
@@ -82,6 +92,45 @@ export default function ConnectionsPage() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (connections.length > 0) {
+      setPlaylistsLoading(true);
+      fetch("/api/music/playlists")
+        .then((r) => r.json())
+        .then((data) => {
+          setPlaylists(Array.isArray(data) ? data : []);
+          setPlaylistsLoading(false);
+        })
+        .catch(() => setPlaylistsLoading(false));
+    }
+  }, [connections]);
+
+  const handlePlaylistToggle = async (
+    playlistId: string,
+    field: "isPublic" | "isPinned",
+    value: boolean
+  ) => {
+    const res = await fetch(`/api/music/playlists/${playlistId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
+    });
+    if (res.ok) {
+      setPlaylists((prev) =>
+        prev.map((p) => (p.id === playlistId ? { ...p, [field]: value } : p))
+      );
+      toast.success(
+        field === "isPublic"
+          ? value
+            ? "Playlist made public"
+            : "Playlist made private"
+          : value
+            ? "Pinned to profile"
+            : "Unpinned from profile"
+      );
+    }
+  };
 
   const handleConnect = (provider: string) => {
     window.location.href = `/api/auth/connect/${provider.toLowerCase()}`;
@@ -242,6 +291,104 @@ export default function ConnectionsPage() {
           );
         })}
       </div>
+
+      {/* My Playlists */}
+      {connections.length > 0 && (
+        <div className="mt-10">
+          <div className="flex items-center gap-2 mb-2">
+            <ListMusic className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold font-[family-name:var(--font-space-grotesk)]">
+              My Playlists
+            </h2>
+          </div>
+          <p className="text-muted-foreground text-sm mb-6">
+            Toggle visibility and pin playlists to your profile.
+          </p>
+          {playlistsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : playlists.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">
+              No playlists found. Try syncing your connected services.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {playlists.map((pl) => (
+                <div
+                  key={pl.id}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30"
+                >
+                  {pl.coverImageUrl ? (
+                    <Image
+                      src={pl.coverImageUrl}
+                      alt={pl.name}
+                      width={48}
+                      height={48}
+                      className="rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                      <Music className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{pl.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {pl._count?.tracks ?? pl.trackCount} tracks ·{" "}
+                      {pl.provider.toLowerCase().replace("_", " ")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() =>
+                        handlePlaylistToggle(pl.id, "isPublic", !pl.isPublic)
+                      }
+                      className={`p-2 rounded-lg transition-colors ${
+                        pl.isPublic
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                      title={
+                        pl.isPublic
+                          ? "Public (click to make private)"
+                          : "Private (click to make public)"
+                      }
+                    >
+                      {pl.isPublic ? (
+                        <Eye className="w-4 h-4" />
+                      ) : (
+                        <EyeOff className="w-4 h-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() =>
+                        handlePlaylistToggle(pl.id, "isPinned", !pl.isPinned)
+                      }
+                      className={`p-2 rounded-lg transition-colors ${
+                        pl.isPinned
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                      title={
+                        pl.isPinned
+                          ? "Pinned to profile (click to unpin)"
+                          : "Not on profile (click to pin)"
+                      }
+                    >
+                      {pl.isPinned ? (
+                        <Pin className="w-4 h-4" />
+                      ) : (
+                        <PinOff className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
