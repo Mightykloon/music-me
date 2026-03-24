@@ -144,15 +144,16 @@ export default async function ProfilePage({
       />
     );
   } catch (error) {
-    console.error("[ProfilePage] Error:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack?.split('\n').slice(0, 5).join('\n') : '';
+    console.error("[ProfilePage] Error:", msg, stack);
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <h1 className="text-2xl font-bold text-purple-400 mb-2">Profile Error</h1>
-          <p className="text-muted-foreground mb-4">
-            {error instanceof Error ? error.message : "Unknown error loading profile"}
-          </p>
-          <a href="/" className="text-purple-400 underline">Go home</a>
+          <p className="text-muted-foreground mb-4">{msg}</p>
+          <pre className="text-xs text-left text-gray-500 mt-4 overflow-auto max-h-40">{stack}</pre>
+          <a href="/" className="text-purple-400 underline mt-4 block">Go home</a>
         </div>
       </div>
     );
