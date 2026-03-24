@@ -30,17 +30,17 @@ export default async function MyMusicPage() {
     }),
   ]);
 
-  const serializedPlaylists = playlists.map((p) => ({
+  const serializedPlaylists = playlists.map((p: (typeof playlists)[number]) => ({
     ...p,
     importedAt: p.importedAt.toISOString(),
     lastSyncedAt: p.lastSyncedAt.toISOString(),
   }));
 
-  const serializedGroups = syncGroups.map((g) => ({
+  const serializedGroups = syncGroups.map((g: (typeof syncGroups)[number]) => ({
     ...g,
     lastSyncedAt: g.lastSyncedAt.toISOString(),
     createdAt: g.createdAt.toISOString(),
-    playlists: g.playlists.map((p) => ({
+    playlists: g.playlists.map((p: (typeof g.playlists)[number]) => ({
       ...p,
       importedAt: p.importedAt.toISOString(),
       lastSyncedAt: p.lastSyncedAt.toISOString(),

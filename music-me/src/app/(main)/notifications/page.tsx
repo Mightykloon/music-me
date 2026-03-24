@@ -33,7 +33,7 @@ export default async function NotificationsPage() {
     data: { read: true },
   });
 
-  const items = notifications.map((n) => ({
+  const items = notifications.map((n: (typeof notifications)[number]) => ({
     ...n,
     createdAt: n.createdAt.toISOString(),
   }));

@@ -6,11 +6,9 @@ import {
   Home,
   Compass,
   PlusCircle,
-  MessageCircle,
   Bell,
   User,
   Search,
-  MessageSquareText,
   Library,
   Users,
 } from "lucide-react";
@@ -30,10 +28,9 @@ const navItems = [
   { href: "/feed", icon: Home, label: "Home" },
   { href: "/discover", icon: Compass, label: "Discover" },
   { href: "/my-music", icon: Library, label: "My Music" },
-  { href: "/forum", icon: MessageSquareText, label: "Forum" },
+  { href: "/community", icon: Users, label: "Community" },
   { href: "/search", icon: Search, label: "Search" },
   { href: "/notifications", icon: Bell, label: "Notifications" },
-  { href: "/messages", icon: MessageCircle, label: "Messages" },
 ];
 
 export function MainNav({ user, className }: MainNavProps) {
@@ -50,45 +47,25 @@ export function MainNav({ user, className }: MainNavProps) {
         )}
       >
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link
-            href="/feed"
-            className="text-xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight"
-          >
+          <Link href="/feed" className="text-xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight">
             music<span className="text-primary">.me</span>
           </Link>
-
           <div className="flex items-center gap-1">
             {navItems.map((item) => {
               const active = pathname.startsWith(item.href);
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-                    active
-                      ? "text-primary bg-primary/10"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  )}
-                >
+                <Link key={item.href} href={item.href} className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors", active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
                   <item.icon className="w-4 h-4" />
                   <span className="hidden lg:inline">{item.label}</span>
                 </Link>
               );
             })}
           </div>
-
           <div className="flex items-center gap-3">
-            <Link
-              href="/feed"
-              className="p-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
+            <Link href="/feed" className="p-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
               <PlusCircle className="w-5 h-5" />
             </Link>
-            <Link
-              href={username ? `/${username}` : "/settings/profile"}
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
-            >
+            <Link href={username ? `/${username}` : "/settings/profile"} className="p-2 rounded-lg hover:bg-muted transition-colors">
               <User className="w-5 h-5" />
             </Link>
           </div>
@@ -102,32 +79,20 @@ export function MainNav({ user, className }: MainNavProps) {
             <Home className="w-5 h-5" />
             <span className="text-[10px] mt-0.5">Home</span>
           </Link>
-          <Link
-            href="/discover"
-            className={mobileNavClass(pathname, "/discover")}
-          >
+          <Link href="/discover" className={mobileNavClass(pathname, "/discover")}>
             <Compass className="w-5 h-5" />
             <span className="text-[10px] mt-0.5">Discover</span>
           </Link>
-          <Link
-            href="/feed"
-            className="flex flex-col items-center justify-center -mt-4"
-          >
+          <Link href="/feed" className="flex flex-col items-center justify-center -mt-4">
             <span className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
               <PlusCircle className="w-6 h-6" />
             </span>
           </Link>
-          <Link
-            href="/forum"
-            className={mobileNavClass(pathname, "/forum", ["/messages"])}
-          >
+          <Link href="/community" className={mobileNavClass(pathname, "/community", ["/forum", "/messages"])}>
             <Users className="w-5 h-5" />
             <span className="text-[10px] mt-0.5">Community</span>
           </Link>
-          <Link
-            href={username ? `/${username}` : "/settings/profile"}
-            className={mobileNavClass(pathname, `/${username}`)}
-          >
+          <Link href={username ? `/${username}` : "/settings/profile"} className={mobileNavClass(pathname, `/${username}`)}>
             <User className="w-5 h-5" />
             <span className="text-[10px] mt-0.5">Profile</span>
           </Link>
@@ -141,9 +106,7 @@ function mobileNavClass(pathname: string, href: string, additionalPaths?: string
   const active =
     pathname === href ||
     pathname.startsWith(href + "/") ||
-    (additionalPaths?.some(
-      (p) => pathname === p || pathname.startsWith(p + "/")
-    ) ?? false);
+    (additionalPaths?.some((p) => pathname === p || pathname.startsWith(p + "/")) ?? false);
   return cn(
     "flex flex-col items-center justify-center gap-0 min-w-[3rem] py-1 rounded-lg transition-colors",
     active ? "text-primary" : "text-muted-foreground"

@@ -48,7 +48,7 @@ export default async function ForumCategoryPage({
     },
   });
 
-  const serialized = threads.map((t) => ({
+  const serialized = threads.map((t: (typeof threads)[number]) => ({
     ...t,
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),

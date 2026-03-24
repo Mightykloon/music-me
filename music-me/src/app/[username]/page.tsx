@@ -129,7 +129,7 @@ export default async function ProfilePage({
       : null,
   };
 
-  const postsData = posts.map((p) => ({
+  const postsData = posts.map((p: (typeof posts)[number]) => ({
     ...p,
     createdAt: p.createdAt.toISOString(),
   }));

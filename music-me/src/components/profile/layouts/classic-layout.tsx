@@ -11,41 +11,22 @@ import type { ProfileLayoutProps } from "./types";
 
 export function ClassicLayout({ user, posts, isOwn }: ProfileLayoutProps) {
   return (
-    <div className="max-w-2xl mx-auto w-full space-y-6">
-      {/* Banner */}
+    <div className="max-w-2xl mx-auto w-full space-y-8">
       {user.profile?.bannerUrl && (
         <div className="relative h-48 sm:h-64 rounded-2xl overflow-hidden -mx-4 sm:mx-0">
-          <img
-            src={user.profile.bannerUrl}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--profile-bg)] to-transparent" />
+          <img src={user.profile.bannerUrl} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--profile-bg)] via-[var(--profile-bg)]/40 to-transparent" />
         </div>
       )}
-
-      {/* Now Playing */}
-      {user.nowPlaying?.track && (
-        <NowPlayingBadge track={user.nowPlaying.track} />
-      )}
-
-      {/* Profile Song */}
-      {user.profileSong && (
-        <ProfileSong
-          track={user.profileSong}
-          autoplay={user.profile?.autoplayProfileSong}
-        />
-      )}
-
+      {user.nowPlaying?.track && <NowPlayingBadge track={user.nowPlaying.track} />}
+      {user.profileSong && <ProfileSong track={user.profileSong} autoplay={user.profile?.autoplayProfileSong} />}
       <ProfileHeader user={user} isOwn={isOwn} />
-
-      <LinkSection links={user.links ?? []} />
-
-      <PlaylistDisplay playlists={user.playlists ?? []} />
-
-      <VibeBoard items={(user.profile?.vibeBoard as never[]) ?? []} />
-
-      <PostGrid posts={posts} />
+      <div className="space-y-8">
+        <LinkSection links={user.links ?? []} />
+        <PlaylistDisplay playlists={user.playlists ?? []} />
+        <VibeBoard items={(user.profile?.vibeBoard as never[]) ?? []} />
+        <PostGrid posts={posts} />
+      </div>
     </div>
   );
 }

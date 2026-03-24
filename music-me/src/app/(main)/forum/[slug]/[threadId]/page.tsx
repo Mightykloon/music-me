@@ -77,7 +77,7 @@ export default async function ThreadPage({
       ...thread.author,
       createdAt: thread.author.createdAt.toISOString(),
     },
-    replies: thread.replies.map((r) => ({
+    replies: thread.replies.map((r: (typeof thread.replies)[number]) => ({
       ...r,
       createdAt: r.createdAt.toISOString(),
       editedAt: r.editedAt?.toISOString() ?? null,

@@ -72,7 +72,7 @@ export default async function DiscoverPage() {
   });
 
   // Serialize dates
-  const serializedPosts = trendingPosts.map((p) => ({
+  const serializedPosts = trendingPosts.map((p: (typeof trendingPosts)[number]) => ({
     ...p,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
