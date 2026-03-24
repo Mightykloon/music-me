@@ -45,6 +45,12 @@ export const profileUpdateSchema = z.object({
   profileSongId: z.string().optional().or(z.literal("")),
   autoplayProfileSong: z.boolean().optional(),
   vibeBoard: z.array(z.unknown()).optional(),
+  favorites: z.object({
+    books: z.array(z.string()).optional(),
+    games: z.array(z.string()).optional(),
+    hobbies: z.array(z.string()).optional(),
+    interests: z.array(z.string()).optional(),
+  }).optional(),
 });
 
 export const linkSchema = z.object({

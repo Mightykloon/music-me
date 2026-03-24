@@ -7,6 +7,7 @@ import { LinkSection } from "@/components/profile/link-section";
 import { VibeBoard } from "@/components/profile/vibe-board";
 import { PostGrid } from "@/components/profile/post-grid";
 import { NowPlayingBadge } from "@/components/profile/now-playing-badge";
+import { FavoritesSection } from "@/components/profile/favorites-section";
 import type { ProfileLayoutProps } from "./types";
 
 export function MagazineLayout({ user, posts, isOwn }: ProfileLayoutProps) {
@@ -45,6 +46,8 @@ export function MagazineLayout({ user, posts, isOwn }: ProfileLayoutProps) {
               autoplay={user.profile?.autoplayProfileSong}
             />
           )}
+
+          <FavoritesSection favorites={(user.profile?.favorites as { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[] }) ?? null} />
 
           <VibeBoard items={(user.profile?.vibeBoard as never[]) ?? []} />
 

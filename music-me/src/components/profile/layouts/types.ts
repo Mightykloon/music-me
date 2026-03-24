@@ -28,6 +28,7 @@ export interface ProfileLayoutProps {
       layoutStyle: string;
       autoplayProfileSong: boolean;
       vibeBoard: unknown[] | null;
+      favorites: { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[] } | null;
     } | null;
     links: {
       id: string;

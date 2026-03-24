@@ -39,6 +39,7 @@ export interface UserProfilePublic {
   profileSongId: string | null;
   autoplayProfileSong: boolean;
   vibeBoard: unknown[] | null;
+  favorites: { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[] } | null;
 }
 
 export interface TrackInfo {

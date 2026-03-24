@@ -465,7 +465,7 @@ function MessagesTab({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] sm:h-[calc(100vh-12rem)] max-sm:h-[calc(100vh-16rem)]">
+    <div className="flex flex-col h-[calc(100dvh-14rem)] sm:h-[calc(100dvh-12rem)]">
       <div className="flex items-center gap-3 pb-3 border-b border-border/30 mb-3">
         <button onClick={() => setActiveConvo(null)} className="p-1.5 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
         {activeItem && (
@@ -501,7 +501,7 @@ function MessagesTab({
         )}
         <div ref={messagesEndRef} />
       </div>
-      <div className="pt-3 mt-auto flex items-center gap-2">
+      <div className="pt-3 mt-auto flex items-center gap-2 pb-safe">
         <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Type a message..." className="flex-1 bg-muted/30 rounded-xl px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50" />
         <button onClick={handleSend} disabled={!newMessage.trim() || sending} className="p-2.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors">
           {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -512,29 +512,69 @@ function MessagesTab({
 }
 
 function LiveChatTab({ currentUserId, onlineUsers }: { currentUserId: string; onlineUsers: OnlineUser[] }) {
-  const [messages, setMessages] = useState<LiveMessage[]>([
-    { id: "system-1", username: "system", displayName: "remixd", avatar: null, content: "Welcome to Live Chat! Say hello to fellow music lovers.", timestamp: new Date() },
-  ]);
+  const [messages, setMessages] = useState<LiveMessage[]>([]);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevCountRef = useRef(0);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  // Fetch messages on mount and poll every 3 seconds
+  const fetchMessages = useCallback(async () => {
+    try {
+      const res = await fetch("/api/live-chat");
+      if (!res.ok) return;
+      const data = await res.json();
+      const fetched: LiveMessage[] = (data.messages ?? []).map((m: { id: string; username: string; displayName: string | null; avatar: string | null; content: string; timestamp: string }) => ({
+        ...m,
+        timestamp: new Date(m.timestamp),
+      }));
+      setMessages(fetched);
+    } catch { /* ignore */ }
+  }, []);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    setMessages((prev) => [...prev, { id: `local-${Date.now()}`, username: "you", displayName: "You", avatar: null, content: input.trim(), timestamp: new Date() }]);
-    setInput("");
+  useEffect(() => { fetchMessages(); }, [fetchMessages]);
+
+  useEffect(() => {
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
+  }, [fetchMessages]);
+
+  // Auto-scroll only when new messages arrive
+  useEffect(() => {
+    if (messages.length > prevCountRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevCountRef.current = messages.length;
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch("/api/live-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: input.trim() }),
+      });
+      if (res.ok) {
+        setInput("");
+        fetchMessages();
+      }
+    } catch { /* ignore */ } finally { setSending(false); }
   };
 
+  const systemMsg: LiveMessage = { id: "system-welcome", username: "system", displayName: "remixd", avatar: null, content: "Welcome to Live Chat! Say hello to fellow music lovers.", timestamp: new Date() };
+  const allMessages = [systemMsg, ...messages];
+
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] sm:h-[calc(100vh-12rem)] max-sm:h-[calc(100vh-16rem)]">
+    <div className="flex flex-col h-[calc(100dvh-14rem)] sm:h-[calc(100dvh-12rem)]">
       <div className="flex items-center gap-2 pb-3 border-b border-border/30 mb-3">
         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live</span>
         <span className="text-xs text-muted-foreground">&middot; {onlineUsers.length + 1} listening</span>
       </div>
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-        {messages.map((msg) => (
+        {allMessages.map((msg) => (
           <div key={msg.id} className="flex items-start gap-2.5">
             {msg.username === "system" ? (
               <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"><Radio className="w-4 h-4 text-primary" /></div>
@@ -552,10 +592,10 @@ function LiveChatTab({ currentUserId, onlineUsers }: { currentUserId: string; on
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <div className="pt-3 mt-auto flex items-center gap-2">
+      <div className="pt-3 mt-auto flex items-center gap-2 pb-safe">
         <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Say something..." className="flex-1 bg-muted/30 rounded-xl px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50" />
-        <button onClick={handleSend} disabled={!input.trim()} className="p-2.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors">
-          <Send className="w-4 h-4" />
+        <button onClick={handleSend} disabled={!input.trim() || sending} className="p-2.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors">
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </button>
       </div>
     </div>

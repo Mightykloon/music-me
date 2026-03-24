@@ -7,6 +7,7 @@ import { LinkSection } from "@/components/profile/link-section";
 import { VibeBoard } from "@/components/profile/vibe-board";
 import { PostGrid } from "@/components/profile/post-grid";
 import { NowPlayingBadge } from "@/components/profile/now-playing-badge";
+import { FavoritesSection } from "@/components/profile/favorites-section";
 import type { ProfileLayoutProps } from "./types";
 
 export function BentoLayout({ user, posts, isOwn }: ProfileLayoutProps) {
@@ -52,6 +53,11 @@ export function BentoLayout({ user, posts, isOwn }: ProfileLayoutProps) {
             <PlaylistDisplay playlists={user.playlists ?? []} />
           </div>
         )}
+
+        {/* Favorites */}
+        <div className="md:col-span-3 p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
+          <FavoritesSection favorites={(user.profile?.favorites as { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[] }) ?? null} />
+        </div>
 
         {/* Vibe board - full width */}
         {((user.profile?.vibeBoard as unknown[]) ?? []).length > 0 && (

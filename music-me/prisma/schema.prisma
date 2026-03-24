@@ -176,6 +176,7 @@ model UserProfile {
   autoplayProfileSong Boolean   @default(false)
   customCSS         String?     @db.Text
   vibeBoard         Json?       @default("[]")
+  favorites         Json?       @default("{}")
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   profileSong MusicTrack? @relation(fields: [profileSongId], references: [id])

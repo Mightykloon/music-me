@@ -80,6 +80,12 @@ interface ProfileFormData {
   };
   layoutStyle: string;
   autoplayProfileSong: boolean;
+  favorites: {
+    books: string[];
+    games: string[];
+    hobbies: string[];
+    interests: string[];
+  };
 }
 
 const defaultForm: ProfileFormData = {
@@ -102,6 +108,7 @@ const defaultForm: ProfileFormData = {
   textEffects: { type: "", color: "#8b5cf6", color2: "#ec4899", color3: "#f59e0b", speed: 4, brightness: 1, displayEmoji: "" },
   layoutStyle: "CLASSIC",
   autoplayProfileSong: false,
+  favorites: { books: [], games: [], hobbies: [], interests: [] },
 };
 
 export default function ProfileEditorPage() {
@@ -150,6 +157,12 @@ export default function ProfileEditorPage() {
           },
           layoutStyle: user.profile?.layoutStyle ?? "CLASSIC",
           autoplayProfileSong: user.profile?.autoplayProfileSong ?? false,
+          favorites: {
+            books: (user.profile?.favorites as Record<string, string[]>)?.books ?? [],
+            games: (user.profile?.favorites as Record<string, string[]>)?.games ?? [],
+            hobbies: (user.profile?.favorites as Record<string, string[]>)?.hobbies ?? [],
+            interests: (user.profile?.favorites as Record<string, string[]>)?.interests ?? [],
+          },
         });
         setLoaded(true);
       });
@@ -769,6 +782,34 @@ export default function ProfileEditorPage() {
                 ))}
               </div>
             </Section>
+
+            {/* Favorites & Interests */}
+            <Section title="Favorites & Interests">
+              <TagInput
+                label="Interests"
+                placeholder="e.g. cats, programming, music..."
+                tags={form.favorites.interests}
+                onChange={(tags) => update("favorites", { ...form.favorites, interests: tags })}
+              />
+              <TagInput
+                label="Hobbies"
+                placeholder="e.g. guitar, hiking, cooking..."
+                tags={form.favorites.hobbies}
+                onChange={(tags) => update("favorites", { ...form.favorites, hobbies: tags })}
+              />
+              <TagInput
+                label="Favorite Books"
+                placeholder="e.g. Dune, 1984..."
+                tags={form.favorites.books}
+                onChange={(tags) => update("favorites", { ...form.favorites, books: tags })}
+              />
+              <TagInput
+                label="Favorite Games"
+                placeholder="e.g. Minecraft, Elden Ring..."
+                tags={form.favorites.games}
+                onChange={(tags) => update("favorites", { ...form.favorites, games: tags })}
+              />
+            </Section>
           </div>
 
           {/* Live preview panel */}
@@ -982,6 +1023,74 @@ function ColorField({
           onChange={(e) => onChange(e.target.value)}
           className="input-field flex-1 text-xs"
         />
+      </div>
+    </Field>
+  );
+}
+
+function TagInput({
+  label,
+  placeholder,
+  tags,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  tags: string[];
+  onChange: (tags: string[]) => void;
+}) {
+  const [input, setInput] = useState("");
+
+  const addTag = () => {
+    const value = input.trim();
+    if (value && !tags.includes(value)) {
+      onChange([...tags, value]);
+    }
+    setInput("");
+  };
+
+  return (
+    <Field label={label}>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-medium"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => onChange(tags.filter((t) => t !== tag))}
+              className="hover:text-red-400 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addTag();
+            }
+          }}
+          placeholder={placeholder}
+          className="input-field flex-1 text-sm"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addTag}
+          disabled={!input.trim()}
+        >
+          Add
+        </Button>
       </div>
     </Field>
   );

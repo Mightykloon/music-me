@@ -38,14 +38,15 @@ export function ProfileCanvas({ user, posts, isOwn }: Props) {
 
   return (
     <div
-      className="min-h-screen relative"
+      className="min-h-[100dvh] relative"
       style={{
         ...themeVars,
         fontFamily: "var(--profile-font)",
+        backgroundColor: profile?.backgroundColor ?? "#0a0a0a",
       }}
     >
-      {/* Background layer */}
-      <div className="fixed inset-0 -z-10">
+      {/* Background layer - fills entire viewport */}
+      <div className="fixed inset-0 -z-10" style={{ backgroundColor: profile?.backgroundColor ?? "#0a0a0a" }}>
         {profile?.backgroundImageUrl ? (
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -66,17 +67,19 @@ export function ProfileCanvas({ user, posts, isOwn }: Props) {
             <source src={profile.bannerVideoUrl} type="video/mp4" />
           </video>
         ) : null}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundColor: profile?.backgroundColor ?? "#0a0a0a",
-            opacity: profile?.backgroundImageUrl || profile?.bannerVideoUrl ? 0.85 : 1,
-          }}
-        />
+        {(profile?.backgroundImageUrl || profile?.bannerVideoUrl) && (
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: profile?.backgroundColor ?? "#0a0a0a",
+              opacity: 0.85,
+            }}
+          />
+        )}
       </div>
 
       {/* Content */}
-      <div className="relative z-10 px-4 py-8 sm:px-6 sm:py-12">
+      <div className="relative z-10 px-4 pt-4 pb-20 sm:px-6 sm:pt-8 sm:pb-12">
         <LayoutComponent user={user} posts={posts} isOwn={isOwn} />
       </div>
     </div>
