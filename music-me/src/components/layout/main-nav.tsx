@@ -46,8 +46,8 @@ export function MainNav({ user, className }: MainNavProps) {
         )}
       >
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/feed">
-            <RemixdLogo height={36} />
+          <Link href="/feed" className="flex items-center">
+            <RemixdLogo height={42} />
           </Link>
           <div className="flex items-center gap-1">
             {navItems.map((item) => {

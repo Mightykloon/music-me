@@ -465,7 +465,7 @@ function MessagesTab({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)]">
+    <div className="flex flex-col h-[calc(100vh-12rem)] sm:h-[calc(100vh-12rem)] max-sm:h-[calc(100vh-16rem)]">
       <div className="flex items-center gap-3 pb-3 border-b border-border/30 mb-3">
         <button onClick={() => setActiveConvo(null)} className="p-1.5 rounded-lg hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
         {activeItem && (
@@ -527,7 +527,7 @@ function LiveChatTab({ currentUserId, onlineUsers }: { currentUserId: string; on
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)]">
+    <div className="flex flex-col h-[calc(100vh-12rem)] sm:h-[calc(100vh-12rem)] max-sm:h-[calc(100vh-16rem)]">
       <div className="flex items-center gap-2 pb-3 border-b border-border/30 mb-3">
         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live</span>

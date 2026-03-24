@@ -8,7 +8,7 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <RemixdLogo height={38} />
+          <RemixdLogo height={42} />
           <div className="flex items-center gap-4">
             <Link
               href="/login"
