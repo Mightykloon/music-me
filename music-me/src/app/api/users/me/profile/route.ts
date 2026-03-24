@@ -91,9 +91,10 @@ export async function PATCH(request: Request) {
     });
 
     return NextResponse.json(updated);
-  } catch {
+  } catch (err) {
+    console.error("Profile update error:", err);
     return NextResponse.json(
-      { error: "Something went wrong" },
+      { error: err instanceof Error ? err.message : "Something went wrong" },
       { status: 500 }
     );
   }

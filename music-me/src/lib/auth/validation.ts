@@ -21,17 +21,23 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+// Allow regular URLs, data URLs, and empty strings
+const urlOrDataUrl = z.string().refine(
+  (v) => v === "" || v.startsWith("data:") || v.startsWith("http://") || v.startsWith("https://"),
+  { message: "Must be a valid URL" }
+).optional().or(z.literal(""));
+
 export const profileUpdateSchema = z.object({
   displayName: z.string().max(50).optional(),
   bio: z.string().max(500).optional(),
   pronouns: z.string().max(30).optional(),
   location: z.string().max(100).optional(),
   website: z.string().url().max(200).optional().or(z.literal("")),
-  profilePictureUrl: z.string().url().optional().or(z.literal("")),
-  bannerUrl: z.string().url().optional().or(z.literal("")),
-  bannerVideoUrl: z.string().url().optional().or(z.literal("")),
+  profilePictureUrl: urlOrDataUrl,
+  bannerUrl: urlOrDataUrl,
+  bannerVideoUrl: urlOrDataUrl,
   backgroundColor: z.string().max(20).optional(),
-  backgroundImageUrl: z.string().url().optional().or(z.literal("")),
+  backgroundImageUrl: urlOrDataUrl,
   backgroundOpacity: z.number().min(0).max(1).optional(),
   primaryColor: z.string().max(20).optional(),
   secondaryColor: z.string().max(20).optional(),
