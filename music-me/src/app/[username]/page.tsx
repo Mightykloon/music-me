@@ -47,7 +47,6 @@ export default async function ProfilePage({
         orderBy: { displayOrder: "asc" },
       },
       nowPlaying: {
-        where: { isActive: true },
         include: { track: true },
       },
       _count: {
@@ -111,7 +110,7 @@ export default async function ProfilePage({
           externalUrl: profileSong.externalUrl,
         }
       : null,
-    nowPlaying: user.nowPlaying
+    nowPlaying: user.nowPlaying?.isActive
       ? {
           track: {
             id: user.nowPlaying.track.id,
