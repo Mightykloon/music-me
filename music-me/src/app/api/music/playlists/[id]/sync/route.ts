@@ -72,20 +72,31 @@ export async function POST(
     }
     const provider = getMusicProvider(playlist.provider);
 
-    // Helper to fetch a page with automatic token retry on 403
+    // Helper to fetch a page with retry logic for 403/429
     async function fetchPage(token: string, pId: string, off: number, lim: number) {
       if (!(provider instanceof SpotifyProvider)) return null;
-      try {
-        return await provider.getPlaylistTracksPage(token, pId, off, lim);
-      } catch (err) {
-        // If 403, force refresh and retry once
-        if (err instanceof Error && err.message.includes("403")) {
-          console.log("Got 403, forcing token refresh...");
-          accessToken = await getValidAccessToken(conn, true);
-          return await provider.getPlaylistTracksPage(accessToken, pId, off, lim);
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const currentToken = attempt > 0 ? await getValidAccessToken(conn, true) : token;
+          return await provider.getPlaylistTracksPage(currentToken, pId, off, lim);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "";
+          if (msg.includes("429")) {
+            // Rate limited — wait and retry
+            await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+            continue;
+          }
+          if (msg.includes("403") && attempt < 2) {
+            // Forbidden — wait longer then retry with fresh token
+            console.log(`Got 403 on attempt ${attempt + 1}, waiting and retrying...`);
+            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+            continue;
+          }
+          throw err;
         }
-        throw err;
       }
+      return null;
     }
 
     // Use paginated fetch if available (Spotify), otherwise fall back to full fetch

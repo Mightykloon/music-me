@@ -76,6 +76,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
       const limit = 50;
       let totalTracks = 0;
       let totalSynced = 0;
+      let retries = 0;
 
       // Incrementally sync pages of tracks
       while (true) {
@@ -90,16 +91,32 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
         );
 
         if (!res.ok) {
+          // If we already synced some tracks, show partial success
+          if (totalSynced > 0) {
+            // Retry once with a delay
+            if (retries < 2) {
+              retries++;
+              await new Promise(r => setTimeout(r, 1500));
+              continue; // Retry same page
+            }
+            toast.success(`Synced ${totalSynced} of ${totalTracks} tracks (some failed)`);
+            router.refresh();
+            return;
+          }
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Sync failed");
         }
 
+        retries = 0; // Reset on success
         const data = await res.json();
         totalTracks = data.total;
         totalSynced += data.synced;
 
         if (!data.hasMore) break;
         offset = data.nextOffset;
+
+        // Small delay between pages to avoid rate limiting
+        await new Promise(r => setTimeout(r, 300));
       }
 
       toast.success(`Synced ${totalSynced} tracks!`);
