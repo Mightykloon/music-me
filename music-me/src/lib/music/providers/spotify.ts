@@ -153,6 +153,41 @@ export class SpotifyProvider implements MusicProvider {
     return allItems;
   }
 
+  /**
+   * Fetch a single page of playlist tracks (for incremental sync).
+   * Returns tracks + total count + whether there are more pages.
+   */
+  async getPlaylistTracksPage(
+    accessToken: string,
+    playlistId: string,
+    offset: number = 0,
+    limit: number = 50
+  ): Promise<{ tracks: PlaylistTrackResult[]; total: number; hasMore: boolean }> {
+    const data = await this.fetchApi(
+      accessToken,
+      `/playlists/${playlistId}/tracks?offset=${offset}&limit=${limit}`
+    );
+
+    const total: number = data.total ?? 0;
+    const tracks = (data.items ?? [])
+      .filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (item: any) => item.track && item.track.type === "track"
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((item: any, i: number): PlaylistTrackResult => ({
+        track: this.mapTrack(item.track),
+        position: offset + i,
+        addedAt: new Date(item.added_at),
+      }));
+
+    return {
+      tracks,
+      total,
+      hasMore: (offset + limit) < total,
+    };
+  }
+
   async getNowPlaying(
     accessToken: string
   ): Promise<NowPlayingResult | null> {

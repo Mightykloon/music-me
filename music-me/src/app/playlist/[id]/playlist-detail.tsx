@@ -54,11 +54,12 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
   const router = useRouter();
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string>("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Auto-sync tracks if playlist has 0 tracks loaded
   useEffect(() => {
-    if (playlist.tracks.length === 0 && playlist.trackCount > 0) {
+    if (playlist.tracks.length === 0) {
       handleResync();
     }
     return () => {
@@ -69,18 +70,45 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
   const handleResync = async () => {
     setSyncing(true);
+    setSyncStatus("Starting sync...");
     try {
-      const res = await fetch(`/api/music/playlists/${playlist.id}/sync`, { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Sync failed");
+      let offset = 0;
+      const limit = 50;
+      let totalTracks = 0;
+      let totalSynced = 0;
+
+      // Incrementally sync pages of tracks
+      while (true) {
+        setSyncStatus(totalTracks > 0
+          ? `Syncing tracks ${totalSynced}/${totalTracks}...`
+          : `Syncing tracks (page ${Math.floor(offset / limit) + 1})...`
+        );
+
+        const res = await fetch(
+          `/api/music/playlists/${playlist.id}/sync?offset=${offset}&limit=${limit}${offset === 0 ? "&clear=true" : ""}`,
+          { method: "POST" }
+        );
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Sync failed");
+        }
+
+        const data = await res.json();
+        totalTracks = data.total;
+        totalSynced += data.synced;
+
+        if (!data.hasMore) break;
+        offset = data.nextOffset;
       }
-      toast.success("Tracks synced!");
+
+      toast.success(`Synced ${totalSynced} tracks!`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sync failed");
     } finally {
       setSyncing(false);
+      setSyncStatus("");
     }
   };
 
@@ -193,8 +221,8 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
             {syncing ? (
               <>
                 <RefreshCw className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-                <p className="font-medium text-foreground">Syncing tracks from Spotify...</p>
-                <p className="text-xs mt-1">This may take a moment for large playlists</p>
+                <p className="font-medium text-foreground">{syncStatus || "Syncing tracks..."}</p>
+                <p className="text-xs mt-1">Large playlists are synced in batches</p>
               </>
             ) : (
               <>

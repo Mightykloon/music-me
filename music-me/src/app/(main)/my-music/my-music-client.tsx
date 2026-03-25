@@ -195,7 +195,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       toast.success("Playlist list updated! Now syncing tracks...");
       router.refresh();
 
-      // Step 2: Sync tracks for each playlist progressively
+      // Step 2: Sync tracks for each playlist incrementally
       const res = await fetch("/api/music/playlists");
       if (res.ok) {
         const data = await res.json();
@@ -204,28 +204,36 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
         if (needsSync.length > 0) {
           setSyncProgress({ current: 0, total: needsSync.length });
-          let synced = 0;
+          let completed = 0;
           let failed = 0;
 
-          // Sync playlists one at a time to avoid timeout
           for (const p of needsSync) {
             try {
-              const syncRes = await fetch(`/api/music/playlists/${p.id}/sync`, { method: "POST" });
-              if (syncRes.ok) {
-                synced++;
-              } else {
-                failed++;
+              // Sync each playlist in pages of 50 tracks
+              let offset = 0;
+              const limit = 50;
+              let hasMore = true;
+              while (hasMore) {
+                const syncRes = await fetch(
+                  `/api/music/playlists/${p.id}/sync?offset=${offset}&limit=${limit}${offset === 0 ? "&clear=true" : ""}`,
+                  { method: "POST" }
+                );
+                if (!syncRes.ok) { failed++; break; }
+                const result = await syncRes.json();
+                hasMore = result.hasMore;
+                offset = result.nextOffset;
               }
+              if (hasMore === false) completed++;
             } catch {
               failed++;
             }
-            setSyncProgress({ current: synced + failed, total: needsSync.length });
+            setSyncProgress({ current: completed + failed, total: needsSync.length });
           }
 
-          if (synced > 0) {
-            toast.success(`Synced tracks for ${synced} playlist${synced !== 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}`);
+          if (completed > 0) {
+            toast.success(`Synced ${completed} playlist${completed !== 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}`);
           } else if (failed > 0) {
-            toast.error(`Failed to sync tracks for ${failed} playlists`);
+            toast.error(`Failed to sync ${failed} playlists`);
           }
           router.refresh();
         } else {
