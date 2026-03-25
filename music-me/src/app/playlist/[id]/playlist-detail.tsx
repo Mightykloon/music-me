@@ -56,21 +56,29 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
   const [syncing, setSyncing] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Auto-sync tracks if playlist has 0 tracks loaded
   useEffect(() => {
+    if (playlist.tracks.length === 0 && playlist.trackCount > 0) {
+      handleResync();
+    }
     return () => {
       audioRef.current?.pause();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleResync = async () => {
     setSyncing(true);
     try {
       const res = await fetch(`/api/music/playlists/${playlist.id}/sync`, { method: "POST" });
-      if (!res.ok) throw new Error();
-      toast.success("Playlist synced! Refreshing...");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Sync failed");
+      }
+      toast.success("Tracks synced!");
       router.refresh();
-    } catch {
-      toast.error("Sync failed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sync failed");
     } finally {
       setSyncing(false);
     }
@@ -99,13 +107,23 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <Link
-        href="/discover"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back
-      </Link>
+      <div className="flex items-center justify-between mb-6">
+        <Link
+          href="/my-music"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Link>
+        <button
+          onClick={handleResync}
+          disabled={syncing}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Syncing..." : "Re-sync"}
+        </button>
+      </div>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-6 mb-8">
@@ -150,7 +168,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
             </Link>
             <span className="text-muted-foreground">·</span>
             <span className="text-sm text-muted-foreground">
-              {playlist.tracks.length} tracks
+              {playlist.tracks.length || playlist.trackCount} tracks
             </span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
               {playlist.provider.toLowerCase().replace("_", " ")}
@@ -172,15 +190,24 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
         {playlist.tracks.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground text-sm">
-            <p className="mb-3">No tracks synced yet.</p>
-            <button
-              onClick={handleResync}
-              disabled={syncing}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Syncing..." : "Sync Tracks Now"}
-            </button>
+            {syncing ? (
+              <>
+                <RefreshCw className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
+                <p className="font-medium text-foreground">Syncing tracks from Spotify...</p>
+                <p className="text-xs mt-1">This may take a moment for large playlists</p>
+              </>
+            ) : (
+              <>
+                <p className="mb-3">No tracks synced yet.</p>
+                <button
+                  onClick={handleResync}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Sync Tracks Now
+                </button>
+              </>
+            )}
           </div>
         ) : (
           playlist.tracks.map((pt, i) => {
