@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(
   request: Request,
@@ -42,6 +43,21 @@ export async function POST(
     await db.reaction.create({
       data: { userId, postId: id, type },
     });
+
+    // Send notification to post author
+    const post = await db.post.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+    if (post) {
+      void createNotification({
+        userId: post.authorId,
+        actorId: userId,
+        type: "REACTION",
+        referenceId: id,
+        referenceType: "post",
+      });
+    }
 
     return NextResponse.json({ action: "added", type });
   } catch {

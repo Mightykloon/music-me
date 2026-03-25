@@ -73,6 +73,16 @@ body {
 
 /* Text effects for profile display names */
 
+/* Base: prevent glow cutoff on mobile */
+[class*="text-effect-"] {
+  overflow: visible !important;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  will-change: filter, text-shadow;
+}
+
 /* --- Glow --- */
 .text-effect-glow {
   text-shadow:
@@ -90,6 +100,7 @@ body {
     0 0 40px var(--te-color, var(--profile-primary)),
     0 0 80px var(--te-color, var(--profile-primary));
   filter: brightness(var(--te-brightness, 1));
+  -webkit-filter: brightness(var(--te-brightness, 1));
 }
 
 /* --- Animated Gradient --- */

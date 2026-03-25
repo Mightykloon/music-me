@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 export async function GET(
   request: Request,
@@ -122,6 +123,59 @@ export async function POST(
         _count: { select: { replies: true, reactions: true } },
       },
     });
+
+    // Notify post author about the comment
+    const postForNotif = await db.post.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+    if (postForNotif) {
+      void createNotification({
+        userId: postForNotif.authorId,
+        actorId: session.user.id,
+        type: "COMMENT",
+        referenceId: id,
+        referenceType: "post",
+      });
+    }
+
+    // If replying to a comment, also notify the parent comment author
+    if (parentId) {
+      const parentComment = await db.comment.findUnique({
+        where: { id: parentId },
+        select: { authorId: true },
+      });
+      if (parentComment && parentComment.authorId !== postForNotif?.authorId) {
+        void createNotification({
+          userId: parentComment.authorId,
+          actorId: session.user.id,
+          type: "COMMENT",
+          referenceId: id,
+          referenceType: "post",
+        });
+      }
+    }
+
+    // Check for @mentions in content
+    const mentionMatches = content.match(/@(\w+)/g);
+    if (mentionMatches) {
+      for (const mention of mentionMatches) {
+        const mentionedUsername = mention.slice(1);
+        const mentionedUser = await db.user.findUnique({
+          where: { username: mentionedUsername },
+          select: { id: true },
+        });
+        if (mentionedUser) {
+          void createNotification({
+            userId: mentionedUser.id,
+            actorId: session.user.id,
+            type: "MENTION",
+            referenceId: id,
+            referenceType: "post",
+          });
+        }
+      }
+    }
 
     return NextResponse.json(comment, { status: 201 });
   } catch {

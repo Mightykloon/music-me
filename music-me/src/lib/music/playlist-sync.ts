@@ -1,8 +1,48 @@
 import { db } from "@/lib/db";
 import { getMusicProvider } from "./index";
 import { findOrCreateTrack } from "./search";
-import { decrypt } from "@/lib/utils/encryption";
+import { decrypt, encrypt } from "@/lib/utils/encryption";
 import type { MusicProviderType } from "@prisma/client";
+
+/**
+ * Get a valid access token, refreshing if expired.
+ */
+async function getValidAccessToken(connection: {
+  id: string;
+  accessToken: string;
+  refreshToken: string | null;
+  expiresAt: Date | null;
+  provider: MusicProviderType;
+}): Promise<string> {
+  const accessToken = decrypt(connection.accessToken);
+
+  // If token is not expired, use it directly
+  if (!connection.expiresAt || connection.expiresAt > new Date()) {
+    return accessToken;
+  }
+
+  // Token expired, try to refresh
+  if (!connection.refreshToken) {
+    throw new Error("Token expired and no refresh token available");
+  }
+
+  const provider = getMusicProvider(connection.provider);
+  const refreshed = await provider.refreshToken(decrypt(connection.refreshToken));
+
+  // Update tokens in DB
+  await db.musicConnection.update({
+    where: { id: connection.id },
+    data: {
+      accessToken: encrypt(refreshed.accessToken),
+      refreshToken: refreshed.refreshToken
+        ? encrypt(refreshed.refreshToken)
+        : undefined,
+      expiresAt: refreshed.expiresAt,
+    },
+  });
+
+  return refreshed.accessToken;
+}
 
 /**
  * Sync all playlists for a specific music connection.
@@ -15,7 +55,9 @@ export async function syncPlaylists(connectionId: string) {
   if (!connection || !connection.isActive) return;
 
   const provider = getMusicProvider(connection.provider);
-  const accessToken = decrypt(connection.accessToken);
+
+  // Get a valid (refreshed if needed) access token
+  const accessToken = await getValidAccessToken(connection);
 
   // Fetch playlists from the service
   const remotePlaylists = await provider.getUserPlaylists(accessToken);
@@ -72,8 +114,9 @@ export async function syncPlaylists(connectionId: string) {
           },
         });
       }
-    } catch {
-      // Failed to sync tracks for this playlist, continue with others
+    } catch (err) {
+      console.error(`Failed to sync tracks for playlist ${playlist.name}:`, err);
+      // Continue with other playlists
     }
   }
 }

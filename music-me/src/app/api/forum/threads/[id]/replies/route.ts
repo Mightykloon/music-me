@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { createNotification } from "@/lib/notifications";
 
 const replySchema = z.object({
   content: z.string().min(1).max(10000),
@@ -56,6 +57,58 @@ export async function POST(
       where: { id },
       data: { lastReplyAt: new Date() },
     });
+
+    // Notify thread author about the reply
+    const thread = await db.forumThread.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+    if (thread) {
+      void createNotification({
+        userId: thread.authorId,
+        actorId: session.user.id,
+        type: "COMMENT",
+        referenceId: id,
+        referenceType: "thread",
+      });
+    }
+
+    // If replying to another reply, notify that author too
+    if (result.data.parentId) {
+      const parentReply = await db.forumReply.findUnique({
+        where: { id: result.data.parentId },
+        select: { authorId: true },
+      });
+      if (parentReply && parentReply.authorId !== thread?.authorId) {
+        void createNotification({
+          userId: parentReply.authorId,
+          actorId: session.user.id,
+          type: "COMMENT",
+          referenceId: id,
+          referenceType: "thread",
+        });
+      }
+    }
+
+    // Check for @mentions
+    const mentions = result.data.content.match(/@(\w+)/g);
+    if (mentions) {
+      for (const mention of mentions) {
+        const mentionedUser = await db.user.findUnique({
+          where: { username: mention.slice(1) },
+          select: { id: true },
+        });
+        if (mentionedUser) {
+          void createNotification({
+            userId: mentionedUser.id,
+            actorId: session.user.id,
+            type: "MENTION",
+            referenceId: id,
+            referenceType: "thread",
+          });
+        }
+      }
+    }
 
     return NextResponse.json(reply, { status: 201 });
   } catch {

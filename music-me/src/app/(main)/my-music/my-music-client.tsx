@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+// Using native <img> for external CDN cover art (Spotify uses many subdomains)
 import {
   Library,
   RefreshCw,
@@ -343,7 +343,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
                     <Link href={`/playlist/${p.id}`} className="flex items-center gap-3 p-3">
                       {p.coverImageUrl ? (
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
-                          <Image src={p.coverImageUrl} alt={p.name} width={64} height={64} className="w-full h-full object-cover" />
+                          <img src={p.coverImageUrl} alt={p.name} className="w-full h-full object-cover" />
                         </div>
                       ) : (
                         <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
@@ -456,7 +456,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
                     </div>
                     <div className="flex items-center gap-3 min-w-0">
                       {t.albumArtUrl ? (
-                        <Image src={t.albumArtUrl} alt="" width={40} height={40} className="rounded flex-shrink-0" />
+                        <img src={t.albumArtUrl} alt="" className="w-10 h-10 rounded flex-shrink-0" />
                       ) : (
                         <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
                           <Music className="w-4 h-4 text-muted-foreground" />

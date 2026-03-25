@@ -10,6 +10,7 @@ import {
   User,
   Library,
   Users,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RemixdLogo } from "@/components/ui/remixd-logo";
@@ -71,25 +72,28 @@ export function MainNav({ user, className }: MainNavProps) {
         </nav>
       </header>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav: Discover, Community, Home (center bubble), Notifications, Profile */}
       <nav className="fixed bottom-0 w-full z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl sm:hidden safe-bottom">
         <div className="flex items-center justify-around h-16 px-2">
-          <Link href="/feed" className={mobileNavClass(pathname, "/feed")}>
-            <Home className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5">Home</span>
-          </Link>
           <Link href="/discover" className={mobileNavClass(pathname, "/discover")}>
             <Compass className="w-5 h-5" />
             <span className="text-[10px] mt-0.5">Discover</span>
           </Link>
-          <Link href="/feed" className="flex flex-col items-center justify-center -mt-4">
-            <span className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-              <PlusCircle className="w-6 h-6" />
-            </span>
-          </Link>
           <Link href="/community" className={mobileNavClass(pathname, "/community", ["/forum", "/messages"])}>
             <Users className="w-5 h-5" />
             <span className="text-[10px] mt-0.5">Community</span>
+          </Link>
+          <Link href="/feed" className="flex flex-col items-center justify-center -mt-4">
+            <span className={cn(
+              "flex items-center justify-center w-12 h-12 rounded-full shadow-lg shadow-primary/30 transition-colors",
+              pathname.startsWith("/feed") ? "bg-primary text-primary-foreground" : "bg-primary text-primary-foreground"
+            )}>
+              <Home className="w-6 h-6" />
+            </span>
+          </Link>
+          <Link href="/notifications" className={mobileNavClass(pathname, "/notifications")}>
+            <Bell className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Alerts</span>
           </Link>
           <Link href={username ? `/${username}` : "/settings/profile"} className={mobileNavClass(pathname, `/${username}`)}>
             <User className="w-5 h-5" />
