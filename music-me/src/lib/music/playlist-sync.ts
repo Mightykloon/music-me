@@ -13,18 +13,23 @@ export async function getValidAccessToken(connection: {
   refreshToken: string | null;
   expiresAt: Date | null;
   provider: MusicProviderType;
-}): Promise<string> {
+}, forceRefresh: boolean = false): Promise<string> {
   const accessToken = decrypt(connection.accessToken);
 
-  // If token is not expired, use it directly
-  if (!connection.expiresAt || connection.expiresAt > new Date()) {
+  // Check if token is still valid (with 5 minute buffer)
+  const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000);
+  const isExpired = connection.expiresAt && new Date(connection.expiresAt) <= fiveMinutesFromNow;
+
+  if (!forceRefresh && !isExpired) {
     return accessToken;
   }
 
-  // Token expired, try to refresh
+  // Token expired or force refresh requested — try to refresh
   if (!connection.refreshToken) {
-    throw new Error("Token expired and no refresh token available");
+    throw new Error("Token expired and no refresh token available. Please reconnect Spotify.");
   }
+
+  console.log(`Refreshing ${connection.provider} token for connection ${connection.id} (expired: ${isExpired}, forced: ${forceRefresh})`);
 
   const provider = getMusicProvider(connection.provider);
   const refreshed = await provider.refreshToken(decrypt(connection.refreshToken));

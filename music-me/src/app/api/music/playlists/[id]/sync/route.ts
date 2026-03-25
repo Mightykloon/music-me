@@ -58,9 +58,26 @@ export async function POST(
       );
     }
 
-    // Get valid access token
-    const accessToken = await getValidAccessToken(connection);
+    // Get valid access token (try normal first, force refresh on 403)
+    const conn = connection; // For use in closures
+    let accessToken = await getValidAccessToken(conn);
     const provider = getMusicProvider(playlist.provider);
+
+    // Helper to fetch a page with automatic token retry on 403
+    async function fetchPage(token: string, pId: string, off: number, lim: number) {
+      if (!(provider instanceof SpotifyProvider)) return null;
+      try {
+        return await provider.getPlaylistTracksPage(token, pId, off, lim);
+      } catch (err) {
+        // If 403, force refresh and retry once
+        if (err instanceof Error && err.message.includes("403")) {
+          console.log("Got 403, forcing token refresh...");
+          accessToken = await getValidAccessToken(conn, true);
+          return await provider.getPlaylistTracksPage(accessToken, pId, off, lim);
+        }
+        throw err;
+      }
+    }
 
     // Use paginated fetch if available (Spotify), otherwise fall back to full fetch
     if (provider instanceof SpotifyProvider) {
@@ -71,12 +88,10 @@ export async function POST(
         });
       }
 
-      const page = await provider.getPlaylistTracksPage(
-        accessToken,
-        playlist.providerPlaylistId,
-        offset,
-        limit
-      );
+      const page = await fetchPage(accessToken, playlist.providerPlaylistId, offset, limit);
+      if (!page) {
+        return NextResponse.json({ error: "Failed to fetch tracks" }, { status: 500 });
+      }
 
       // Insert this page of tracks
       let synced = 0;

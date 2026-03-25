@@ -259,6 +259,9 @@ export class SpotifyProvider implements MusicProvider {
       return this.fetchApi(accessToken, endpoint);
     }
     if (!res.ok) {
+      // Log the actual error body for debugging
+      const errorBody = await res.text().catch(() => "");
+      console.error(`Spotify API error ${res.status} for ${endpoint}:`, errorBody);
       throw new Error(`Spotify API error: ${res.status}`);
     }
 
