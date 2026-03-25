@@ -124,7 +124,7 @@ export class SpotifyProvider implements MusicProvider {
     playlistId: string
   ): Promise<PlaylistTrackResult[]> {
     const allItems: PlaylistTrackResult[] = [];
-    let url: string | null = `/playlists/${playlistId}/tracks?limit=100`;
+    let url: string | null = `/playlists/${playlistId}/tracks?limit=100&market=from_token&additional_types=track`;
 
     while (url) {
       const data = await this.fetchApi(accessToken, url);
@@ -163,9 +163,10 @@ export class SpotifyProvider implements MusicProvider {
     offset: number = 0,
     limit: number = 50
   ): Promise<{ tracks: PlaylistTrackResult[]; total: number; hasMore: boolean }> {
+    // Use additional_types and market params to avoid 403 on some playlists
     const data = await this.fetchApi(
       accessToken,
-      `/playlists/${playlistId}/tracks?offset=${offset}&limit=${limit}`
+      `/playlists/${playlistId}/tracks?offset=${offset}&limit=${limit}&market=from_token&additional_types=track`
     );
 
     const total: number = data.total ?? 0;
