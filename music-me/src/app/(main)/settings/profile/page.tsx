@@ -238,6 +238,28 @@ export default function ProfileEditorPage() {
       reader.readAsDataURL(file);
     });
 
+  const uploadFileToStorage = async (file: File, category: "avatars" | "banners" | "backgrounds" | "posts"): Promise<string> => {
+    // Get presigned URL
+    const presignRes = await fetch("/api/upload/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category, contentType: file.type, fileSize: file.size }),
+    });
+    if (!presignRes.ok) {
+      const err = await presignRes.json();
+      throw new Error(err.error || "Failed to get upload URL");
+    }
+    const { uploadUrl, publicUrl } = await presignRes.json();
+    // Upload directly to storage
+    const uploadRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!uploadRes.ok) throw new Error("Upload failed");
+    return publicUrl;
+  };
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -255,11 +277,12 @@ export default function ProfileEditorPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await fileToDataUrl(file);
-      update("bannerUrl", dataUrl);
-      toast.success("Banner uploaded");
-    } catch {
-      toast.error("Upload failed");
+      toast.loading("Uploading banner...", { id: "banner-upload" });
+      const publicUrl = await uploadFileToStorage(file, "banners");
+      update("bannerUrl", publicUrl);
+      toast.success("Banner uploaded!", { id: "banner-upload" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed", { id: "banner-upload" });
     }
   };
 
@@ -269,11 +292,12 @@ export default function ProfileEditorPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const dataUrl = await fileToDataUrl(file);
-      update("backgroundImageUrl", dataUrl);
-      toast.success("Background uploaded");
-    } catch {
-      toast.error("Upload failed");
+      toast.loading("Uploading background...", { id: "bg-upload" });
+      const publicUrl = await uploadFileToStorage(file, "backgrounds");
+      update("backgroundImageUrl", publicUrl);
+      toast.success("Background uploaded!", { id: "bg-upload" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed", { id: "bg-upload" });
     }
   };
 

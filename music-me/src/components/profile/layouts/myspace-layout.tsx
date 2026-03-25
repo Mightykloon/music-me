@@ -7,9 +7,10 @@ import { LinkSection } from "@/components/profile/link-section";
 import { PostGrid } from "@/components/profile/post-grid";
 import { NowPlayingBadge } from "@/components/profile/now-playing-badge";
 import { FavoritesSection } from "@/components/profile/favorites-section";
+import { GenreWidget } from "@/components/profile/genre-widget";
 import type { ProfileLayoutProps } from "./types";
 
-export function MyspaceLayout({ user, posts, isOwn }: ProfileLayoutProps) {
+export function MyspaceLayout({ user, posts, isOwn, genres }: ProfileLayoutProps) {
   return (
     <div className="max-w-4xl mx-auto w-full">
       {/* Classic bordered header */}
@@ -39,8 +40,18 @@ export function MyspaceLayout({ user, posts, isOwn }: ProfileLayoutProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Left column - "About Me" style */}
+        {/* Left column */}
         <div className="space-y-4">
+          {/* Genre stats */}
+          {(genres?.length ?? 0) > 0 && (
+            <div className="border-2 border-[var(--profile-primary)]/40 rounded-lg p-4 bg-black/30">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--profile-primary)] border-b border-[var(--profile-primary)]/30 pb-2 mb-3">
+                Top Artists
+              </h3>
+              <GenreWidget genres={genres ?? []} />
+            </div>
+          )}
+
           <div className="border-2 border-[var(--profile-primary)]/40 rounded-lg p-4 bg-black/30">
             <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--profile-primary)] border-b border-[var(--profile-primary)]/30 pb-2 mb-3">
               Top 8 Tracks

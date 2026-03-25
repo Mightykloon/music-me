@@ -8,9 +8,10 @@ import { VibeBoard } from "@/components/profile/vibe-board";
 import { PostGrid } from "@/components/profile/post-grid";
 import { NowPlayingBadge } from "@/components/profile/now-playing-badge";
 import { FavoritesSection } from "@/components/profile/favorites-section";
+import { GenreWidget } from "@/components/profile/genre-widget";
 import type { ProfileLayoutProps } from "./types";
 
-export function BentoLayout({ user, posts, isOwn }: ProfileLayoutProps) {
+export function BentoLayout({ user, posts, isOwn, genres }: ProfileLayoutProps) {
   return (
     <div className="max-w-4xl mx-auto w-full">
       {user.nowPlaying?.track && (
@@ -40,9 +41,16 @@ export function BentoLayout({ user, posts, isOwn }: ProfileLayoutProps) {
           )}
         </div>
 
-        {/* Links - 1 col */}
-        {(user.links?.length ?? 0) > 0 && (
+        {/* Genre widget - 1 col */}
+        {(genres?.length ?? 0) > 0 && (
           <div className="p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
+            <GenreWidget genres={genres ?? []} />
+          </div>
+        )}
+
+        {/* Links - 1 col or 2 cols depending on genre */}
+        {(user.links?.length ?? 0) > 0 && (
+          <div className={`p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm ${(genres?.length ?? 0) > 0 ? "md:col-span-2" : ""}`}>
             <LinkSection links={user.links ?? []} />
           </div>
         )}

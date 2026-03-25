@@ -17,7 +17,7 @@ const layouts: Record<string, React.ComponentType<ProfileLayoutProps>> = {
   MYSPACE: MyspaceLayout,
 };
 
-export function ProfileCanvas({ user, posts, isOwn }: Props) {
+export function ProfileCanvas({ user, posts, isOwn, genres }: Props) {
   const profile = user.profile;
   const layoutStyle = profile?.layoutStyle ?? "CLASSIC";
   const LayoutComponent = layouts[layoutStyle] ?? ClassicLayout;
@@ -80,7 +80,7 @@ export function ProfileCanvas({ user, posts, isOwn }: Props) {
 
       {/* Content */}
       <div className="relative z-10 px-4 pt-4 pb-20 sm:px-6 sm:pt-8 sm:pb-12">
-        <LayoutComponent user={user} posts={posts} isOwn={isOwn} />
+        <LayoutComponent user={user} posts={posts} isOwn={isOwn} genres={genres} />
       </div>
     </div>
   );

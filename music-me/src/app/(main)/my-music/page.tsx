@@ -9,7 +9,7 @@ export default async function MyMusicPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin");
 
-  const [playlists, connections, syncGroups] = await Promise.all([
+  const [playlists, connections, syncGroups, recentTracks] = await Promise.all([
     db.playlist.findMany({
       where: { userId: session.user.id },
       orderBy: [{ isPinned: "desc" }, { name: "asc" }],
@@ -28,7 +28,38 @@ export default async function MyMusicPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
+    // Get unique tracks from all the user's playlists
+    db.playlistTrack.findMany({
+      where: {
+        playlist: { userId: session.user.id },
+      },
+      include: {
+        track: true,
+      },
+      orderBy: { addedAt: "desc" },
+      take: 200,
+    }),
   ]);
+
+  // Deduplicate tracks by id
+  const seenTrackIds = new Set<string>();
+  const uniqueTracks = recentTracks
+    .filter((pt) => {
+      if (seenTrackIds.has(pt.track.id)) return false;
+      seenTrackIds.add(pt.track.id);
+      return true;
+    })
+    .map((pt) => ({
+      id: pt.track.id,
+      title: pt.track.title,
+      artist: pt.track.artist,
+      album: pt.track.album,
+      albumArtUrl: pt.track.albumArtUrl,
+      previewUrl: pt.track.previewUrl,
+      duration: pt.track.duration,
+      externalUrl: pt.track.externalUrl,
+      provider: pt.track.provider,
+    }));
 
   const serializedPlaylists = playlists.map((p: (typeof playlists)[number]) => ({
     ...p,
@@ -52,6 +83,7 @@ export default async function MyMusicPage() {
       playlists={serializedPlaylists}
       connections={connections}
       syncGroups={serializedGroups}
+      recentTracks={uniqueTracks}
     />
   );
 }

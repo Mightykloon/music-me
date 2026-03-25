@@ -15,6 +15,26 @@ import {
   Loader2,
 } from "lucide-react";
 
+const SOCIAL_ICONS: Record<string, { icon: string; color: string }> = {
+  twitter: { icon: "𝕏", color: "#fff" },
+  x: { icon: "𝕏", color: "#fff" },
+  instagram: { icon: "📷", color: "#E4405F" },
+  discord: { icon: "💬", color: "#5865F2" },
+  spotify: { icon: "🎵", color: "#1DB954" },
+  applemusic: { icon: "🎵", color: "#FC3C44" },
+  apple_music: { icon: "🎵", color: "#FC3C44" },
+  soundcloud: { icon: "☁️", color: "#FF5500" },
+  youtube: { icon: "▶️", color: "#FF0000" },
+  github: { icon: "🐙", color: "#f0f6fc" },
+  twitch: { icon: "📺", color: "#9146FF" },
+  tiktok: { icon: "🎵", color: "#ff0050" },
+  linkedin: { icon: "💼", color: "#0A66C2" },
+  reddit: { icon: "🟠", color: "#FF4500" },
+  distrokid: { icon: "🎶", color: "#00BFFF" },
+  deezer: { icon: "🎧", color: "#A238FF" },
+  globe: { icon: "🌐", color: "#a78bfa" },
+};
+
 interface ProfileHeaderProps {
   user: {
     id: string;
@@ -30,6 +50,13 @@ interface ProfileHeaderProps {
       textEffects: Record<string, unknown> | null;
       bioFontSize: string | null;
     } | null;
+    links?: {
+      id: string;
+      title: string;
+      url: string;
+      iconType: string | null;
+      clickCount: number;
+    }[];
     _count: {
       followers: number;
       following: number;
@@ -109,6 +136,28 @@ export function ProfileHeader({
             <span>@{user.username}</span>
             {user.pronouns && (<><span className="text-border">&middot;</span><span>{user.pronouns}</span></>)}
           </div>
+          {/* Social link icons */}
+          {(user.links?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {user.links?.map((link) => {
+                const iconKey = (link.iconType || "globe").toLowerCase();
+                const social = SOCIAL_ICONS[iconKey] || SOCIAL_ICONS.globe;
+                return (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={link.title}
+                    className="w-7 h-7 rounded-full flex items-center justify-center bg-white/[0.08] hover:bg-white/[0.15] hover:scale-110 transition-all duration-200 text-xs"
+                    style={{ color: social.color }}
+                  >
+                    {social.icon}
+                  </a>
+                );
+              })}
+            </div>
+          )}
           <div className="mt-3 flex items-center gap-2">
             {isOwn ? (
               <a href="/settings/profile" className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors">Edit profile</a>

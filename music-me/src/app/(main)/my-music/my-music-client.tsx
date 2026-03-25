@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Library,
   RefreshCw,
@@ -16,9 +17,17 @@ import {
   Shield,
   ChevronDown,
   ChevronRight,
-  Trash2,
   Settings,
   ExternalLink,
+  Play,
+  Pause,
+  Clock,
+  Eye,
+  EyeOff,
+  Pin,
+  PinOff,
+  Disc3,
+  ListMusic,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -31,6 +40,18 @@ const PROVIDER_INFO: Record<string, { label: string; color: string; icon: string
   DEEZER: { label: "Deezer", color: "#A238FF", icon: "🟣" },
   TIDAL: { label: "Tidal", color: "#000000", icon: "🌊" },
 };
+
+interface TrackItem {
+  id: string;
+  title: string;
+  artist: string;
+  album: string | null;
+  albumArtUrl: string | null;
+  previewUrl: string | null;
+  duration: number | null;
+  externalUrl: string | null;
+  provider: string;
+}
 
 interface PlaylistItem {
   id: string;
@@ -67,25 +88,57 @@ interface MyMusicClientProps {
   playlists: PlaylistItem[];
   connections: Connection[];
   syncGroups: SyncGroup[];
+  recentTracks: TrackItem[];
 }
 
-export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicClientProps) {
+type TabType = "playlists" | "tracks" | "sync";
+
+function formatDuration(ms: number | null) {
+  if (!ms) return "";
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
+export function MyMusicClient({ playlists, connections, syncGroups, recentTracks }: MyMusicClientProps) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("playlists");
   const [showSyncSetup, setShowSyncSetup] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [parityId, setParityId] = useState<string | null>(null);
   const [syncGroupName, setSyncGroupName] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(syncGroups.map(g => g.id)));
   const [deletingGroup, setDeletingGroup] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Group playlists by provider
+  useEffect(() => {
+    return () => { audioRef.current?.pause(); };
+  }, []);
+
+  const handlePlay = (track: TrackItem) => {
+    if (!track.previewUrl) return;
+    if (playingId === track.id) {
+      audioRef.current?.pause();
+      setPlayingId(null);
+      return;
+    }
+    audioRef.current?.pause();
+    const audio = new Audio(track.previewUrl);
+    audio.volume = 0.5;
+    audio.play();
+    audio.onended = () => setPlayingId(null);
+    audioRef.current = audio;
+    setPlayingId(track.id);
+  };
+
   const byProvider = playlists.reduce<Record<string, PlaylistItem[]>>((acc, p) => {
     (acc[p.provider] ??= []).push(p);
     return acc;
   }, {});
-
-  const ungroupedPlaylists = playlists.filter((p) => !p.syncGroupId);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -115,34 +168,35 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
     }
   };
 
-  const handleCreateSyncGroup = async () => {
-    if (selectedIds.size < 2) {
-      toast.error("Select at least 2 playlists");
-      return;
+  const handleToggle = async (id: string, field: "isPublic" | "isPinned", value: boolean) => {
+    setTogglingId(id);
+    try {
+      const res = await fetch(`/api/music/playlists/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(field === "isPublic" ? (value ? "Made public" : "Made private") : (value ? "Pinned to profile" : "Unpinned"));
+      router.refresh();
+    } catch {
+      toast.error("Failed to update");
+    } finally {
+      setTogglingId(null);
     }
-    if (!parityId) {
-      toast.error("Select a parity (source) playlist");
-      return;
-    }
-    if (!syncGroupName.trim()) {
-      toast.error("Enter a sync group name");
-      return;
-    }
+  };
 
+  const handleCreateSyncGroup = async () => {
+    if (selectedIds.size < 2) { toast.error("Select at least 2 playlists"); return; }
+    if (!parityId) { toast.error("Select a parity (source) playlist"); return; }
+    if (!syncGroupName.trim()) { toast.error("Enter a sync group name"); return; }
     try {
       const res = await fetch("/api/music/playlists/sync-group", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: syncGroupName.trim(),
-          playlistIds: Array.from(selectedIds),
-          parityPlaylistId: parityId,
-        }),
+        body: JSON.stringify({ name: syncGroupName.trim(), playlistIds: Array.from(selectedIds), parityPlaylistId: parityId }),
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed");
-      }
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed"); }
       toast.success("Sync group created!");
       setShowSyncSetup(false);
       setSelectedIds(new Set());
@@ -181,14 +235,17 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
     const info = PROVIDER_INFO[provider];
     if (!info) return null;
     return (
-      <span
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-        style={{ backgroundColor: info.color + "20", color: info.color }}
-      >
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: info.color + "20", color: info.color }}>
         {info.icon} {info.label}
       </span>
     );
   };
+
+  const tabs: { id: TabType; label: string; icon: React.ReactNode; count?: number }[] = [
+    { id: "playlists", label: "Playlists", icon: <Disc3 className="w-4 h-4" />, count: playlists.length },
+    { id: "tracks", label: "Tracks", icon: <ListMusic className="w-4 h-4" />, count: recentTracks.length },
+    { id: "sync", label: "Sync Groups", icon: <Link2 className="w-4 h-4" />, count: syncGroups.length },
+  ];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
@@ -196,9 +253,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Library className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)]">
-            My Music
-          </h1>
+          <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)]">My Music</h1>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -209,28 +264,20 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
             <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
             Sync All
           </button>
-          <Link
-            href="/settings/connections"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <Link href="/settings/connections" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors">
             <Settings className="w-4 h-4" />
             Connections
           </Link>
         </div>
       </div>
 
-      {/* No connections state */}
+      {/* No connections */}
       {connections.length === 0 && (
         <div className="text-center py-20">
           <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-lg font-semibold mb-2">Connect your music services</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Link Spotify, Apple Music, or other services to see your playlists here.
-          </p>
-          <Link
-            href="/settings/connections"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
-          >
+          <p className="text-sm text-muted-foreground mb-4">Link Spotify, Apple Music, or other services to see your playlists here.</p>
+          <Link href="/settings/connections" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
             <Plus className="w-4 h-4" />
             Connect a Service
           </Link>
@@ -243,286 +290,107 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
           {connections.map((c) => {
             const info = PROVIDER_INFO[c.provider];
             return (
-              <div
-                key={c.id}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/50 text-xs"
-              >
+              <div key={c.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/50 text-xs">
                 <span>{info?.icon}</span>
-                <span className="font-medium" style={{ color: info?.color }}>
-                  {info?.label}
-                </span>
-                {c.providerUsername && (
-                  <span className="text-muted-foreground">@{c.providerUsername}</span>
-                )}
+                <span className="font-medium" style={{ color: info?.color }}>{info?.label}</span>
+                {c.providerUsername && <span className="text-muted-foreground">@{c.providerUsername}</span>}
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Sync Groups */}
-      {syncGroups.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <Link2 className="w-4 h-4" />
-            Sync Groups
-          </h2>
-          <div className="space-y-3">
-            {syncGroups.map((group) => (
-              <div
-                key={group.id}
-                className="border border-border/50 rounded-xl overflow-hidden"
-              >
-                <button
-                  onClick={() => toggleGroupExpand(group.id)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    {expandedGroups.has(group.id) ? (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    )}
-                    <Link2 className="w-4 h-4 text-primary" />
-                    <span className="font-medium text-sm">{group.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {group.playlists.length} playlists linked
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {group.playlists.map((p) => (
-                      <span key={p.id}>{PROVIDER_INFO[p.provider]?.icon}</span>
-                    ))}
-                  </div>
-                </button>
-
-                {expandedGroups.has(group.id) && (
-                  <div className="border-t border-border/30 px-4 py-2 space-y-1.5 bg-muted/5">
-                    {group.playlists.map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex items-center gap-3 py-2 px-2 rounded-lg"
-                      >
-                        {p.coverImageUrl ? (
-                          <img
-                            src={p.coverImageUrl}
-                            alt=""
-                            className="w-10 h-10 rounded object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                            <Music className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium truncate">{p.name}</span>
-                            {providerBadge(p.provider)}
-                            {group.parityPlaylistId === p.id && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/30">
-                                <Shield className="w-3 h-3" />
-                                PARITY
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {p._count.tracks} tracks
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="flex justify-end pt-1 pb-1">
-                      <button
-                        onClick={() => handleDeleteGroup(group.id)}
-                        disabled={deletingGroup === group.id}
-                        className="flex items-center gap-1 px-2 py-1 rounded text-xs text-destructive hover:bg-destructive/10 transition-colors"
-                      >
-                        {deletingGroup === group.id ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Unlink className="w-3 h-3" />
-                        )}
-                        Unlink Group
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Create sync group */}
-      {playlists.length > 0 && (
-        <section className="mb-8">
-          {!showSyncSetup ? (
+      {/* Tabs */}
+      {connections.length > 0 && (
+        <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
+          {tabs.map((tab) => (
             <button
-              onClick={() => setShowSyncSetup(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:bg-muted/20 hover:border-primary/50 transition-colors w-full justify-center"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors relative ${
+                activeTab === tab.id
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <Link2 className="w-4 h-4" />
-              Create Sync Group (Link playlists across services)
-            </button>
-          ) : (
-            <div className="border border-primary/30 rounded-xl p-4 bg-primary/5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-sm flex items-center gap-1.5">
-                  <Link2 className="w-4 h-4 text-primary" />
-                  New Sync Group
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowSyncSetup(false);
-                    setSelectedIds(new Set());
-                    setParityId(null);
-                    setSyncGroupName("");
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Cancel
-                </button>
-              </div>
-
-              <input
-                type="text"
-                value={syncGroupName}
-                onChange={(e) => setSyncGroupName(e.target.value)}
-                placeholder="Sync group name (e.g. 'My Favorites')"
-                className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm mb-4 focus:outline-none focus:ring-1 focus:ring-primary/50"
-              />
-
-              <p className="text-xs text-muted-foreground mb-3">
-                Select playlists to link together, then choose one as <strong>parity</strong> (source of truth).
-                The parity playlist&apos;s tracks will be synced to all others in the group.
-              </p>
-
-              {/* Playlist selection by provider */}
-              <div className="space-y-4 mb-4">
-                {Object.entries(byProvider).map(([provider, pls]) => (
-                  <div key={provider}>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      {providerBadge(provider)}
-                    </div>
-                    <div className="space-y-1">
-                      {pls.filter((p) => !p.syncGroupId).map((p) => (
-                        <div
-                          key={p.id}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                            selectedIds.has(p.id) ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/30 border border-transparent"
-                          }`}
-                          onClick={() => toggleSelect(p.id)}
-                        >
-                          {selectedIds.has(p.id) ? (
-                            <CheckSquare className="w-4 h-4 text-primary flex-shrink-0" />
-                          ) : (
-                            <Square className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          )}
-                          {p.coverImageUrl ? (
-                            <img src={p.coverImageUrl} alt="" className="w-8 h-8 rounded object-cover" />
-                          ) : (
-                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                              <Music className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm truncate block">{p.name}</span>
-                            <span className="text-xs text-muted-foreground">{p._count.tracks} tracks</span>
-                          </div>
-                          {selectedIds.has(p.id) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setParityId(parityId === p.id ? null : p.id);
-                              }}
-                              className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${
-                                parityId === p.id
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-                              }`}
-                            >
-                              <Shield className="w-3 h-3 inline mr-0.5" />
-                              {parityId === p.id ? "PARITY" : "Set Parity"}
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {selectedIds.size > 0 && (
-                <div className="text-xs text-muted-foreground mb-3">
-                  {selectedIds.size} selected
-                  {parityId && (
-                    <> · Parity: <strong>{playlists.find((p) => p.id === parityId)?.name}</strong></>
-                  )}
-                </div>
+              {tab.icon}
+              {tab.label}
+              {tab.count !== undefined && tab.count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  {tab.count}
+                </span>
               )}
-
-              <button
-                onClick={handleCreateSyncGroup}
-                disabled={selectedIds.size < 2 || !parityId || !syncGroupName.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-              >
-                <Link2 className="w-4 h-4" />
-                Create Sync Group
-              </button>
-            </div>
-          )}
-        </section>
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+          ))}
+        </div>
       )}
 
-      {/* All Playlists */}
-      {playlists.length > 0 && (
+      {/* PLAYLISTS TAB */}
+      {activeTab === "playlists" && playlists.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            All Playlists ({playlists.length})
-          </h2>
-
           {Object.entries(byProvider).map(([provider, pls]) => (
-            <div key={provider} className="mb-6">
-              <div className="flex items-center gap-2 mb-2">
+            <div key={provider} className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
                 {providerBadge(provider)}
-                <span className="text-xs text-muted-foreground">
-                  {pls.length} playlist{pls.length !== 1 ? "s" : ""}
-                </span>
+                <span className="text-xs text-muted-foreground">{pls.length} playlist{pls.length !== 1 ? "s" : ""}</span>
               </div>
-              <div className="space-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {pls.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/20 transition-colors group"
-                  >
-                    {p.coverImageUrl ? (
-                      <img
-                        src={p.coverImageUrl}
-                        alt=""
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                        <Music className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{p.name}</span>
-                        {p.syncGroupId && (
-                          <Link2 className="w-3 h-3 text-primary flex-shrink-0" />
-                        )}
-                        {p.isPinned && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                            Pinned
-                          </span>
+                  <div key={p.id} className="group relative rounded-xl border border-border/50 hover:border-primary/30 bg-card/50 hover:bg-card transition-all duration-200 overflow-hidden">
+                    <Link href={`/playlist/${p.id}`} className="flex items-center gap-3 p-3">
+                      {p.coverImageUrl ? (
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
+                          <Image src={p.coverImageUrl} alt={p.name} width={64} height={64} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
+                          <Music className="w-7 h-7 text-primary/40" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{p.name}</span>
+                          {p.syncGroupId && <Link2 className="w-3 h-3 text-primary flex-shrink-0" />}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                          <span>{p._count.tracks} tracks</span>
+                          <span>·</span>
+                          <span>{p.trackCount} from {PROVIDER_INFO[p.provider]?.label}</span>
+                        </div>
+                        {p.description && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{p.description}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{p._count.tracks} tracks</span>
-                        <span>·</span>
-                        <span>{p.isPublic ? "Public" : "Private"}</span>
-                      </div>
+                      <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                    </Link>
+
+                    {/* Controls bar */}
+                    <div className="flex items-center gap-1 px-3 pb-2 pt-0">
+                      <button
+                        onClick={(e) => { e.preventDefault(); handleToggle(p.id, "isPublic", !p.isPublic); }}
+                        disabled={togglingId === p.id}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+                          p.isPublic ? "bg-green-500/10 text-green-400 hover:bg-green-500/20" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                        }`}
+                        title={p.isPublic ? "Make private" : "Make public"}
+                      >
+                        {p.isPublic ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                        {p.isPublic ? "Public" : "Private"}
+                      </button>
+                      <button
+                        onClick={(e) => { e.preventDefault(); handleToggle(p.id, "isPinned", !p.isPinned); }}
+                        disabled={togglingId === p.id}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+                          p.isPinned ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                        }`}
+                        title={p.isPinned ? "Unpin from profile" : "Pin to profile"}
+                      >
+                        {p.isPinned ? <Pin className="w-3 h-3" /> : <PinOff className="w-3 h-3" />}
+                        {p.isPinned ? "Pinned" : "Pin"}
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -532,12 +400,10 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
         </section>
       )}
 
-      {playlists.length === 0 && connections.length > 0 && (
+      {activeTab === "playlists" && playlists.length === 0 && connections.length > 0 && (
         <div className="text-center py-16">
           <RefreshCw className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-3">
-            No playlists imported yet. Sync your connected services to load them.
-          </p>
+          <p className="text-sm text-muted-foreground mb-3">No playlists imported yet. Sync your connected services to load them.</p>
           <button
             onClick={handleSyncAll}
             disabled={syncing}
@@ -547,6 +413,220 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
             Sync Playlists
           </button>
         </div>
+      )}
+
+      {/* TRACKS TAB */}
+      {activeTab === "tracks" && (
+        <section>
+          {recentTracks.length === 0 ? (
+            <div className="text-center py-16">
+              <ListMusic className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground mb-1">No tracks synced yet</p>
+              <p className="text-xs text-muted-foreground">Sync your playlists to see individual tracks here.</p>
+            </div>
+          ) : (
+            <div className="border border-border/50 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-[2rem_1fr_3rem] sm:grid-cols-[2rem_1fr_1fr_4rem] gap-3 px-4 py-2 border-b border-border/50 text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                <span>#</span>
+                <span>Title</span>
+                <span className="hidden sm:block">Album</span>
+                <span className="text-right"><Clock className="w-3 h-3 inline" /></span>
+              </div>
+              {recentTracks.map((t, i) => {
+                const isPlaying = playingId === t.id;
+                const hasPreview = !!t.previewUrl;
+                return (
+                  <div
+                    key={t.id}
+                    className={`group grid grid-cols-[2rem_1fr_3rem] sm:grid-cols-[2rem_1fr_1fr_4rem] gap-3 px-4 py-2.5 items-center hover:bg-muted/30 transition-colors ${isPlaying ? "bg-primary/5" : ""}`}
+                  >
+                    <div className="text-center">
+                      {hasPreview ? (
+                        <button onClick={() => handlePlay(t)} className="w-6 h-6 flex items-center justify-center">
+                          <span className="group-hover:hidden text-xs text-muted-foreground">{i + 1}</span>
+                          {isPlaying ? (
+                            <Pause className="w-3.5 h-3.5 text-primary hidden group-hover:block" />
+                          ) : (
+                            <Play className="w-3.5 h-3.5 text-foreground hidden group-hover:block" />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{i + 1}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {t.albumArtUrl ? (
+                        <Image src={t.albumArtUrl} alt="" width={40} height={40} className="rounded flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          <Music className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className={`text-sm truncate ${isPlaying ? "text-primary font-medium" : ""}`}>{t.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{t.artist}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate hidden sm:block">{t.album ?? ""}</p>
+                    <div className="flex items-center justify-end gap-1">
+                      <span className="text-xs text-muted-foreground">{formatDuration(t.duration)}</span>
+                      {t.externalUrl && (
+                        <a href={t.externalUrl} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* SYNC GROUPS TAB */}
+      {activeTab === "sync" && (
+        <section>
+          {/* Create sync group */}
+          {playlists.length > 0 && (
+            <div className="mb-6">
+              {!showSyncSetup ? (
+                <button
+                  onClick={() => setShowSyncSetup(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:bg-muted/20 hover:border-primary/50 transition-colors w-full justify-center"
+                >
+                  <Link2 className="w-4 h-4" />
+                  Create Sync Group (Link playlists across services)
+                </button>
+              ) : (
+                <div className="border border-primary/30 rounded-xl p-4 bg-primary/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-sm flex items-center gap-1.5">
+                      <Link2 className="w-4 h-4 text-primary" />
+                      New Sync Group
+                    </h3>
+                    <button onClick={() => { setShowSyncSetup(false); setSelectedIds(new Set()); setParityId(null); setSyncGroupName(""); }} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+                  </div>
+                  <input
+                    type="text" value={syncGroupName} onChange={(e) => setSyncGroupName(e.target.value)}
+                    placeholder="Sync group name (e.g. 'My Favorites')"
+                    className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm mb-4 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  />
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Select playlists to link together, then choose one as <strong>parity</strong> (source of truth).
+                  </p>
+                  <div className="space-y-4 mb-4">
+                    {Object.entries(byProvider).map(([provider, pls]) => (
+                      <div key={provider}>
+                        <div className="flex items-center gap-1.5 mb-2">{providerBadge(provider)}</div>
+                        <div className="space-y-1">
+                          {pls.filter((p) => !p.syncGroupId).map((p) => (
+                            <div
+                              key={p.id}
+                              className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${selectedIds.has(p.id) ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/30 border border-transparent"}`}
+                              onClick={() => toggleSelect(p.id)}
+                            >
+                              {selectedIds.has(p.id) ? <CheckSquare className="w-4 h-4 text-primary flex-shrink-0" /> : <Square className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                              {p.coverImageUrl ? <img src={p.coverImageUrl} alt="" className="w-8 h-8 rounded object-cover" /> : <div className="w-8 h-8 rounded bg-muted flex items-center justify-center"><Music className="w-4 h-4 text-muted-foreground" /></div>}
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm truncate block">{p.name}</span>
+                                <span className="text-xs text-muted-foreground">{p._count.tracks} tracks</span>
+                              </div>
+                              {selectedIds.has(p.id) && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setParityId(parityId === p.id ? null : p.id); }}
+                                  className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${parityId === p.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                                >
+                                  <Shield className="w-3 h-3 inline mr-0.5" />
+                                  {parityId === p.id ? "PARITY" : "Set Parity"}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedIds.size > 0 && (
+                    <div className="text-xs text-muted-foreground mb-3">
+                      {selectedIds.size} selected
+                      {parityId && <> · Parity: <strong>{playlists.find((p) => p.id === parityId)?.name}</strong></>}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleCreateSyncGroup}
+                    disabled={selectedIds.size < 2 || !parityId || !syncGroupName.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                  >
+                    <Link2 className="w-4 h-4" />
+                    Create Sync Group
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Existing groups */}
+          {syncGroups.length > 0 ? (
+            <div className="space-y-3">
+              {syncGroups.map((group) => (
+                <div key={group.id} className="border border-border/50 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleGroupExpand(group.id)}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      {expandedGroups.has(group.id) ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                      <Link2 className="w-4 h-4 text-primary" />
+                      <span className="font-medium text-sm">{group.name}</span>
+                      <span className="text-xs text-muted-foreground">{group.playlists.length} playlists linked</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {group.playlists.map((p) => <span key={p.id}>{PROVIDER_INFO[p.provider]?.icon}</span>)}
+                    </div>
+                  </button>
+                  {expandedGroups.has(group.id) && (
+                    <div className="border-t border-border/30 px-4 py-2 space-y-1.5 bg-muted/5">
+                      {group.playlists.map((p) => (
+                        <Link key={p.id} href={`/playlist/${p.id}`} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-muted/20 transition-colors">
+                          {p.coverImageUrl ? <img src={p.coverImageUrl} alt="" className="w-10 h-10 rounded object-cover" /> : <div className="w-10 h-10 rounded bg-muted flex items-center justify-center"><Music className="w-5 h-5 text-muted-foreground" /></div>}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium truncate">{p.name}</span>
+                              {providerBadge(p.provider)}
+                              {group.parityPlaylistId === p.id && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/30">
+                                  <Shield className="w-3 h-3" />
+                                  PARITY
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground">{p._count.tracks} tracks</span>
+                          </div>
+                        </Link>
+                      ))}
+                      <div className="flex justify-end pt-1 pb-1">
+                        <button
+                          onClick={() => handleDeleteGroup(group.id)}
+                          disabled={deletingGroup === group.id}
+                          className="flex items-center gap-1 px-2 py-1 rounded text-xs text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          {deletingGroup === group.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
+                          Unlink Group
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Link2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No sync groups yet. Link playlists across services to keep them in sync.</p>
+            </div>
+          )}
+        </section>
       )}
     </div>
   );

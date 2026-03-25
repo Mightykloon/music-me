@@ -81,4 +81,5 @@ export interface ProfileLayoutProps {
     };
   }[];
   isOwn: boolean;
+  genres?: { genre: string; count: number }[];
 }

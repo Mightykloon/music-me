@@ -68,6 +68,26 @@ export default async function ProfilePage({
       })
     : null;
 
+  // Get genre stats from user's playlist tracks
+  const playlistTracks = await db.playlistTrack.findMany({
+    where: { playlist: { userId: user.id, isPublic: true } },
+    include: { track: { select: { album: true, artist: true } } },
+    take: 500,
+  });
+
+  // Build genre map from artists (using artist names as genre proxies)
+  const artistCounts: Record<string, number> = {};
+  for (const pt of playlistTracks) {
+    const artist = pt.track.artist?.trim();
+    if (artist) {
+      artistCounts[artist] = (artistCounts[artist] || 0) + 1;
+    }
+  }
+  const topArtistGenres = Object.entries(artistCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([genre, count]) => ({ genre, count }));
+
   // Get recent posts
   const posts = await db.post.findMany({
     where: { authorId: user.id, visibility: "PUBLIC" },
@@ -138,6 +158,7 @@ export default async function ProfilePage({
       user={profileData as unknown as ProfileLayoutProps["user"]}
       posts={postsData as unknown as ProfileLayoutProps["posts"]}
       isOwn={isOwn}
+      genres={topArtistGenres}
     />
   );
 }
