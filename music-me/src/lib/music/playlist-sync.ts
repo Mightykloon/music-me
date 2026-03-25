@@ -7,7 +7,7 @@ import type { MusicProviderType } from "@prisma/client";
 /**
  * Get a valid access token, refreshing if expired.
  */
-async function getValidAccessToken(connection: {
+export async function getValidAccessToken(connection: {
   id: string;
   accessToken: string;
   refreshToken: string | null;
@@ -45,25 +45,22 @@ async function getValidAccessToken(connection: {
 }
 
 /**
- * Sync all playlists for a specific music connection.
+ * Sync playlist metadata only (fast — no track fetching).
+ * Returns the list of playlist IDs that were synced.
  */
-export async function syncPlaylists(connectionId: string) {
+export async function syncPlaylistMetadata(connectionId: string): Promise<string[]> {
   const connection = await db.musicConnection.findUnique({
     where: { id: connectionId },
   });
 
-  if (!connection || !connection.isActive) return;
+  if (!connection || !connection.isActive) return [];
 
   const provider = getMusicProvider(connection.provider);
-
-  // Get a valid (refreshed if needed) access token
   const accessToken = await getValidAccessToken(connection);
-
-  // Fetch playlists from the service
   const remotePlaylists = await provider.getUserPlaylists(accessToken);
+  const playlistIds: string[] = [];
 
   for (const remote of remotePlaylists) {
-    // Upsert playlist
     const playlist = await db.playlist.upsert({
       where: {
         userId_provider_providerPlaylistId: {
@@ -89,36 +86,70 @@ export async function syncPlaylists(connectionId: string) {
         trackCount: remote.trackCount,
       },
     });
-
-    // Sync tracks for this playlist
-    try {
-      const remoteTracks = await provider.getPlaylistTracks(
-        accessToken,
-        remote.providerPlaylistId
-      );
-
-      // Remove existing playlist tracks
-      await db.playlistTrack.deleteMany({
-        where: { playlistId: playlist.id },
-      });
-
-      // Insert new tracks
-      for (const rt of remoteTracks) {
-        const track = await findOrCreateTrack(rt.track);
-        await db.playlistTrack.create({
-          data: {
-            playlistId: playlist.id,
-            trackId: track.id,
-            position: rt.position,
-            addedAt: rt.addedAt,
-          },
-        });
-      }
-    } catch (err) {
-      console.error(`Failed to sync tracks for playlist ${playlist.name}:`, err);
-      // Continue with other playlists
-    }
+    playlistIds.push(playlist.id);
   }
+
+  return playlistIds;
+}
+
+/**
+ * Sync tracks for a single playlist by its DB id.
+ */
+export async function syncPlaylistTracks(playlistId: string): Promise<number> {
+  const playlist = await db.playlist.findUnique({
+    where: { id: playlistId },
+    include: { user: { select: { id: true } } },
+  });
+  if (!playlist) throw new Error("Playlist not found");
+
+  // Find the connection for this provider
+  const connection = await db.musicConnection.findFirst({
+    where: {
+      userId: playlist.userId,
+      provider: playlist.provider,
+      isActive: true,
+    },
+  });
+  if (!connection) throw new Error("No active connection");
+
+  const provider = getMusicProvider(connection.provider);
+  const accessToken = await getValidAccessToken(connection);
+
+  const remoteTracks = await provider.getPlaylistTracks(
+    accessToken,
+    playlist.providerPlaylistId
+  );
+
+  // Delete existing and re-insert
+  await db.playlistTrack.deleteMany({ where: { playlistId } });
+
+  // Batch inserts for speed
+  for (const rt of remoteTracks) {
+    const track = await findOrCreateTrack(rt.track);
+    await db.playlistTrack.create({
+      data: {
+        playlistId,
+        trackId: track.id,
+        position: rt.position,
+        addedAt: rt.addedAt,
+      },
+    });
+  }
+
+  // Update track count
+  await db.playlist.update({
+    where: { id: playlistId },
+    data: { trackCount: remoteTracks.length, lastSyncedAt: new Date() },
+  });
+
+  return remoteTracks.length;
+}
+
+/**
+ * Legacy: Sync all playlists for a specific music connection (metadata only).
+ */
+export async function syncPlaylists(connectionId: string) {
+  return syncPlaylistMetadata(connectionId);
 }
 
 /**
@@ -132,12 +163,12 @@ export async function syncAllUserPlaylists(userId: string) {
   await Promise.allSettled(
     connections
       .filter((c) => getMusicProvider(c.provider).config.supportsPlaylists)
-      .map((c) => syncPlaylists(c.id))
+      .map((c) => syncPlaylistMetadata(c.id))
   );
 }
 
 /**
- * Import playlists on initial connection — includes full track sync.
+ * Import playlists on initial connection (metadata only — tracks synced on demand).
  */
 export async function importPlaylistsOnConnect(
   userId: string,
@@ -151,7 +182,7 @@ export async function importPlaylistsOnConnect(
   const remotePlaylists = await musicProvider.getUserPlaylists(accessToken);
 
   for (const remote of remotePlaylists) {
-    const playlist = await db.playlist.upsert({
+    await db.playlist.upsert({
       where: {
         userId_provider_providerPlaylistId: {
           userId,
@@ -176,34 +207,5 @@ export async function importPlaylistsOnConnect(
         trackCount: remote.trackCount,
       },
     });
-
-    // Also sync tracks for each playlist
-    try {
-      const remoteTracks = await musicProvider.getPlaylistTracks(
-        accessToken,
-        remote.providerPlaylistId
-      );
-
-      // Remove existing playlist tracks
-      await db.playlistTrack.deleteMany({
-        where: { playlistId: playlist.id },
-      });
-
-      // Insert new tracks
-      for (const rt of remoteTracks) {
-        const track = await findOrCreateTrack(rt.track);
-        await db.playlistTrack.create({
-          data: {
-            playlistId: playlist.id,
-            trackId: track.id,
-            position: rt.position,
-            addedAt: rt.addedAt,
-          },
-        });
-      }
-    } catch (err) {
-      console.error(`Failed to sync tracks for playlist ${remote.name}:`, err);
-      // Continue with other playlists
-    }
   }
 }

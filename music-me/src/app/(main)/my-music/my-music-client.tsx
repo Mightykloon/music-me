@@ -183,18 +183,60 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     });
   };
 
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null);
+
   const handleSyncAll = async () => {
     setSyncing(true);
     try {
+      // Step 1: Sync playlist metadata (fast)
       for (const conn of connections) {
         await fetch(`/api/music/connections/${conn.id}/sync`, { method: "POST" });
       }
-      toast.success("Playlists synced!");
+      toast.success("Playlist list updated! Now syncing tracks...");
       router.refresh();
+
+      // Step 2: Sync tracks for each playlist progressively
+      const res = await fetch("/api/music/playlists");
+      if (res.ok) {
+        const data = await res.json();
+        const allPlaylists: PlaylistItem[] = data.items ?? data ?? [];
+        const needsSync = allPlaylists.filter((p: PlaylistItem) => p._count.tracks === 0 && p.trackCount > 0);
+
+        if (needsSync.length > 0) {
+          setSyncProgress({ current: 0, total: needsSync.length });
+          let synced = 0;
+          let failed = 0;
+
+          // Sync playlists one at a time to avoid timeout
+          for (const p of needsSync) {
+            try {
+              const syncRes = await fetch(`/api/music/playlists/${p.id}/sync`, { method: "POST" });
+              if (syncRes.ok) {
+                synced++;
+              } else {
+                failed++;
+              }
+            } catch {
+              failed++;
+            }
+            setSyncProgress({ current: synced + failed, total: needsSync.length });
+          }
+
+          if (synced > 0) {
+            toast.success(`Synced tracks for ${synced} playlist${synced !== 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}`);
+          } else if (failed > 0) {
+            toast.error(`Failed to sync tracks for ${failed} playlists`);
+          }
+          router.refresh();
+        } else {
+          toast.success("All playlists up to date!");
+        }
+      }
     } catch {
       toast.error("Sync failed");
     } finally {
       setSyncing(false);
+      setSyncProgress(null);
     }
   };
 
@@ -292,7 +334,11 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-            Sync All
+            {syncProgress
+              ? `Syncing ${syncProgress.current}/${syncProgress.total}...`
+              : syncing
+                ? "Syncing..."
+                : "Sync All"}
           </button>
           <Link href="/settings/connections" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors">
             <Settings className="w-4 h-4" />
