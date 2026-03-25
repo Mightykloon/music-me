@@ -84,16 +84,13 @@ export function MainNav({ user, className }: MainNavProps) {
             <span className="text-[10px] mt-0.5">Community</span>
           </Link>
           <Link href="/feed" className="flex flex-col items-center justify-center -mt-4">
-            <span className={cn(
-              "flex items-center justify-center w-12 h-12 rounded-full shadow-lg shadow-primary/30 transition-colors",
-              pathname.startsWith("/feed") ? "bg-primary text-primary-foreground" : "bg-primary text-primary-foreground"
-            )}>
+            <span className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
               <Home className="w-6 h-6" />
             </span>
           </Link>
-          <Link href="/notifications" className={mobileNavClass(pathname, "/notifications")}>
-            <Bell className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5">Alerts</span>
+          <Link href="/my-music" className={mobileNavClass(pathname, "/my-music")}>
+            <Library className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Library</span>
           </Link>
           <Link href={username ? `/${username}` : "/settings/profile"} className={mobileNavClass(pathname, `/${username}`)}>
             <User className="w-5 h-5" />
