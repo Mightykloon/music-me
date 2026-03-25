@@ -92,6 +92,7 @@ interface MyMusicClientProps {
 }
 
 type TabType = "playlists" | "tracks" | "sync";
+type SortType = "default" | "date-new" | "date-old" | "name-az" | "name-za" | "tracks-most" | "tracks-least";
 
 function formatDuration(ms: number | null) {
   if (!ms) return "";
@@ -101,10 +102,38 @@ function formatDuration(ms: number | null) {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
+function sortPlaylists(items: PlaylistItem[], sort: SortType): PlaylistItem[] {
+  const sorted = [...items];
+  switch (sort) {
+    case "default":
+      // Public first, then pinned, then alphabetical
+      return sorted.sort((a, b) => {
+        if (a.isPublic !== b.isPublic) return a.isPublic ? -1 : 1;
+        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+    case "date-new":
+      return sorted.sort((a, b) => new Date(b.importedAt).getTime() - new Date(a.importedAt).getTime());
+    case "date-old":
+      return sorted.sort((a, b) => new Date(a.importedAt).getTime() - new Date(b.importedAt).getTime());
+    case "name-az":
+      return sorted.sort((a, b) => a.name.localeCompare(b.name));
+    case "name-za":
+      return sorted.sort((a, b) => b.name.localeCompare(a.name));
+    case "tracks-most":
+      return sorted.sort((a, b) => (b._count.tracks || b.trackCount) - (a._count.tracks || a.trackCount));
+    case "tracks-least":
+      return sorted.sort((a, b) => (a._count.tracks || a.trackCount) - (b._count.tracks || b.trackCount));
+    default:
+      return sorted;
+  }
+}
+
 export function MyMusicClient({ playlists, connections, syncGroups, recentTracks }: MyMusicClientProps) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("playlists");
+  const [sortBy, setSortBy] = useState<SortType>("default");
   const [showSyncSetup, setShowSyncSetup] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [parityId, setParityId] = useState<string | null>(null);
@@ -135,7 +164,8 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     setPlayingId(track.id);
   };
 
-  const byProvider = playlists.reduce<Record<string, PlaylistItem[]>>((acc, p) => {
+  const sortedPlaylists = sortPlaylists(playlists, sortBy);
+  const byProvider = sortedPlaylists.reduce<Record<string, PlaylistItem[]>>((acc, p) => {
     (acc[p.provider] ??= []).push(p);
     return acc;
   }, {});
@@ -331,6 +361,25 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       {/* PLAYLISTS TAB */}
       {activeTab === "playlists" && playlists.length > 0 && (
         <section>
+          {/* Sort dropdown */}
+          <div className="flex items-center justify-end mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortType)}
+                className="text-xs px-2 py-1.5 rounded-lg bg-muted/50 border border-border/50 text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+              >
+                <option value="default">Public first</option>
+                <option value="date-new">Newest first</option>
+                <option value="date-old">Oldest first</option>
+                <option value="name-az">Name A–Z</option>
+                <option value="name-za">Name Z–A</option>
+                <option value="tracks-most">Most tracks</option>
+                <option value="tracks-least">Fewest tracks</option>
+              </select>
+            </div>
+          </div>
           {Object.entries(byProvider).map(([provider, pls]) => (
             <div key={provider} className="mb-8">
               <div className="flex items-center gap-2 mb-3">

@@ -123,22 +123,34 @@ export class SpotifyProvider implements MusicProvider {
     accessToken: string,
     playlistId: string
   ): Promise<PlaylistTrackResult[]> {
-    const data = await this.fetchApi(
-      accessToken,
-      `/playlists/${playlistId}/tracks?limit=100`
-    );
+    const allItems: PlaylistTrackResult[] = [];
+    let url: string | null = `/playlists/${playlistId}/tracks?limit=100`;
 
-    return (data.items ?? [])
-      .filter(
+    while (url) {
+      const data = await this.fetchApi(accessToken, url);
+      const items = (data.items ?? [])
+        .filter(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (item: any) => item.track && item.track.type === "track"
+        )
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (item: any) => item.track && item.track.type === "track"
-      )
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((item: any, i: number): PlaylistTrackResult => ({
-        track: this.mapTrack(item.track),
-        position: i,
-        addedAt: new Date(item.added_at),
-      }));
+        .map((item: any): PlaylistTrackResult => ({
+          track: this.mapTrack(item.track),
+          position: allItems.length + (data.items ?? []).indexOf(item),
+          addedAt: new Date(item.added_at),
+        }));
+
+      // Fix positions to be sequential
+      for (const item of items) {
+        item.position = allItems.length;
+        allItems.push(item);
+      }
+
+      // Spotify returns a `next` URL for pagination
+      url = data.next ?? null;
+    }
+
+    return allItems;
   }
 
   async getNowPlaying(

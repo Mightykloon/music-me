@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
+// Using native <img> for external CDN cover art (Spotify uses many subdomains)
 import Link from "next/link";
-import { ArrowLeft, Music, Play, Pause, ExternalLink, Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Music, Play, Pause, ExternalLink, Clock, RefreshCw } from "lucide-react";
+import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/avatar";
 
 interface Track {
@@ -49,7 +51,9 @@ function formatDuration(ms: number | null) {
 }
 
 export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
+  const router = useRouter();
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -57,6 +61,20 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
       audioRef.current?.pause();
     };
   }, []);
+
+  const handleResync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(`/api/music/playlists/${playlist.id}/sync`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      toast.success("Playlist synced! Refreshing...");
+      router.refresh();
+    } catch {
+      toast.error("Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handlePlay = (track: Track) => {
     if (!track.previewUrl) return;
@@ -93,11 +111,9 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
       <div className="flex flex-col sm:flex-row gap-6 mb-8">
         <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 mx-auto sm:mx-0">
           {playlist.coverImageUrl ? (
-            <Image
+            <img
               src={playlist.coverImageUrl}
               alt={playlist.name}
-              width={224}
-              height={224}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -156,7 +172,15 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
         {playlist.tracks.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground text-sm">
-            No tracks synced yet. Try re-syncing from your connections.
+            <p className="mb-3">No tracks synced yet.</p>
+            <button
+              onClick={handleResync}
+              disabled={syncing}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Syncing..." : "Sync Tracks Now"}
+            </button>
           </div>
         ) : (
           playlist.tracks.map((pt, i) => {
@@ -193,12 +217,10 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
                 <div className="flex items-center gap-3 min-w-0">
                   {t.albumArtUrl ? (
-                    <Image
+                    <img
                       src={t.albumArtUrl}
                       alt=""
-                      width={36}
-                      height={36}
-                      className="rounded flex-shrink-0"
+                      className="w-9 h-9 rounded flex-shrink-0"
                     />
                   ) : (
                     <div className="w-9 h-9 rounded bg-muted flex items-center justify-center flex-shrink-0">

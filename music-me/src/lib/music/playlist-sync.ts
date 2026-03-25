@@ -137,7 +137,7 @@ export async function syncAllUserPlaylists(userId: string) {
 }
 
 /**
- * Import playlists on initial connection.
+ * Import playlists on initial connection — includes full track sync.
  */
 export async function importPlaylistsOnConnect(
   userId: string,
@@ -151,7 +151,7 @@ export async function importPlaylistsOnConnect(
   const remotePlaylists = await musicProvider.getUserPlaylists(accessToken);
 
   for (const remote of remotePlaylists) {
-    await db.playlist.upsert({
+    const playlist = await db.playlist.upsert({
       where: {
         userId_provider_providerPlaylistId: {
           userId,
@@ -176,5 +176,34 @@ export async function importPlaylistsOnConnect(
         trackCount: remote.trackCount,
       },
     });
+
+    // Also sync tracks for each playlist
+    try {
+      const remoteTracks = await musicProvider.getPlaylistTracks(
+        accessToken,
+        remote.providerPlaylistId
+      );
+
+      // Remove existing playlist tracks
+      await db.playlistTrack.deleteMany({
+        where: { playlistId: playlist.id },
+      });
+
+      // Insert new tracks
+      for (const rt of remoteTracks) {
+        const track = await findOrCreateTrack(rt.track);
+        await db.playlistTrack.create({
+          data: {
+            playlistId: playlist.id,
+            trackId: track.id,
+            position: rt.position,
+            addedAt: rt.addedAt,
+          },
+        });
+      }
+    } catch (err) {
+      console.error(`Failed to sync tracks for playlist ${remote.name}:`, err);
+      // Continue with other playlists
+    }
   }
 }
