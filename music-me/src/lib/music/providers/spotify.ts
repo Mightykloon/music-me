@@ -262,7 +262,15 @@ export class SpotifyProvider implements MusicProvider {
       // Log the actual error body for debugging
       const errorBody = await res.text().catch(() => "");
       console.error(`Spotify API error ${res.status} for ${endpoint}:`, errorBody);
-      throw new Error(`Spotify API error: ${res.status}`);
+
+      // Parse Spotify error message if possible
+      let detail = "";
+      try {
+        const parsed = JSON.parse(errorBody);
+        detail = parsed?.error?.message || parsed?.error_description || "";
+      } catch { /* not JSON */ }
+
+      throw new Error(`Spotify API error: ${res.status}${detail ? ` - ${detail}` : ""}`);
     }
 
     return res.json();

@@ -58,9 +58,18 @@ export async function POST(
       );
     }
 
-    // Get valid access token (try normal first, force refresh on 403)
-    const conn = connection; // For use in closures
-    let accessToken = await getValidAccessToken(conn);
+    // Always force-refresh the token to ensure we have a valid one
+    const conn = connection;
+    let accessToken: string;
+    try {
+      accessToken = await getValidAccessToken(conn, true); // Always force refresh
+    } catch (refreshErr) {
+      console.error("Token refresh failed:", refreshErr);
+      return NextResponse.json(
+        { error: `Token refresh failed: ${refreshErr instanceof Error ? refreshErr.message : "Unknown error"}. Try reconnecting Spotify.` },
+        { status: 401 }
+      );
+    }
     const provider = getMusicProvider(playlist.provider);
 
     // Helper to fetch a page with automatic token retry on 403
