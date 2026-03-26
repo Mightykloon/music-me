@@ -35,10 +35,9 @@ export function ImageCropEditor({
   imageSrc,
   onComplete,
   onCancel,
-  aspectRatio = 1,
+  aspectRatio: _aspectRatio = 1,
   circular = true,
 }: ImageCropEditorProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [zoom, setZoom] = useState(1);
@@ -48,7 +47,7 @@ export function ImageCropEditor({
   const [filter, setFilter] = useState("none");
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
+  const [, setImgSize] = useState({ w: 0, h: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   // Load image
@@ -129,7 +128,7 @@ export function ImageCropEditor({
     }
 
     // Apply filter
-    const filterCss = getFilterCss();
+    const filterCss = FILTERS.find((f) => f.value === filter)?.css || "";
     if (filterCss) {
       ctx.filter = filterCss;
     }

@@ -82,12 +82,12 @@ export default async function PostDetailPage({
           },
           attachedTrack: true,
           _count: {
-            select: { comments: true, reactions: true, reposts: true },
+            select: { comments: true, reactions: { where: { type: "HEART" } }, reposts: true },
           },
         },
       },
       _count: {
-        select: { comments: true, reactions: true, reposts: true },
+        select: { comments: true, reactions: { where: { type: "HEART" } }, reposts: true },
       },
     },
   });

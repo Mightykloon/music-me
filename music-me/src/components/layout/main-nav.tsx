@@ -10,7 +10,6 @@ import {
   User,
   Library,
   Users,
-  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RemixdLogo } from "@/components/ui/remixd-logo";
@@ -73,7 +72,7 @@ export function MainNav({ user, className }: MainNavProps) {
       </header>
 
       {/* Mobile bottom nav: Discover, Community, Home (center bubble), Notifications, Profile */}
-      <nav className="fixed bottom-0 w-full z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl sm:hidden safe-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl sm:hidden safe-bottom">
         <div className="flex items-center justify-around h-16 px-2">
           <Link href="/discover" className={mobileNavClass(pathname, "/discover")}>
             <Compass className="w-5 h-5" />
