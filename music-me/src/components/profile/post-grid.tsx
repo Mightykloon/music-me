@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { MessageCircle, Flame, Repeat2, Music, Film, LayoutList } from "lucide-react";
+import { MessageCircle, Heart, Repeat2, Music, Film, LayoutList } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar } from "@/components/ui/avatar";
 
@@ -73,7 +73,7 @@ export function PostGrid({ posts, className }: PostGridProps) {
               </div>
             )}
             <div className="flex items-center gap-5 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5"><Flame className="w-3.5 h-3.5" />{post._count.reactions}</span>
+              <span className="flex items-center gap-1.5"><Heart className="w-3.5 h-3.5" />{post._count.reactions}</span>
               <span className="flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" />{post._count.comments}</span>
               <span className="flex items-center gap-1.5"><Repeat2 className="w-3.5 h-3.5" />{post._count.reposts}</span>
             </div>

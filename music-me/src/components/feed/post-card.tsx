@@ -5,12 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import {
-  Flame,
-  Headphones,
   Repeat2,
-  SkipForward,
   Heart,
-  Hash,
   MessageCircle,
   Share2,
   MoreHorizontal,
@@ -69,14 +65,6 @@ export interface PostCardData {
   userReactions?: string[];
 }
 
-const REACTION_MAP: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string }> = {
-  FIRE: { icon: Flame, label: "Fire" },
-  HEADPHONES: { icon: Headphones, label: "Headphones" },
-  ENCORE: { icon: Repeat2, label: "Encore" },
-  SKIP: { icon: SkipForward, label: "Skip" },
-  HEART: { icon: Heart, label: "Heart" },
-  HUNDRED: { icon: Hash, label: "100" },
-};
 
 interface PostCardProps {
   post: PostCardData;
@@ -85,32 +73,24 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, compact = false, className }: PostCardProps) {
-  const [showReactions, setShowReactions] = useState(false);
-  const [reactionCount, setReactionCount] = useState(post._count.reactions);
-  const [userReactions, setUserReactions] = useState<Set<string>>(
-    new Set(post.userReactions ?? [])
+  const [liked, setLiked] = useState(
+    (post.userReactions ?? []).includes("HEART")
   );
+  const [likeCount, setLikeCount] = useState(post._count.reactions);
 
-  const handleReaction = async (type: string) => {
-    const had = userReactions.has(type);
-    const next = new Set(userReactions);
-    if (had) {
-      next.delete(type);
-      setReactionCount((c) => c - 1);
-    } else {
-      next.add(type);
-      setReactionCount((c) => c + 1);
-    }
-    setUserReactions(next);
+  const handleLike = async () => {
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount((c) => (wasLiked ? c - 1 : c + 1));
 
     fetch(`/api/posts/${post.id}/react`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type }),
+      body: JSON.stringify({ type: "HEART" }),
     }).catch(() => {
       // Revert on failure
-      setUserReactions(userReactions);
-      setReactionCount(post._count.reactions);
+      setLiked(wasLiked);
+      setLikeCount(post._count.reactions);
     });
   };
 
@@ -269,36 +249,18 @@ export function PostCard({ post, compact = false, className }: PostCardProps) {
 
           {/* Actions */}
           <div className="mt-3 flex items-center gap-1 -ml-2">
-            {/* Reactions */}
-            <div className="relative">
-              <button
-                onClick={() => setShowReactions(!showReactions)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors text-xs"
-              >
-                <Flame className={`w-4 h-4 ${userReactions.size > 0 ? "text-primary" : ""}`} />
-                {reactionCount > 0 && <span>{reactionCount}</span>}
-              </button>
-
-              {showReactions && (
-                <div className="absolute bottom-full left-0 mb-1 flex gap-1 p-1.5 rounded-xl bg-background border border-border shadow-lg z-10">
-                  {Object.entries(REACTION_MAP).map(([type, { icon: Icon, label }]) => (
-                    <button
-                      key={type}
-                      onClick={() => {
-                        handleReaction(type);
-                        setShowReactions(false);
-                      }}
-                      title={label}
-                      className={`p-1.5 rounded-lg hover:bg-muted transition-colors ${
-                        userReactions.has(type) ? "bg-primary/10 text-primary" : ""
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Like */}
+            <button
+              onClick={handleLike}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors text-xs ${
+                liked
+                  ? "text-red-500 hover:text-red-400"
+                  : "text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
+              {likeCount > 0 && <span>{likeCount}</span>}
+            </button>
 
             <Link
               href={`/post/${post.id}`}

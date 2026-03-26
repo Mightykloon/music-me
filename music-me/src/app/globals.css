@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* Mobile safe area and fixed nav utilities */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Promote to own compositing layer so iOS doesn't repaint during scroll */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem);
+}
+
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;

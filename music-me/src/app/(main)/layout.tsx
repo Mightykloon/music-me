@@ -13,7 +13,7 @@ export default async function MainLayout({
   return (
     <div className="min-h-screen bg-background">
       <MainNav user={session.user} />
-      <main className="pt-16">{children}</main>
+      <main className="pt-16 pb-safe sm:pb-0">{children}</main>
     </div>
   );
 }

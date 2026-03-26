@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { SyncedLyricLine } from "@/lib/music/lyrics";
 
 interface UseSyncedLyricsOptions {
@@ -33,6 +33,7 @@ export function useSyncedLyrics({
   // Fetch lyrics when track changes
   useEffect(() => {
     if (!enabled || !trackTitle || !trackArtist) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLyrics([]);
       return;
     }

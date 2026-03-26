@@ -54,10 +54,10 @@ const POST_INCLUDE = {
           provider: true,
         },
       },
-      _count: { select: { comments: true, reactions: true, reposts: true } },
+      _count: { select: { comments: true, reactions: { where: { type: "HEART" } }, reposts: true } },
     },
   },
-  _count: { select: { comments: true, reactions: true, reposts: true } },
+  _count: { select: { comments: true, reactions: { where: { type: "HEART" } }, reposts: true } },
 } as const;
 
 export async function GET(request: Request) {

@@ -11,10 +11,12 @@ export default async function DiscoverPage() {
   const userId = session?.user?.id;
 
   // Trending posts (most reactions in last 7 days)
+  // eslint-disable-next-line react-hooks/purity
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const trendingPosts = await db.post.findMany({
     where: {
       visibility: "PUBLIC",
-      createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+      createdAt: { gte: sevenDaysAgo },
     },
     take: 10,
     orderBy: { reactions: { _count: "desc" } },
@@ -49,7 +51,7 @@ export default async function DiscoverPage() {
           _count: { select: { options: true } },
         },
       },
-      _count: { select: { comments: true, reactions: true, reposts: true } },
+      _count: { select: { comments: true, reactions: { where: { type: "HEART" } }, reposts: true } },
     },
   });
 

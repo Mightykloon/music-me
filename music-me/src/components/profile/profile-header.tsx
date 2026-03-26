@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -160,7 +161,7 @@ export function ProfileHeader({
           )}
           <div className="mt-3 flex items-center gap-2">
             {isOwn ? (
-              <a href="/settings/profile" className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors">Edit profile</a>
+              <Link href="/settings/profile" className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors">Edit profile</Link>
             ) : (
               <>
                 <Button variant={isFollowing ? "outline" : "primary"} size="sm" onClick={onFollow}>

@@ -15,11 +15,7 @@ export async function POST(
     }
 
     const { type } = await request.json();
-    if (
-      !["FIRE", "HEADPHONES", "ENCORE", "SKIP", "HEART", "HUNDRED"].includes(
-        type
-      )
-    ) {
+    if (type !== "HEART") {
       return NextResponse.json(
         { error: "Invalid reaction type" },
         { status: 400 }

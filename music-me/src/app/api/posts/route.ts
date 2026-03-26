@@ -188,7 +188,7 @@ export async function POST(request: Request) {
             _count: { select: { options: true } },
           },
         },
-        _count: { select: { comments: true, reactions: true, reposts: true } },
+        _count: { select: { comments: true, reactions: { where: { type: "HEART" } }, reposts: true } },
       },
     });
 

@@ -191,7 +191,7 @@ export default function ConnectionsPage() {
         Music Connections
       </h1>
       <p className="text-muted-foreground text-sm mb-8">
-        Connect your music services to import playlists, show what you're
+        Connect your music services to import playlists, show what you&apos;re
         listening to, and search across all your libraries.
       </p>
 

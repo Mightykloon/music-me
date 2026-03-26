@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,12 +30,12 @@ const themes: ThemeOption[] = [
 ];
 
 export default function AppearanceSettingsPage() {
-  const [activeTheme, setActiveTheme] = useState("dark");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("music-me-theme");
-    if (saved) setActiveTheme(saved);
-  }, []);
+  const [activeTheme, setActiveTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("music-me-theme") ?? "dark";
+    }
+    return "dark";
+  });
 
   const applyTheme = (theme: ThemeOption) => {
     setActiveTheme(theme.value);
