@@ -78,7 +78,7 @@ export async function POST(
 
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const currentToken = attempt > 0 ? await getValidAccessToken(connection, true) : token;
+          const currentToken = attempt > 0 ? await getValidAccessToken(connection!, true) : token;
           return await provider.getPlaylistTracksPage(currentToken, pId, off, lim);
         } catch (err) {
           const msg = err instanceof Error ? err.message : "";
