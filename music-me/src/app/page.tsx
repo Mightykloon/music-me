@@ -8,7 +8,7 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <RemixdLogo height={42} />
+          <RemixdLogo height={22} />
           <div className="flex items-center gap-4">
             <Link
               href="/login"
@@ -33,8 +33,8 @@ export default function LandingPage() {
           <div className="relative">
             <div className="absolute inset-0 blur-[100px] opacity-30 bg-gradient-to-r from-primary via-accent to-secondary rounded-full" />
             <div className="relative flex justify-center">
-              <RemixdLogo height={160} className="sm:hidden" />
-              <RemixdLogo height={240} className="hidden sm:block" />
+              <RemixdLogo height={60} className="sm:hidden" />
+              <RemixdLogo height={80} className="hidden sm:block" />
             </div>
           </div>
 
@@ -92,7 +92,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground">
-          <RemixdLogo height={26} />
+          <RemixdLogo height={16} />
           <span>&copy; {new Date().getFullYear()}</span>
         </div>
       </footer>
