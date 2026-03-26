@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { fixS3Url } from "@/lib/storage";
 import { ProfileCanvas } from "./profile-canvas";
 import type { ProfileLayoutProps } from "@/components/profile/layouts/types";
 
@@ -112,6 +113,14 @@ export default async function ProfilePage({
 
   const session = await auth();
   const isOwn = session?.user?.id === user.id;
+
+  // Fix any broken S3 URLs from old "auto" region config
+  if (user.profile) {
+    user.profile.profilePictureUrl = fixS3Url(user.profile.profilePictureUrl);
+    user.profile.bannerUrl = fixS3Url(user.profile.bannerUrl);
+    user.profile.backgroundImageUrl = fixS3Url(user.profile.backgroundImageUrl);
+    user.profile.bannerVideoUrl = fixS3Url(user.profile.bannerVideoUrl);
+  }
 
   // Build the data object for the client component
   const profileData = {

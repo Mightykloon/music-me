@@ -9,13 +9,14 @@ import { SpotifyProvider } from "@/lib/music/providers/spotify";
 export const maxDuration = 60;
 
 /**
- * Incremental playlist track sync.
- * Query params:
- *   offset (default 0) — which page of tracks to sync
- *   limit  (default 50) — tracks per page
- *   clear  (default false) — if "true", delete existing tracks first (use on first page)
+ * Incremental playlist track sync — processes small batches (10 tracks)
+ * for reliability on large playlists.
  *
- * Returns: { synced, total, hasMore, nextOffset }
+ * Query params:
+ *   offset (default 0) — starting position in the playlist
+ *   limit  (default 10) — tracks per request (kept small for reliability)
+ *
+ * Returns: { synced, total, hasMore, nextOffset, currentOffset }
  */
 export async function POST(
   request: Request,
@@ -30,8 +31,7 @@ export async function POST(
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const offset = Math.max(0, Number(searchParams.get("offset") ?? 0));
-    const limit = Math.min(100, Math.max(10, Number(searchParams.get("limit") ?? 50)));
-    const clear = searchParams.get("clear") === "true";
+    const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit") ?? 10)));
 
     // Verify ownership
     const playlist = await db.playlist.findFirst({
@@ -58,11 +58,11 @@ export async function POST(
       );
     }
 
-    // Always force-refresh the token to ensure we have a valid one
-    const conn = connection;
+    // Only force-refresh token on first page or if close to expiry
+    const forceRefresh = offset === 0;
     let accessToken: string;
     try {
-      accessToken = await getValidAccessToken(conn, true); // Always force refresh
+      accessToken = await getValidAccessToken(connection, forceRefresh);
     } catch (refreshErr) {
       console.error("Token refresh failed:", refreshErr);
       return NextResponse.json(
@@ -78,17 +78,15 @@ export async function POST(
 
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const currentToken = attempt > 0 ? await getValidAccessToken(conn, true) : token;
+          const currentToken = attempt > 0 ? await getValidAccessToken(connection, true) : token;
           return await provider.getPlaylistTracksPage(currentToken, pId, off, lim);
         } catch (err) {
           const msg = err instanceof Error ? err.message : "";
           if (msg.includes("429")) {
-            // Rate limited — wait and retry
             await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
             continue;
           }
           if (msg.includes("403") && attempt < 2) {
-            // Forbidden — wait longer then retry with fresh token
             console.log(`Got 403 on attempt ${attempt + 1}, waiting and retrying...`);
             await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
             continue;
@@ -99,21 +97,13 @@ export async function POST(
       return null;
     }
 
-    // Use paginated fetch if available (Spotify), otherwise fall back to full fetch
     if (provider instanceof SpotifyProvider) {
-      // Clear existing tracks on first page
-      if (clear || offset === 0) {
-        await db.playlistTrack.deleteMany({
-          where: { playlistId: playlist.id },
-        });
-      }
-
       const page = await fetchPage(accessToken, playlist.providerPlaylistId, offset, limit);
       if (!page) {
         return NextResponse.json({ error: "Failed to fetch tracks" }, { status: 500 });
       }
 
-      // Insert this page of tracks
+      // Upsert each track individually — no bulk delete
       let synced = 0;
       for (const rt of page.tracks) {
         try {
@@ -135,7 +125,7 @@ export async function POST(
           });
           synced++;
         } catch (err) {
-          console.error(`Failed to sync track:`, err);
+          console.error(`Failed to sync track at position ${rt.position}:`, err);
         }
       }
 

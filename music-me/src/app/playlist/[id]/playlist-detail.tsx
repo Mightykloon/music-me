@@ -73,32 +73,33 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
     setSyncStatus("Starting sync...");
     try {
       let offset = 0;
-      const limit = 50;
+      const limit = 10; // Small batches for reliability
       let totalTracks = 0;
       let totalSynced = 0;
       let retries = 0;
+      const maxRetries = 3;
 
-      // Incrementally sync pages of tracks
       while (true) {
         setSyncStatus(totalTracks > 0
-          ? `Syncing tracks ${totalSynced}/${totalTracks}...`
-          : `Syncing tracks (page ${Math.floor(offset / limit) + 1})...`
+          ? `Syncing track ${Math.min(totalSynced + 1, totalTracks)} of ${totalTracks}...`
+          : `Fetching tracks...`
         );
 
         const res = await fetch(
-          `/api/music/playlists/${playlist.id}/sync?offset=${offset}&limit=${limit}${offset === 0 ? "&clear=true" : ""}`,
+          `/api/music/playlists/${playlist.id}/sync?offset=${offset}&limit=${limit}`,
           { method: "POST" }
         );
 
         if (!res.ok) {
-          // If we already synced some tracks, show partial success
+          if (retries < maxRetries) {
+            retries++;
+            const backoff = 1000 * retries;
+            setSyncStatus(`Retrying (${retries}/${maxRetries})...`);
+            await new Promise(r => setTimeout(r, backoff));
+            continue; // Retry same batch
+          }
+          // Give up on this batch but continue if we have progress
           if (totalSynced > 0) {
-            // Retry once with a delay
-            if (retries < 2) {
-              retries++;
-              await new Promise(r => setTimeout(r, 1500));
-              continue; // Retry same page
-            }
             toast.success(`Synced ${totalSynced} of ${totalTracks} tracks (some failed)`);
             router.refresh();
             return;
@@ -107,7 +108,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
           throw new Error(data.error || "Sync failed");
         }
 
-        retries = 0; // Reset on success
+        retries = 0;
         const data = await res.json();
         totalTracks = data.total;
         totalSynced += data.synced;
@@ -115,8 +116,8 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
         if (!data.hasMore) break;
         offset = data.nextOffset;
 
-        // Small delay between pages to avoid rate limiting
-        await new Promise(r => setTimeout(r, 300));
+        // Small delay between batches to avoid rate limiting
+        await new Promise(r => setTimeout(r, 200));
       }
 
       toast.success(`Synced ${totalSynced} tracks!`);

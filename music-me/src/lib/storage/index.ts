@@ -6,18 +6,25 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { nanoid } from "nanoid";
 
+const S3_REGION = process.env.S3_REGION || process.env.AWS_REGION || "us-east-1";
+const S3_ENDPOINT = process.env.S3_ENDPOINT;
+const BUCKET = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || "music-me";
+
 const s3 = new S3Client({
-  region: process.env.S3_REGION ?? "auto",
-  endpoint: process.env.S3_ENDPOINT,
+  region: S3_REGION,
+  ...(S3_ENDPOINT ? { endpoint: S3_ENDPOINT } : {}),
   credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY ?? "",
-    secretAccessKey: process.env.S3_SECRET_KEY ?? "",
+    accessKeyId: process.env.S3_ACCESS_KEY || process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.S3_SECRET_KEY || process.env.AWS_SECRET_ACCESS_KEY || "",
   },
-  forcePathStyle: true,
+  // forcePathStyle needed for S3-compatible services (R2, MinIO, etc.)
+  // For real AWS S3, virtual-hosted style is preferred
+  forcePathStyle: !!S3_ENDPOINT,
 });
 
-const BUCKET = process.env.S3_BUCKET ?? "music-me";
-const PUBLIC_URL = process.env.S3_PUBLIC_URL ?? "";
+// Build public URL: explicit env var > endpoint-based > AWS default
+const PUBLIC_URL = process.env.S3_PUBLIC_URL
+  || (S3_ENDPOINT ? `${S3_ENDPOINT}/${BUCKET}` : `https://${BUCKET}.s3.${S3_REGION}.amazonaws.com`);
 
 export type UploadCategory = "avatars" | "banners" | "backgrounds" | "posts" | "misc";
 
@@ -80,4 +87,18 @@ export async function deleteFile(key: string): Promise<void> {
 
 export function getMaxSize(category: UploadCategory): number {
   return MAX_SIZES[category];
+}
+
+/**
+ * Fix broken S3 URLs from when region was "auto".
+ * Rewrites `s3.auto.amazonaws.com/bucket/...` to the correct PUBLIC_URL.
+ */
+export function fixS3Url(url: string | null | undefined): string | null {
+  if (!url) return null;
+  // Match broken pattern: https://s3.auto.amazonaws.com/bucket/key
+  const brokenMatch = url.match(/^https?:\/\/s3\.auto\.amazonaws\.com\/[^/]+\/(.+)$/);
+  if (brokenMatch) {
+    return `${PUBLIC_URL}/${brokenMatch[1]}`;
+  }
+  return url;
 }
