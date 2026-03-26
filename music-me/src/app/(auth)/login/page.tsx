@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { RemixdLogo } from "@/components/ui/remixd-logo";
 import { signIn } from "next-auth/react";
 import { Loader2 } from "lucide-react";
 
@@ -44,9 +45,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight">
-            remixd
-          </h1>
+          <div className="flex justify-center">
+            <RemixdLogo height={32} />
+          </div>
           <p className="mt-2 text-sm text-muted-foreground">
             Welcome back
           </p>
