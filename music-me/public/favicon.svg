@@ -1,13 +1,11 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220.72 283.02">
-  <defs>
-    <style>
-      .cls-1 {
-        fill: #8b5cf6;
-        font-family: BotchRegular, Botch;
-        font-size: 252.59px;
-      }
-    </style>
-  </defs>
-  <text class="cls-1" transform="translate(0 232)"><tspan x="0" y="0">R</tspan></text>
+<svg width="337" height="452" viewBox="0 0 337 452" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_145_2)">
+<rect width="337" height="452" fill="white" fill-opacity="0.1"/>
+<path d="M154.646 86.75C158.146 67.75 167.146 52 181.646 39.5C196.146 27 215.896 20.75 240.896 20.75C258.896 20.75 273.646 25.25 285.146 34.25C297.146 42.75 305.896 53.5 311.396 66.5C317.396 79.5 320.396 93.5 320.396 108.5C320.396 123.5 317.396 137.5 311.396 150.5C305.396 163.5 296.396 174.5 284.396 183.5C272.896 192 258.396 196.25 240.896 196.25C219.896 196.25 201.896 190.75 186.896 179.75C172.396 168.25 165.146 151.25 165.146 128.75H153.896L154.646 422H32.3955V29H146.396L154.646 86.75Z" fill="white"/>
+</g>
+<defs>
+<clipPath id="clip0_145_2">
+<rect width="337" height="452" fill="white"/>
+</clipPath>
+</defs>
 </svg>

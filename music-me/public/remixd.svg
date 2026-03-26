@@ -1,39 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 233.98">
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 432 252.17">
   <defs>
     <style>
-      .cls-1 {
-        fill: #8b5cf6;
-      }
-
-      .cls-1, .cls-2 {
-        font-family: BotchRegular, Botch;
-        font-size: 107.65px;
-      }
-
-      .cls-1, .cls-2, .cls-3 {
+      .st0, .st1, .st2, .st3 {
         isolation: isolate;
       }
 
-      .cls-2 {
-        fill: #fff;
+      .st0, .st1, .st3 {
+        font-family: BotchRegular, Botch;
       }
 
-      .cls-4 {
-        letter-spacing: 0em;
+      .st0, .st3 {
+        font-size: 98.25px;
       }
 
-      .cls-5 {
-        letter-spacing: 0em;
+      .st1 {
+        font-size: 107.65px;
+      }
+
+      .st1, .st4, .st3 {
+        fill: #8b5cf6;
       }
     </style>
   </defs>
-  <g class="cls-3">
-    <text class="cls-2" transform="translate(0 212.23)"><tspan x="0" y="0">r</tspan></text>
-    <text class="cls-2" transform="translate(1.4 212.23)"><tspan class="cls-5" x="0" y="0">r</tspan><tspan class="cls-4" x="58.56" y="0">emix</tspan></text>
-    <text class="cls-1" transform="translate(357.72 212.23)"><tspan x="0" y="0">d</tspan></text>
+  <g class="st2">
+    <text class="st0" transform="translate(0 186.93)"><tspan x="0" y="0">r</tspan></text>
+    <text class="st0" transform="translate(53.45 186.93)"><tspan x="0" y="0">emi</tspan><tspan class="st4" x="204.16" y="0">x</tspan></text>
+    <text class="st3" transform="translate(327.02 202.11)"><tspan x="0" y="0">D</tspan></text>
   </g>
-  <g class="cls-3">
-    <text class="cls-1" transform="translate(336.95 98.88)"><tspan x="0" y="0">,</tspan></text>
+  <g class="st2">
+    <text class="st1" transform="translate(303.27 106.38)"><tspan x="0" y="0">,</tspan></text>
   </g>
 </svg>
