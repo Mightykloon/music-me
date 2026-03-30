@@ -55,6 +55,7 @@ export interface ProfileLayoutProps {
           albumArtUrl: string | null;
           duration: number | null;
           externalUrl: string | null;
+          previewUrl: string | null;
         };
       }[];
     }[];

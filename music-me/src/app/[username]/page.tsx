@@ -48,7 +48,6 @@ export default async function ProfilePage({
         include: {
           tracks: {
             orderBy: { position: "asc" },
-            take: 50,
             include: { track: true },
           },
         },
