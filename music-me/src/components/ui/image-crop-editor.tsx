@@ -14,8 +14,9 @@ interface ImageCropEditorProps {
   imageSrc: string;
   onComplete: (croppedDataUrl: string) => void;
   onCancel: () => void;
-  aspectRatio?: number; // 1 for square (pfp), 0 for free
+  aspectRatio?: number; // width/height — 1 for square, 9/16 for portrait, 16/9 for landscape
   circular?: boolean;
+  outputWidth?: number; // output resolution width (default 512)
 }
 
 const FILTERS = [
@@ -31,14 +32,18 @@ const FILTERS = [
   { name: "Noir", value: "noir", css: "grayscale(100%) contrast(130%) brightness(90%)" },
 ];
 
+// Max dimensions for the crop area in the editor UI
+const MAX_CROP_W = 320;
+const MAX_CROP_H = 320;
+
 export function ImageCropEditor({
   imageSrc,
   onComplete,
   onCancel,
   aspectRatio = 1,
   circular = true,
+  outputWidth = 512,
 }: ImageCropEditorProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [zoom, setZoom] = useState(1);
@@ -48,22 +53,32 @@ export function ImageCropEditor({
   const [filter, setFilter] = useState("none");
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
+
+  // Compute crop rectangle from aspect ratio
+  let cropW: number, cropH: number;
+  if (aspectRatio >= 1) {
+    cropW = MAX_CROP_W;
+    cropH = Math.round(MAX_CROP_W / aspectRatio);
+  } else {
+    cropH = MAX_CROP_H;
+    cropW = Math.round(MAX_CROP_H * aspectRatio);
+  }
+
+  const outputW = outputWidth;
+  const outputH = Math.round(outputWidth / aspectRatio);
 
   // Load image
   useEffect(() => {
     const img = new Image();
     img.onload = () => {
       imgRef.current = img;
-      setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
       // Calculate initial zoom to fill the crop area
-      const cropSize = 280;
-      const scale = Math.max(cropSize / img.naturalWidth, cropSize / img.naturalHeight);
+      const scale = Math.max(cropW / img.naturalWidth, cropH / img.naturalHeight);
       setZoom(Math.max(scale, 1));
     };
     img.src = imageSrc;
-  }, [imageSrc]);
+  }, [imageSrc, cropW, cropH]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
@@ -92,7 +107,6 @@ export function ImageCropEditor({
     setDragging(false);
   }, []);
 
-  // Mouse wheel zoom
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       e.preventDefault();
@@ -108,23 +122,21 @@ export function ImageCropEditor({
     if (!imgRef.current) return;
     const img = imgRef.current;
 
-    const outputSize = 512; // output resolution
     const canvas = document.createElement("canvas");
-    canvas.width = outputSize;
-    canvas.height = outputSize;
+    canvas.width = outputW;
+    canvas.height = outputH;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // The visible crop area in the editor is 280x280
-    const cropSize = 280;
-    const scale = outputSize / cropSize;
+    const scaleX = outputW / cropW;
+    const scaleY = outputH / cropH;
 
     ctx.save();
 
     // Clip to circle if circular
     if (circular) {
       ctx.beginPath();
-      ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
+      ctx.ellipse(outputW / 2, outputH / 2, outputW / 2, outputH / 2, 0, 0, Math.PI * 2);
       ctx.clip();
     }
 
@@ -135,7 +147,7 @@ export function ImageCropEditor({
     }
 
     // Move to center of canvas
-    ctx.translate(outputSize / 2, outputSize / 2);
+    ctx.translate(outputW / 2, outputH / 2);
 
     // Apply rotation
     ctx.rotate((rotation * Math.PI) / 180);
@@ -144,7 +156,7 @@ export function ImageCropEditor({
     if (flipH) ctx.scale(-1, 1);
 
     // Scale by zoom * outputScale
-    ctx.scale(zoom * scale, zoom * scale);
+    ctx.scale(zoom * scaleX, zoom * scaleY);
 
     // Apply offset (convert from screen pixels to image-space)
     ctx.translate(offset.x / zoom, offset.y / zoom);
@@ -154,9 +166,12 @@ export function ImageCropEditor({
 
     ctx.restore();
 
-    const dataUrl = canvas.toDataURL("image/png");
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
     onComplete(dataUrl);
-  }, [zoom, offset, rotation, flipH, filter, circular, onComplete]);
+  }, [zoom, offset, rotation, flipH, filter, circular, onComplete, cropW, cropH, outputW, outputH]);
+
+  // Container height based on crop area + padding
+  const editorHeight = cropH + 80;
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -173,25 +188,32 @@ export function ImageCropEditor({
         </div>
 
         {/* Crop area */}
-        <div className="relative bg-black/90 flex items-center justify-center overflow-hidden"
-          style={{ height: 360 }}
+        <div
+          className="relative bg-black/90 flex items-center justify-center overflow-hidden"
+          style={{ height: editorHeight }}
         >
-          {/* Dark overlay with circular/square cutout */}
+          {/* Dark overlay with cutout */}
           <div className="absolute inset-0 pointer-events-none z-10">
             <svg width="100%" height="100%" className="absolute inset-0">
               <defs>
                 <mask id="crop-mask">
                   <rect width="100%" height="100%" fill="white" />
                   {circular ? (
-                    <circle cx="50%" cy="50%" r="140" fill="black" />
+                    <ellipse
+                      cx="50%"
+                      cy="50%"
+                      rx={cropW / 2}
+                      ry={cropH / 2}
+                      fill="black"
+                    />
                   ) : (
                     <rect
                       x="50%"
                       y="50%"
-                      width="280"
-                      height="280"
+                      width={cropW}
+                      height={cropH}
                       fill="black"
-                      transform="translate(-140, -140)"
+                      transform={`translate(${-cropW / 2}, ${-cropH / 2})`}
                     />
                   )}
                 </mask>
@@ -203,10 +225,11 @@ export function ImageCropEditor({
                 mask="url(#crop-mask)"
               />
               {circular ? (
-                <circle
+                <ellipse
                   cx="50%"
                   cy="50%"
-                  r="140"
+                  rx={cropW / 2}
+                  ry={cropH / 2}
                   fill="none"
                   stroke="rgba(255,255,255,0.5)"
                   strokeWidth="2"
@@ -216,13 +239,13 @@ export function ImageCropEditor({
                 <rect
                   x="50%"
                   y="50%"
-                  width="280"
-                  height="280"
+                  width={cropW}
+                  height={cropH}
                   fill="none"
                   stroke="rgba(255,255,255,0.5)"
                   strokeWidth="2"
                   strokeDasharray="4 4"
-                  transform="translate(-140, -140)"
+                  transform={`translate(${-cropW / 2}, ${-cropH / 2})`}
                 />
               )}
             </svg>

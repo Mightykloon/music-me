@@ -45,6 +45,13 @@ export default async function ProfilePage({
       playlists: {
         where: { isPublic: true, isPinned: true },
         orderBy: { displayOrder: "asc" },
+        include: {
+          tracks: {
+            orderBy: { position: "asc" },
+            take: 50,
+            include: { track: true },
+          },
+        },
       },
       nowPlaying: {
         where: { isActive: true },

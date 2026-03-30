@@ -235,6 +235,29 @@ export class SpotifyProvider implements MusicProvider {
   }
 }
 
+/**
+ * Get a Spotify access token via Client Credentials flow.
+ * This doesn't require a user — just the app's CLIENT_ID + SECRET.
+ * Useful for fetching public playlist data when user tokens have expired.
+ */
+export async function getSpotifyClientToken(): Promise<string> {
+  const clientId = process.env.SPOTIFY_CLIENT_ID ?? "";
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET ?? "";
+
+  const res = await fetch(`${SPOTIFY_ACCOUNTS}/api/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
+    },
+    body: new URLSearchParams({ grant_type: "client_credentials" }),
+  });
+
+  if (!res.ok) throw new Error(`Spotify client credentials failed: ${res.status}`);
+  const data = await res.json();
+  return data.access_token;
+}
+
 /** Build the Spotify OAuth URL for connecting a user's account */
 export function getSpotifyConnectUrl(redirectUri: string, state: string): string {
   const scopes = [

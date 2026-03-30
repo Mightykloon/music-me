@@ -112,6 +112,7 @@ export default function ProfileEditorPage() {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [cropBgImage, setCropBgImage] = useState<string | null>(null);
 
   // Load current profile data
   useEffect(() => {
@@ -202,8 +203,7 @@ export default function ProfileEditorPage() {
     if (!file) return;
     try {
       const dataUrl = await fileToDataUrl(file);
-      update("backgroundImageUrl", dataUrl);
-      toast.success("Background uploaded");
+      setCropBgImage(dataUrl);
     } catch {
       toast.error("Upload failed");
     }
@@ -902,6 +902,22 @@ export default function ProfileEditorPage() {
           onCancel={() => setCropImage(null)}
           aspectRatio={1}
           circular={true}
+        />
+      )}
+
+      {/* Background crop editor modal — 9:16 portrait for mobile-first pages */}
+      {cropBgImage && (
+        <ImageCropEditor
+          imageSrc={cropBgImage}
+          onComplete={(croppedUrl) => {
+            update("backgroundImageUrl", croppedUrl);
+            setCropBgImage(null);
+            toast.success("Background updated");
+          }}
+          onCancel={() => setCropBgImage(null)}
+          aspectRatio={9 / 16}
+          circular={false}
+          outputWidth={1080}
         />
       )}
 

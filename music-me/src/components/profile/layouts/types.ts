@@ -38,12 +38,25 @@ export interface ProfileLayoutProps {
     }[];
     playlists: {
       id: string;
+      providerPlaylistId: string;
       name: string;
       description: string | null;
       coverImageUrl: string | null;
       trackCount: number;
       provider: string;
       isPinned: boolean;
+      tracks: {
+        position: number;
+        track: {
+          id: string;
+          title: string;
+          artist: string;
+          album: string | null;
+          albumArtUrl: string | null;
+          duration: number | null;
+          externalUrl: string | null;
+        };
+      }[];
     }[];
     nowPlaying: {
       track: TrackInfo;

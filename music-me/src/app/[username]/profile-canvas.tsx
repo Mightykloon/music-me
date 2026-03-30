@@ -46,6 +46,12 @@ export function ProfileCanvas({ user, posts, isOwn }: Props) {
     >
       {/* Background layer */}
       <div className="fixed inset-0 -z-10">
+        {/* Base color — always rendered underneath */}
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: profile?.backgroundColor ?? "#0a0a0a" }}
+        />
+        {/* Image / video on top, opacity controlled by user slider */}
         {profile?.backgroundImageUrl ? (
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -66,13 +72,6 @@ export function ProfileCanvas({ user, posts, isOwn }: Props) {
             <source src={profile.bannerVideoUrl} type="video/mp4" />
           </video>
         ) : null}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundColor: profile?.backgroundColor ?? "#0a0a0a",
-            opacity: profile?.backgroundImageUrl || profile?.bannerVideoUrl ? 0.85 : 1,
-          }}
-        />
       </div>
 
       {/* Content */}
