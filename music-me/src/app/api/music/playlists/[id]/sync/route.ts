@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { getMusicProvider } from "@/lib/music";
 import { getValidAccessToken } from "@/lib/music/playlist-sync";
 import { findOrCreateTrack } from "@/lib/music/search";
-import { SpotifyProvider } from "@/lib/music/providers/spotify";
+import { SpotifyProvider, getSpotifyClientToken } from "@/lib/music/providers/spotify";
 
 export const maxDuration = 60;
 
@@ -51,26 +51,35 @@ export async function POST(
       },
     });
 
-    if (!connection) {
+    const provider = getMusicProvider(playlist.provider);
+
+    // Get access token — try user token first, fall back to client credentials for Spotify
+    let accessToken: string;
+    const forceRefresh = offset === 0;
+
+    if (connection) {
+      try {
+        accessToken = await getValidAccessToken(connection, forceRefresh);
+      } catch (refreshErr) {
+        console.error("User token refresh failed, trying client credentials:", refreshErr);
+        if (playlist.provider === "SPOTIFY") {
+          accessToken = await getSpotifyClientToken();
+        } else {
+          return NextResponse.json(
+            { error: `Token refresh failed: ${refreshErr instanceof Error ? refreshErr.message : "Unknown error"}. Try reconnecting Spotify.` },
+            { status: 401 }
+          );
+        }
+      }
+    } else if (playlist.provider === "SPOTIFY") {
+      // No connection but Spotify — use client credentials for public playlists
+      accessToken = await getSpotifyClientToken();
+    } else {
       return NextResponse.json(
         { error: "No active connection for this provider" },
         { status: 400 }
       );
     }
-
-    // Only force-refresh token on first page or if close to expiry
-    const forceRefresh = offset === 0;
-    let accessToken: string;
-    try {
-      accessToken = await getValidAccessToken(connection, forceRefresh);
-    } catch (refreshErr) {
-      console.error("Token refresh failed:", refreshErr);
-      return NextResponse.json(
-        { error: `Token refresh failed: ${refreshErr instanceof Error ? refreshErr.message : "Unknown error"}. Try reconnecting Spotify.` },
-        { status: 401 }
-      );
-    }
-    const provider = getMusicProvider(playlist.provider);
 
     // Helper to fetch a page with retry logic for 403/429
     async function fetchPage(token: string, pId: string, off: number, lim: number) {
@@ -78,7 +87,19 @@ export async function POST(
 
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const currentToken = attempt > 0 ? await getValidAccessToken(connection!, true) : token;
+          let currentToken = token;
+          if (attempt > 0) {
+            // On retry, try refreshing user token first, then fall back to client credentials
+            if (connection) {
+              try {
+                currentToken = await getValidAccessToken(connection, true);
+              } catch {
+                currentToken = await getSpotifyClientToken();
+              }
+            } else {
+              currentToken = await getSpotifyClientToken();
+            }
+          }
           return await provider.getPlaylistTracksPage(currentToken, pId, off, lim);
         } catch (err) {
           const msg = err instanceof Error ? err.message : "";
@@ -87,7 +108,7 @@ export async function POST(
             continue;
           }
           if (msg.includes("403") && attempt < 2) {
-            console.log(`Got 403 on attempt ${attempt + 1}, waiting and retrying...`);
+            console.log(`Got 403 on attempt ${attempt + 1}, trying client credentials...`);
             await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
             continue;
           }
