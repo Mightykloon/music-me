@@ -159,6 +159,7 @@ export default function ProfileEditorPage() {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [bgCropImage, setBgCropImage] = useState<string | null>(null);
   const [links, setLinks] = useState<LinkFormItem[]>([]);
 
   // Load current profile data
@@ -286,13 +287,27 @@ export default function ProfileEditorPage() {
     }
   };
 
-  const handleBackgroundUpload = async (
+  const handleBackgroundUpload = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Open crop editor with 9:16 portrait aspect ratio
+    const reader = new FileReader();
+    reader.onload = () => setBgCropImage(reader.result as string);
+    reader.readAsDataURL(file);
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleBgCropComplete = async (croppedDataUrl: string) => {
+    setBgCropImage(null);
     try {
       toast.loading("Uploading background...", { id: "bg-upload" });
+      // Convert data URL to File for upload
+      const res = await fetch(croppedDataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], "background.jpg", { type: "image/jpeg" });
       const publicUrl = await uploadFileToStorage(file, "backgrounds");
       update("backgroundImageUrl", publicUrl);
       toast.success("Background uploaded!", { id: "bg-upload" });
@@ -1152,6 +1167,20 @@ export default function ProfileEditorPage() {
           onCancel={() => setCropImage(null)}
           aspectRatio={1}
           circular={true}
+        />
+      )}
+
+      {/* Background crop editor modal */}
+      {bgCropImage && (
+        <ImageCropEditor
+          imageSrc={bgCropImage}
+          onComplete={handleBgCropComplete}
+          onCancel={() => setBgCropImage(null)}
+          aspectRatio={9 / 16}
+          circular={false}
+          outputWidth={1080}
+          outputHeight={1920}
+          title="Edit Background"
         />
       )}
 

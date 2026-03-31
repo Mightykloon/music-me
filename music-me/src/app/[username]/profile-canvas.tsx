@@ -64,12 +64,15 @@ export function ProfileCanvas({ user, posts, isOwn, genres }: Props) {
       )}
 
       {/* Background layer - fills entire viewport */}
-      <div className="fixed inset-0 -z-10" style={{ backgroundColor: profile?.backgroundColor ?? "#0a0a0a" }}>
+      <div className="fixed inset-0 -z-10">
+        {/* Base color underneath */}
+        <div className="absolute inset-0" style={{ backgroundColor: profile?.backgroundColor ?? "#0a0a0a" }} />
+        {/* Image/video on top with user-controlled opacity */}
         {profile?.backgroundImageUrl ? (
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `url(${profile.backgroundImageUrl})`,
+              backgroundImage: `url("${profile.backgroundImageUrl}")`,
               opacity: profile.backgroundOpacity ?? 1,
             }}
           />
@@ -85,15 +88,6 @@ export function ProfileCanvas({ user, posts, isOwn, genres }: Props) {
             <source src={profile.bannerVideoUrl} type="video/mp4" />
           </video>
         ) : null}
-        {(profile?.backgroundImageUrl || profile?.bannerVideoUrl) && (
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundColor: profile?.backgroundColor ?? "#0a0a0a",
-              opacity: 0.85,
-            }}
-          />
-        )}
       </div>
 
       {/* Discreet back button */}
