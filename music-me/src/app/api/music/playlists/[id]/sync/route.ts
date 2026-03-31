@@ -53,27 +53,26 @@ export async function POST(
 
     const provider = getMusicProvider(playlist.provider);
 
-    // Get access token — try user token first, fall back to client credentials for Spotify
+    // Get access token — for Spotify, prefer client credentials (works for public playlists
+    // without needing a user's OAuth token, avoiding expired/revoked token issues)
     let accessToken: string;
-    const forceRefresh = offset === 0;
 
-    if (connection) {
+    if (playlist.provider === "SPOTIFY") {
       try {
-        accessToken = await getValidAccessToken(connection, forceRefresh);
-      } catch (refreshErr) {
-        console.error("User token refresh failed, trying client credentials:", refreshErr);
-        if (playlist.provider === "SPOTIFY") {
-          accessToken = await getSpotifyClientToken();
+        accessToken = await getSpotifyClientToken();
+      } catch (err) {
+        console.error("Client credentials failed, trying user token:", err);
+        if (connection) {
+          accessToken = await getValidAccessToken(connection, offset === 0);
         } else {
           return NextResponse.json(
-            { error: `Token refresh failed: ${refreshErr instanceof Error ? refreshErr.message : "Unknown error"}. Try reconnecting Spotify.` },
-            { status: 401 }
+            { error: "Failed to get Spotify access token" },
+            { status: 500 }
           );
         }
       }
-    } else if (playlist.provider === "SPOTIFY") {
-      // No connection but Spotify — use client credentials for public playlists
-      accessToken = await getSpotifyClientToken();
+    } else if (connection) {
+      accessToken = await getValidAccessToken(connection, offset === 0);
     } else {
       return NextResponse.json(
         { error: "No active connection for this provider" },
@@ -81,25 +80,13 @@ export async function POST(
       );
     }
 
-    // Helper to fetch a page with retry logic for 403/429
+    // Helper to fetch a page with retry logic for 429
     async function fetchPage(token: string, pId: string, off: number, lim: number) {
       if (!(provider instanceof SpotifyProvider)) return null;
 
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          let currentToken = token;
-          if (attempt > 0) {
-            // On retry, try refreshing user token first, then fall back to client credentials
-            if (connection) {
-              try {
-                currentToken = await getValidAccessToken(connection, true);
-              } catch {
-                currentToken = await getSpotifyClientToken();
-              }
-            } else {
-              currentToken = await getSpotifyClientToken();
-            }
-          }
+          const currentToken = attempt > 0 ? await getSpotifyClientToken() : token;
           return await provider.getPlaylistTracksPage(currentToken, pId, off, lim);
         } catch (err) {
           const msg = err instanceof Error ? err.message : "";
@@ -107,9 +94,9 @@ export async function POST(
             await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
             continue;
           }
-          if (msg.includes("403") && attempt < 2) {
-            console.log(`Got 403 on attempt ${attempt + 1}, trying client credentials...`);
-            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          if ((msg.includes("403") || msg.includes("401")) && attempt < 2) {
+            console.log(`Got ${msg} on attempt ${attempt + 1}, refreshing token...`);
+            await new Promise(r => setTimeout(r, 1000));
             continue;
           }
           throw err;
