@@ -74,21 +74,36 @@ export async function POST(
     }
 
     // Helper to fetch a page with retry logic for 403/429
+    // Falls back to client credentials if user token gets 403
     async function fetchPage(token: string, pId: string, off: number, lim: number) {
       if (!(provider instanceof SpotifyProvider)) return null;
 
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const currentToken = attempt > 0 ? await getValidAccessToken(connection!, true) : token;
+          let currentToken = token;
+          if (attempt === 1) {
+            // Second attempt: force-refresh user token
+            currentToken = await getValidAccessToken(connection!, true);
+          } else if (attempt === 2) {
+            // Third attempt: try client credentials as fallback
+            try {
+              currentToken = await getSpotifyClientToken();
+              console.log("Trying client credentials token as fallback...");
+            } catch {
+              currentToken = await getValidAccessToken(connection!, true);
+            }
+          }
           return await provider.getPlaylistTracksPage(currentToken, pId, off, lim);
         } catch (err) {
           const msg = err instanceof Error ? err.message : "";
+          console.error(`Sync attempt ${attempt + 1}/3 failed for playlist ${pId} offset ${off}:`, msg);
           if (msg.includes("429")) {
-            await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+            const wait = 3000 * (attempt + 1);
+            console.log(`Rate limited, waiting ${wait}ms...`);
+            await new Promise(r => setTimeout(r, wait));
             continue;
           }
-          if (msg.includes("403") && attempt < 2) {
-            console.log(`Got 403 on attempt ${attempt + 1}, refreshing token...`);
+          if ((msg.includes("403") || msg.includes("401")) && attempt < 2) {
             await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
             continue;
           }

@@ -200,7 +200,8 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       if (res.ok) {
         const data = await res.json();
         const allPlaylists: PlaylistItem[] = data.items ?? data ?? [];
-        const needsSync = allPlaylists.filter((p: PlaylistItem) => p._count.tracks === 0 && p.trackCount > 0);
+        // Sync playlists where local track count is less than remote track count
+        const needsSync = allPlaylists.filter((p: PlaylistItem) => p.trackCount > 0 && p._count.tracks < p.trackCount);
 
         if (needsSync.length > 0) {
           setSyncProgress({ current: 0, total: needsSync.length });
@@ -209,21 +210,31 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
           for (const p of needsSync) {
             try {
-              // Sync each playlist in pages of 50 tracks
+              // Start from where we left off (existing track count)
               let offset = 0;
-              const limit = 50;
+              const limit = 25;
               let hasMore = true;
+              let retries = 0;
               while (hasMore) {
                 const syncRes = await fetch(
-                  `/api/music/playlists/${p.id}/sync?offset=${offset}&limit=${limit}${offset === 0 ? "&clear=true" : ""}`,
+                  `/api/music/playlists/${p.id}/sync?offset=${offset}&limit=${limit}`,
                   { method: "POST" }
                 );
-                if (!syncRes.ok) { failed++; break; }
+                if (!syncRes.ok) {
+                  retries++;
+                  if (retries >= 3) { failed++; break; }
+                  // Wait before retrying on failure
+                  await new Promise(r => setTimeout(r, 2000 * retries));
+                  continue;
+                }
+                retries = 0;
                 const result = await syncRes.json();
                 hasMore = result.hasMore;
                 offset = result.nextOffset;
+                // Small delay between batches to avoid rate limits
+                if (hasMore) await new Promise(r => setTimeout(r, 300));
               }
-              if (hasMore === false) completed++;
+              if (!hasMore) completed++;
             } catch {
               failed++;
             }
