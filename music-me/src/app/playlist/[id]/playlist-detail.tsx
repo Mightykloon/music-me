@@ -158,7 +158,11 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
         }
       }
 
-      toast.success(`Synced ${totalSynced} tracks!`);
+      if (allItems.length < totalTracks) {
+        toast.success(`Synced ${totalSynced}/${totalTracks} tracks (Spotify Dev Mode limits pagination)`, { duration: 5000 });
+      } else {
+        toast.success(`Synced ${totalSynced} tracks!`);
+      }
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sync failed");
