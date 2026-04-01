@@ -185,20 +185,80 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null);
 
+  // Map a Spotify track object to our MusicTrackResult shape
+  function mapSpotifyTrack(t: Record<string, unknown>) {
+    const artists = t.artists as { name: string }[] | undefined;
+    const album = t.album as { name?: string; images?: { url: string }[] } | undefined;
+    const externalIds = t.external_ids as { isrc?: string } | undefined;
+    const externalUrls = t.external_urls as { spotify?: string } | undefined;
+    return {
+      provider: "SPOTIFY",
+      providerTrackId: t.id as string,
+      title: t.name as string,
+      artist: artists?.map((a) => a.name).join(", ") ?? "",
+      album: album?.name ?? null,
+      albumArtUrl: album?.images?.[0]?.url ?? null,
+      previewUrl: (t.preview_url as string) ?? null,
+      duration: (t.duration_ms as number) ?? null,
+      isrc: externalIds?.isrc ?? null,
+      externalUrl: externalUrls?.spotify ?? null,
+    };
+  }
+
+  // Fetch a page of tracks directly from Spotify (client-side, bypasses Vercel IP block)
+  async function fetchSpotifyPage(token: string, playlistId: string, offset: number, limit: number) {
+    const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?offset=${offset}&limit=${limit}&additional_types=track&market=US`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get("Retry-After") ?? 2);
+      await new Promise(r => setTimeout(r, retryAfter * 1000));
+      return fetchSpotifyPage(token, playlistId, offset, limit);
+    }
+    if (!res.ok) {
+      throw new Error(`Spotify ${res.status}`);
+    }
+    return res.json();
+  }
+
   const handleSyncAll = async () => {
     setSyncing(true);
     try {
-      // Step 1: Sync playlist metadata for all connections
+      // Step 1: Get a fresh Spotify token for client-side calls
+      toast.loading("Getting Spotify token...", { id: "sync-all" });
+      const tokenRes = await fetch("/api/music/token");
+      if (!tokenRes.ok) {
+        toast.error("Failed to get Spotify token — reconnect in Settings", { id: "sync-all" });
+        return;
+      }
+      const { accessToken: spotifyToken } = await tokenRes.json();
+
+      // Step 2: Sync playlist metadata (server-side, uses /me/playlists)
       toast.loading("Syncing playlist metadata...", { id: "sync-all" });
       for (const conn of connections) {
         try {
           await fetch(`/api/music/connections/${conn.id}/sync`, { method: "POST" });
         } catch {
-          console.error(`Failed to sync metadata for connection ${conn.id}`);
+          // Metadata sync may also 403, but we have the token for client-side now
         }
       }
 
-      // Step 2: Fetch updated playlists
+      // Step 2b: Also fetch playlists client-side to get accurate track counts
+      toast.loading("Fetching playlists from Spotify...", { id: "sync-all" });
+      const allSpotifyPlaylists: { id: string; tracks: { total: number } }[] = [];
+      let playlistUrl: string | null = "https://api.spotify.com/v1/me/playlists?limit=50";
+      while (playlistUrl) {
+        const plRes: Response = await fetch(playlistUrl, {
+          headers: { Authorization: `Bearer ${spotifyToken}` },
+        });
+        if (!plRes.ok) break;
+        const plData: { items?: { id: string; tracks: { total: number } }[]; next?: string } = await plRes.json();
+        allSpotifyPlaylists.push(...(plData.items ?? []));
+        playlistUrl = plData.next ?? null;
+      }
+
+      // Step 3: Fetch local playlists from DB to get their IDs
       const res = await fetch("/api/music/playlists");
       if (!res.ok) {
         toast.error("Failed to fetch playlists", { id: "sync-all" });
@@ -206,73 +266,88 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       }
       const data = await res.json();
       const allPlaylists: PlaylistItem[] = data.items ?? data ?? [];
-      // Try ALL playlists — trackCount in DB may be stale/zero even if Spotify has tracks
-      const needsSync = allPlaylists;
 
-      if (needsSync.length === 0) {
+      if (allPlaylists.length === 0) {
         toast.success("No playlists found", { id: "sync-all" });
         router.refresh();
         return;
       }
 
-      toast.loading(`Syncing tracks for ${needsSync.length} playlists...`, { id: "sync-all" });
-      setSyncProgress({ current: 0, total: needsSync.length });
+      // Build a map of spotify playlist ID -> local playlist
+      const localBySpotifyId = new Map(allPlaylists.map(p => [p.providerPlaylistId, p]));
+
+      // Merge: for each Spotify playlist, find local match and sync tracks
+      const toSync = allSpotifyPlaylists
+        .filter(sp => localBySpotifyId.has(sp.id) && sp.tracks.total > 0)
+        .map(sp => ({
+          local: localBySpotifyId.get(sp.id)!,
+          spotifyId: sp.id,
+          totalTracks: sp.tracks.total,
+        }));
+
+      if (toSync.length === 0) {
+        toast.success("No playlists with tracks to sync", { id: "sync-all" });
+        router.refresh();
+        return;
+      }
+
+      toast.loading(`Syncing tracks for ${toSync.length} playlists...`, { id: "sync-all" });
+      setSyncProgress({ current: 0, total: toSync.length });
       let completed = 0;
       let failed = 0;
-      let totalTrackssynced = 0;
+      let totalTracksSynced = 0;
 
-      for (const p of needsSync) {
-        let playlistDone = false;
+      for (const { local, spotifyId, totalTracks } of toSync) {
         try {
           let offset = 0;
-          const limit = 25;
-          let retries = 0;
+          const limit = 50;
 
-          while (true) {
-            const syncRes = await fetch(
-              `/api/music/playlists/${p.id}/sync?offset=${offset}&limit=${limit}`,
-              { method: "POST" }
-            );
+          while (offset < totalTracks) {
+            // Fetch tracks directly from Spotify (client-side — no 403!)
+            const spotifyData = await fetchSpotifyPage(spotifyToken, spotifyId, offset, limit);
+            const total = spotifyData.total ?? totalTracks;
 
-            if (!syncRes.ok) {
-              const errData = await syncRes.json().catch(() => ({ error: "Unknown" }));
-              console.error(`Sync failed for "${p.name}" at offset ${offset}:`, errData.error);
-              retries++;
-              if (retries >= 3) {
-                failed++;
-                break;
-              }
-              await new Promise(r => setTimeout(r, 2000 * retries));
-              continue;
+            // Map Spotify tracks to our format
+            const tracks = (spotifyData.items ?? [])
+              .filter((item: Record<string, unknown>) => {
+                const track = item.track as Record<string, unknown> | null;
+                return track && track.type === "track" && track.id;
+              })
+              .map((item: Record<string, unknown>, i: number) => ({
+                track: mapSpotifyTrack(item.track as Record<string, unknown>),
+                position: offset + i,
+                addedAt: (item.added_at as string) || new Date().toISOString(),
+              }));
+
+            // Send to server for DB storage
+            const ingestRes = await fetch(`/api/music/playlists/${local.id}/ingest`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ tracks, total }),
+            });
+
+            if (ingestRes.ok) {
+              const result = await ingestRes.json();
+              totalTracksSynced += result.synced ?? 0;
             }
 
-            retries = 0;
-            const result = await syncRes.json();
-            totalTrackssynced += result.synced ?? 0;
-
-            if (!result.hasMore || result.total === 0) {
-              completed++;
-              playlistDone = true;
-              break;
-            }
-            offset = result.nextOffset;
-            // Delay between batches to avoid rate limits
-            await new Promise(r => setTimeout(r, 500));
+            offset += limit;
+            // Small delay between pages
+            if (offset < total) await new Promise(r => setTimeout(r, 200));
           }
+          completed++;
         } catch (err) {
-          if (!playlistDone) failed++;
-          console.error(`Sync error for "${p.name}":`, err);
+          failed++;
+          console.error(`Failed to sync "${local.name}":`, err);
         }
-        setSyncProgress({ current: completed + failed, total: needsSync.length });
-        toast.loading(`${completed + failed}/${needsSync.length} playlists · ${totalTrackssynced} tracks synced`, { id: "sync-all" });
-        // Brief pause between playlists to ease API load
-        await new Promise(r => setTimeout(r, 200));
+        setSyncProgress({ current: completed + failed, total: toSync.length });
+        toast.loading(`${completed + failed}/${toSync.length} playlists · ${totalTracksSynced} tracks`, { id: "sync-all" });
       }
 
       if (completed > 0) {
-        toast.success(`Done! ${completed} playlists · ${totalTrackssynced} tracks synced${failed > 0 ? ` (${failed} failed)` : ""}`, { id: "sync-all", duration: 5000 });
+        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks synced${failed > 0 ? ` (${failed} failed)` : ""}`, { id: "sync-all", duration: 5000 });
       } else if (failed > 0) {
-        toast.error(`Failed to sync ${failed} playlists — check Spotify connection`, { id: "sync-all", duration: 5000 });
+        toast.error(`Failed to sync ${failed} playlists`, { id: "sync-all", duration: 5000 });
       }
       router.refresh();
     } catch (err) {
