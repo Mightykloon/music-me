@@ -164,9 +164,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
     }
   };
 
-  const handlePlay = (track: Track) => {
-    if (!track.previewUrl) return;
-
+  const handlePlay = async (track: Track) => {
     if (playingId === track.id) {
       audioRef.current?.pause();
       setPlayingId(null);
@@ -177,7 +175,33 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
       audioRef.current.pause();
     }
 
-    const audio = new Audio(track.previewUrl);
+    let previewUrl = track.previewUrl;
+
+    // If no Spotify preview, try Deezer as fallback
+    if (!previewUrl) {
+      try {
+        const q = encodeURIComponent(`${track.artist} ${track.title}`);
+        const dRes = await fetch(`https://api.deezer.com/search?q=${q}&limit=1`);
+        if (dRes.ok) {
+          const dData = await dRes.json();
+          previewUrl = dData.data?.[0]?.preview ?? null;
+        }
+      } catch {
+        // Deezer fallback failed silently
+      }
+    }
+
+    if (!previewUrl) {
+      // No preview available — open in Spotify instead
+      if (track.externalUrl) {
+        window.open(track.externalUrl, "_blank");
+      } else {
+        toast.error("No preview available for this track");
+      }
+      return;
+    }
+
+    const audio = new Audio(previewUrl);
     audio.volume = 0.5;
     audio.play();
     audio.onended = () => setPlayingId(null);
@@ -301,25 +325,19 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
                 className={`group grid grid-cols-[2rem_1fr_3rem] sm:grid-cols-[2rem_1fr_1fr_4rem] gap-3 px-4 py-2 items-center hover:bg-muted/30 transition-colors ${isPlaying ? "bg-primary/5" : ""}`}
               >
                 <div className="text-center">
-                  {hasPreview ? (
-                    <button
-                      onClick={() => handlePlay(t)}
-                      className="w-6 h-6 flex items-center justify-center"
-                    >
-                      <span className="group-hover:hidden text-xs text-muted-foreground">
-                        {i + 1}
-                      </span>
-                      {isPlaying ? (
-                        <Pause className="w-3.5 h-3.5 text-primary hidden group-hover:block" />
-                      ) : (
-                        <Play className="w-3.5 h-3.5 text-foreground hidden group-hover:block" />
-                      )}
-                    </button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
+                  <button
+                    onClick={() => handlePlay(t)}
+                    className="w-6 h-6 flex items-center justify-center"
+                  >
+                    <span className="group-hover:hidden text-xs text-muted-foreground">
                       {i + 1}
                     </span>
-                  )}
+                    {isPlaying ? (
+                      <Pause className="w-3.5 h-3.5 text-primary hidden group-hover:block" />
+                    ) : (
+                      <Play className={`w-3.5 h-3.5 hidden group-hover:block ${hasPreview ? "text-foreground" : "text-muted-foreground"}`} />
+                    )}
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-3 min-w-0">
