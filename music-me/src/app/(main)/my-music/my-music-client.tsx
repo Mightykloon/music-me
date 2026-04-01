@@ -228,21 +228,77 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     };
   }
 
-  // Fetch a page of tracks directly from Spotify (client-side, bypasses Vercel IP block)
-  async function fetchSpotifyPage(token: string, playlistId: string, offset: number, limit: number) {
-    const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?offset=${offset}&limit=${limit}&additional_types=track&market=US`;
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.status === 429) {
-      const retryAfter = Number(res.headers.get("Retry-After") ?? 2);
-      await new Promise(r => setTimeout(r, retryAfter * 1000));
-      return fetchSpotifyPage(token, playlistId, offset, limit);
+  // Fetch all tracks for a playlist using multiple strategies
+  async function fetchAllPlaylistTracks(token: string, playlistId: string) {
+    const allItems: Record<string, unknown>[] = [];
+    let total = 0;
+
+    // Strategy 1: GET /playlists/{id} — returns playlist with tracks inline (100 items)
+    // This endpoint is less restricted than /playlists/{id}/tracks
+    const playlistRes = await fetch(
+      `https://api.spotify.com/v1/playlists/${playlistId}?fields=tracks(items(track(id,name,type,artists,album,preview_url,duration_ms,external_ids,external_urls),added_at),total,next)&market=US`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (playlistRes.status === 429) {
+      const wait = Number(playlistRes.headers.get("Retry-After") ?? 3);
+      await new Promise(r => setTimeout(r, wait * 1000));
+      return fetchAllPlaylistTracks(token, playlistId);
     }
-    if (!res.ok) {
-      throw new Error(`Spotify ${res.status}`);
+
+    if (playlistRes.ok) {
+      const plData = await playlistRes.json();
+      total = plData.tracks?.total ?? 0;
+      allItems.push(...(plData.tracks?.items ?? []));
+
+      // Follow pagination via tracks.next URL
+      let nextUrl: string | null = plData.tracks?.next ?? null;
+      while (nextUrl) {
+        await new Promise(r => setTimeout(r, 200));
+        const nextRes = await fetch(nextUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (nextRes.status === 429) {
+          const wait = Number(nextRes.headers.get("Retry-After") ?? 3);
+          await new Promise(r => setTimeout(r, wait * 1000));
+          continue; // retry same URL
+        }
+        if (!nextRes.ok) break; // stop paginating on error
+        const nextData = await nextRes.json();
+        allItems.push(...(nextData.items ?? []));
+        nextUrl = nextData.next ?? null;
+      }
+
+      return { items: allItems, total };
     }
-    return res.json();
+
+    // Strategy 2: /playlists/{id}/tracks directly (may fail with 403)
+    const tracksRes = await fetch(
+      `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=50&additional_types=track&market=US`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (tracksRes.ok) {
+      const tData = await tracksRes.json();
+      total = tData.total ?? 0;
+      allItems.push(...(tData.items ?? []));
+
+      let nextUrl: string | null = tData.next ?? null;
+      while (nextUrl) {
+        await new Promise(r => setTimeout(r, 200));
+        const nextRes = await fetch(nextUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!nextRes.ok) break;
+        const nextData = await nextRes.json();
+        allItems.push(...(nextData.items ?? []));
+        nextUrl = nextData.next ?? null;
+      }
+
+      return { items: allItems, total };
+    }
+
+    throw new Error(`Spotify ${playlistRes.status}/${tracksRes.status}`);
   }
 
   const handleSyncAll = async () => {
@@ -269,14 +325,14 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
       // Step 2b: Also fetch playlists client-side to get accurate track counts
       toast.loading("Fetching playlists from Spotify...", { id: "sync-all" });
-      const allSpotifyPlaylists: { id: string; tracks: { total: number } }[] = [];
+      const allSpotifyPlaylists: { id: string; tracks?: { total: number } }[] = [];
       let playlistUrl: string | null = "https://api.spotify.com/v1/me/playlists?limit=50";
       while (playlistUrl) {
         const plRes: Response = await fetch(playlistUrl, {
           headers: { Authorization: `Bearer ${spotifyToken}` },
         });
         if (!plRes.ok) break;
-        const plData: { items?: { id: string; tracks: { total: number } }[]; next?: string } = await plRes.json();
+        const plData: { items?: { id: string; tracks?: { total: number } }[]; next?: string } = await plRes.json();
         allSpotifyPlaylists.push(...(plData.items ?? []));
         playlistUrl = plData.next ?? null;
       }
@@ -301,11 +357,11 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
       // Merge: for each Spotify playlist, find local match and sync tracks
       const toSync = allSpotifyPlaylists
-        .filter(sp => localBySpotifyId.has(sp.id) && sp.tracks.total > 0)
+        .filter(sp => sp && sp.id && localBySpotifyId.has(sp.id) && (sp.tracks?.total ?? 0) > 0)
         .map(sp => ({
           local: localBySpotifyId.get(sp.id)!,
           spotifyId: sp.id,
-          totalTracks: sp.tracks.total,
+          totalTracks: sp.tracks?.total ?? 0,
         }));
 
       if (toSync.length === 0) {
@@ -320,43 +376,35 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       let failed = 0;
       let totalTracksSynced = 0;
 
-      for (const { local, spotifyId, totalTracks } of toSync) {
+      for (const { local, spotifyId } of toSync) {
         try {
-          let offset = 0;
-          const limit = 50;
+          // Fetch all tracks using playlist endpoint (less restricted than /tracks)
+          const { items, total } = await fetchAllPlaylistTracks(spotifyToken, spotifyId);
 
-          while (offset < totalTracks) {
-            // Fetch tracks directly from Spotify (client-side — no 403!)
-            const spotifyData = await fetchSpotifyPage(spotifyToken, spotifyId, offset, limit);
-            const total = spotifyData.total ?? totalTracks;
+          // Map and filter valid tracks
+          const tracks = items
+            .filter((item: Record<string, unknown>) => {
+              const track = item.track as Record<string, unknown> | null;
+              return track && track.type === "track" && track.id;
+            })
+            .map((item: Record<string, unknown>, i: number) => ({
+              track: mapSpotifyTrack(item.track as Record<string, unknown>),
+              position: i,
+              addedAt: (item.added_at as string) || new Date().toISOString(),
+            }));
 
-            // Map Spotify tracks to our format
-            const tracks = (spotifyData.items ?? [])
-              .filter((item: Record<string, unknown>) => {
-                const track = item.track as Record<string, unknown> | null;
-                return track && track.type === "track" && track.id;
-              })
-              .map((item: Record<string, unknown>, i: number) => ({
-                track: mapSpotifyTrack(item.track as Record<string, unknown>),
-                position: offset + i,
-                addedAt: (item.added_at as string) || new Date().toISOString(),
-              }));
-
-            // Send to server for DB storage
+          // Send to server in batches of 50 for DB storage
+          for (let i = 0; i < tracks.length; i += 50) {
+            const batch = tracks.slice(i, i + 50);
             const ingestRes = await fetch(`/api/music/playlists/${local.id}/ingest`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ tracks, total }),
+              body: JSON.stringify({ tracks: batch, total }),
             });
-
             if (ingestRes.ok) {
               const result = await ingestRes.json();
               totalTracksSynced += result.synced ?? 0;
             }
-
-            offset += limit;
-            // Small delay between pages
-            if (offset < total) await new Promise(r => setTimeout(r, 200));
           }
           completed++;
         } catch (err) {

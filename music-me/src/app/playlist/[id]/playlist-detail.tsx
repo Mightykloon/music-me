@@ -69,89 +69,93 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function mapTrack(t: Record<string, unknown>) {
+    const artists = t.artists as { name: string }[] | undefined;
+    const album = t.album as { name?: string; images?: { url: string }[] } | undefined;
+    const extIds = t.external_ids as { isrc?: string } | undefined;
+    const extUrls = t.external_urls as { spotify?: string } | undefined;
+    return {
+      provider: "SPOTIFY",
+      providerTrackId: t.id as string,
+      title: t.name as string,
+      artist: artists?.map(a => a.name).join(", ") ?? "",
+      album: album?.name ?? null,
+      albumArtUrl: album?.images?.[0]?.url ?? null,
+      previewUrl: (t.preview_url as string) ?? null,
+      duration: (t.duration_ms as number) ?? null,
+      isrc: extIds?.isrc ?? null,
+      externalUrl: extUrls?.spotify ?? null,
+    };
+  }
+
   const handleResync = async () => {
     setSyncing(true);
     setSyncStatus("Getting token...");
     try {
-      // Get fresh Spotify token for client-side fetching
       const tokenRes = await fetch("/api/music/token");
       if (!tokenRes.ok) throw new Error("Failed to get Spotify token");
       const { accessToken } = await tokenRes.json();
 
-      let offset = 0;
-      const limit = 50;
-      let totalTracks = 0;
+      setSyncStatus("Fetching playlist from Spotify...");
+
+      // Use GET /playlists/{id} which returns tracks inline — less restricted
+      const plRes = await fetch(
+        `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}?fields=tracks(items(track(id,name,type,artists,album,preview_url,duration_ms,external_ids,external_urls),added_at),total,next)&market=US`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      if (!plRes.ok) throw new Error(`Spotify API: ${plRes.status}`);
+      const plData = await plRes.json();
+
+      const allItems: Record<string, unknown>[] = [...(plData.tracks?.items ?? [])];
+      const totalTracks: number = plData.tracks?.total ?? 0;
       let totalSynced = 0;
 
-      while (true) {
-        setSyncStatus(totalTracks > 0
-          ? `Fetching tracks ${offset + 1}–${Math.min(offset + limit, totalTracks)} of ${totalTracks}...`
-          : `Fetching tracks...`
-        );
-
-        // Fetch directly from Spotify (client-side — bypasses Vercel IP block)
-        const spotifyRes = await fetch(
-          `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}/tracks?offset=${offset}&limit=${limit}&additional_types=track&market=US`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-
-        if (spotifyRes.status === 429) {
-          const wait = Number(spotifyRes.headers.get("Retry-After") ?? 2);
+      // Follow pagination
+      let nextUrl: string | null = plData.tracks?.next ?? null;
+      while (nextUrl) {
+        setSyncStatus(`Fetching tracks ${allItems.length}/${totalTracks}...`);
+        await new Promise(r => setTimeout(r, 200));
+        const nextRes = await fetch(nextUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (nextRes.status === 429) {
+          const wait = Number(nextRes.headers.get("Retry-After") ?? 3);
           setSyncStatus(`Rate limited, waiting ${wait}s...`);
           await new Promise(r => setTimeout(r, wait * 1000));
           continue;
         }
-        if (!spotifyRes.ok) throw new Error(`Spotify API: ${spotifyRes.status}`);
+        if (!nextRes.ok) break;
+        const nextData = await nextRes.json();
+        allItems.push(...(nextData.items ?? []));
+        nextUrl = nextData.next ?? null;
+      }
 
-        const spotifyData = await spotifyRes.json();
-        totalTracks = spotifyData.total ?? 0;
+      // Map and filter tracks
+      const tracks = allItems
+        .filter((item) => {
+          const t = item.track as Record<string, unknown> | null;
+          return t && t.type === "track" && t.id;
+        })
+        .map((item, i) => ({
+          track: mapTrack(item.track as Record<string, unknown>),
+          position: i,
+          addedAt: (item.added_at as string) || new Date().toISOString(),
+        }));
 
-        // Map tracks to our format
-        const tracks = (spotifyData.items ?? [])
-          .filter((item: Record<string, unknown>) => {
-            const t = item.track as Record<string, unknown> | null;
-            return t && t.type === "track" && t.id;
-          })
-          .map((item: Record<string, unknown>, i: number) => {
-            const t = item.track as Record<string, unknown>;
-            const artists = t.artists as { name: string }[] | undefined;
-            const album = t.album as { name?: string; images?: { url: string }[] } | undefined;
-            const extIds = t.external_ids as { isrc?: string } | undefined;
-            const extUrls = t.external_urls as { spotify?: string } | undefined;
-            return {
-              track: {
-                provider: "SPOTIFY",
-                providerTrackId: t.id as string,
-                title: t.name as string,
-                artist: artists?.map(a => a.name).join(", ") ?? "",
-                album: album?.name ?? null,
-                albumArtUrl: album?.images?.[0]?.url ?? null,
-                previewUrl: (t.preview_url as string) ?? null,
-                duration: (t.duration_ms as number) ?? null,
-                isrc: extIds?.isrc ?? null,
-                externalUrl: extUrls?.spotify ?? null,
-              },
-              position: offset + i,
-              addedAt: (item.added_at as string) || new Date().toISOString(),
-            };
-          });
-
-        // Send to server for DB storage
-        setSyncStatus(`Saving tracks ${offset + 1}–${Math.min(offset + limit, totalTracks)}...`);
+      // Send to server in batches
+      for (let i = 0; i < tracks.length; i += 50) {
+        const batch = tracks.slice(i, i + 50);
+        setSyncStatus(`Saving tracks ${i + 1}–${Math.min(i + 50, tracks.length)} of ${tracks.length}...`);
         const ingestRes = await fetch(`/api/music/playlists/${playlist.id}/ingest`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tracks, total: totalTracks }),
+          body: JSON.stringify({ tracks: batch, total: totalTracks }),
         });
-
         if (ingestRes.ok) {
           const result = await ingestRes.json();
           totalSynced += result.synced ?? 0;
         }
-
-        offset += limit;
-        if (offset >= totalTracks) break;
-        await new Promise(r => setTimeout(r, 200));
       }
 
       toast.success(`Synced ${totalSynced} tracks!`);
