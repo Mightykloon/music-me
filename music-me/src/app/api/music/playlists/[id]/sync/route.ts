@@ -116,7 +116,10 @@ export async function POST(
     if (provider instanceof SpotifyProvider) {
       const page = await fetchPage(accessToken, playlist.providerPlaylistId, offset, limit);
       if (!page) {
-        return NextResponse.json({ error: "Failed to fetch tracks" }, { status: 500 });
+        return NextResponse.json(
+          { error: "Failed to fetch tracks after 3 attempts — Spotify may be blocking server requests. Try reconnecting Spotify." },
+          { status: 502 }
+        );
       }
 
       // Upsert each track individually — no bulk delete

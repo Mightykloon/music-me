@@ -206,11 +206,11 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       }
       const data = await res.json();
       const allPlaylists: PlaylistItem[] = data.items ?? data ?? [];
-      // Sync ALL playlists that have tracks (re-sync everything to catch updates)
-      const needsSync = allPlaylists.filter((p: PlaylistItem) => p.trackCount > 0);
+      // Try ALL playlists — trackCount in DB may be stale/zero even if Spotify has tracks
+      const needsSync = allPlaylists;
 
       if (needsSync.length === 0) {
-        toast.success("No playlists to sync", { id: "sync-all" });
+        toast.success("No playlists found", { id: "sync-all" });
         router.refresh();
         return;
       }
@@ -219,6 +219,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       setSyncProgress({ current: 0, total: needsSync.length });
       let completed = 0;
       let failed = 0;
+      let totalTrackssynced = 0;
 
       for (const p of needsSync) {
         let playlistDone = false;
@@ -235,11 +236,10 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
             if (!syncRes.ok) {
               const errData = await syncRes.json().catch(() => ({ error: "Unknown" }));
-              console.error(`Sync failed for ${p.name} at offset ${offset}:`, errData.error);
+              console.error(`Sync failed for "${p.name}" at offset ${offset}:`, errData.error);
               retries++;
               if (retries >= 3) {
                 failed++;
-                toast.error(`Failed: ${p.name}`, { duration: 3000 });
                 break;
               }
               await new Promise(r => setTimeout(r, 2000 * retries));
@@ -248,28 +248,31 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
             retries = 0;
             const result = await syncRes.json();
+            totalTrackssynced += result.synced ?? 0;
 
-            if (!result.hasMore) {
+            if (!result.hasMore || result.total === 0) {
               completed++;
               playlistDone = true;
               break;
             }
             offset = result.nextOffset;
             // Delay between batches to avoid rate limits
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 500));
           }
         } catch (err) {
           if (!playlistDone) failed++;
-          console.error(`Sync error for ${p.name}:`, err);
+          console.error(`Sync error for "${p.name}":`, err);
         }
         setSyncProgress({ current: completed + failed, total: needsSync.length });
-        toast.loading(`Synced ${completed + failed}/${needsSync.length} playlists...`, { id: "sync-all" });
+        toast.loading(`${completed + failed}/${needsSync.length} playlists · ${totalTrackssynced} tracks synced`, { id: "sync-all" });
+        // Brief pause between playlists to ease API load
+        await new Promise(r => setTimeout(r, 200));
       }
 
       if (completed > 0) {
-        toast.success(`Synced ${completed} playlist${completed !== 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}`, { id: "sync-all" });
+        toast.success(`Done! ${completed} playlists · ${totalTrackssynced} tracks synced${failed > 0 ? ` (${failed} failed)` : ""}`, { id: "sync-all", duration: 5000 });
       } else if (failed > 0) {
-        toast.error(`Failed to sync ${failed} playlists`, { id: "sync-all" });
+        toast.error(`Failed to sync ${failed} playlists — check Spotify connection`, { id: "sync-all", duration: 5000 });
       }
       router.refresh();
     } catch (err) {

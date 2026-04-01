@@ -101,22 +101,27 @@ export class SpotifyProvider implements MusicProvider {
   }
 
   async getUserPlaylists(accessToken: string): Promise<PlaylistResult[]> {
-    const data = await this.fetchApi(
-      accessToken,
-      "/me/playlists?limit=50"
-    );
+    const allPlaylists: PlaylistResult[] = [];
+    let url: string | null = "/me/playlists?limit=50";
 
-    return (data.items ?? []).map(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (p: any): PlaylistResult => ({
-        providerPlaylistId: p.id,
-        name: p.name,
-        description: p.description,
-        coverImageUrl: p.images?.[0]?.url ?? null,
-        trackCount: p.tracks?.total ?? 0,
-        externalUrl: p.external_urls?.spotify ?? null,
-      })
-    );
+    while (url) {
+      const data = await this.fetchApi(accessToken, url);
+      const items = (data.items ?? []).map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (p: any): PlaylistResult => ({
+          providerPlaylistId: p.id,
+          name: p.name,
+          description: p.description,
+          coverImageUrl: p.images?.[0]?.url ?? null,
+          trackCount: p.tracks?.total ?? 0,
+          externalUrl: p.external_urls?.spotify ?? null,
+        })
+      );
+      allPlaylists.push(...items);
+      url = data.next ?? null;
+    }
+
+    return allPlaylists;
   }
 
   async getPlaylistTracks(
