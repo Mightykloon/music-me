@@ -188,71 +188,93 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
   const handleSyncAll = async () => {
     setSyncing(true);
     try {
-      // Step 1: Sync playlist metadata (fast)
+      // Step 1: Sync playlist metadata for all connections
+      toast.loading("Syncing playlist metadata...", { id: "sync-all" });
       for (const conn of connections) {
-        await fetch(`/api/music/connections/${conn.id}/sync`, { method: "POST" });
-      }
-      toast.success("Playlist list updated! Now syncing tracks...");
-      router.refresh();
-
-      // Step 2: Sync tracks for each playlist incrementally
-      const res = await fetch("/api/music/playlists");
-      if (res.ok) {
-        const data = await res.json();
-        const allPlaylists: PlaylistItem[] = data.items ?? data ?? [];
-        // Sync playlists where local track count is less than remote track count
-        const needsSync = allPlaylists.filter((p: PlaylistItem) => p.trackCount > 0 && p._count.tracks < p.trackCount);
-
-        if (needsSync.length > 0) {
-          setSyncProgress({ current: 0, total: needsSync.length });
-          let completed = 0;
-          let failed = 0;
-
-          for (const p of needsSync) {
-            try {
-              // Start from where we left off (existing track count)
-              let offset = 0;
-              const limit = 25;
-              let hasMore = true;
-              let retries = 0;
-              while (hasMore) {
-                const syncRes = await fetch(
-                  `/api/music/playlists/${p.id}/sync?offset=${offset}&limit=${limit}`,
-                  { method: "POST" }
-                );
-                if (!syncRes.ok) {
-                  retries++;
-                  if (retries >= 3) { failed++; break; }
-                  // Wait before retrying on failure
-                  await new Promise(r => setTimeout(r, 2000 * retries));
-                  continue;
-                }
-                retries = 0;
-                const result = await syncRes.json();
-                hasMore = result.hasMore;
-                offset = result.nextOffset;
-                // Small delay between batches to avoid rate limits
-                if (hasMore) await new Promise(r => setTimeout(r, 300));
-              }
-              if (!hasMore) completed++;
-            } catch {
-              failed++;
-            }
-            setSyncProgress({ current: completed + failed, total: needsSync.length });
-          }
-
-          if (completed > 0) {
-            toast.success(`Synced ${completed} playlist${completed !== 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}`);
-          } else if (failed > 0) {
-            toast.error(`Failed to sync ${failed} playlists`);
-          }
-          router.refresh();
-        } else {
-          toast.success("All playlists up to date!");
+        try {
+          await fetch(`/api/music/connections/${conn.id}/sync`, { method: "POST" });
+        } catch {
+          console.error(`Failed to sync metadata for connection ${conn.id}`);
         }
       }
-    } catch {
-      toast.error("Sync failed");
+
+      // Step 2: Fetch updated playlists
+      const res = await fetch("/api/music/playlists");
+      if (!res.ok) {
+        toast.error("Failed to fetch playlists", { id: "sync-all" });
+        return;
+      }
+      const data = await res.json();
+      const allPlaylists: PlaylistItem[] = data.items ?? data ?? [];
+      // Sync ALL playlists that have tracks (re-sync everything to catch updates)
+      const needsSync = allPlaylists.filter((p: PlaylistItem) => p.trackCount > 0);
+
+      if (needsSync.length === 0) {
+        toast.success("No playlists to sync", { id: "sync-all" });
+        router.refresh();
+        return;
+      }
+
+      toast.loading(`Syncing tracks for ${needsSync.length} playlists...`, { id: "sync-all" });
+      setSyncProgress({ current: 0, total: needsSync.length });
+      let completed = 0;
+      let failed = 0;
+
+      for (const p of needsSync) {
+        let playlistDone = false;
+        try {
+          let offset = 0;
+          const limit = 25;
+          let retries = 0;
+
+          while (true) {
+            const syncRes = await fetch(
+              `/api/music/playlists/${p.id}/sync?offset=${offset}&limit=${limit}`,
+              { method: "POST" }
+            );
+
+            if (!syncRes.ok) {
+              const errData = await syncRes.json().catch(() => ({ error: "Unknown" }));
+              console.error(`Sync failed for ${p.name} at offset ${offset}:`, errData.error);
+              retries++;
+              if (retries >= 3) {
+                failed++;
+                toast.error(`Failed: ${p.name}`, { duration: 3000 });
+                break;
+              }
+              await new Promise(r => setTimeout(r, 2000 * retries));
+              continue;
+            }
+
+            retries = 0;
+            const result = await syncRes.json();
+
+            if (!result.hasMore) {
+              completed++;
+              playlistDone = true;
+              break;
+            }
+            offset = result.nextOffset;
+            // Delay between batches to avoid rate limits
+            await new Promise(r => setTimeout(r, 300));
+          }
+        } catch (err) {
+          if (!playlistDone) failed++;
+          console.error(`Sync error for ${p.name}:`, err);
+        }
+        setSyncProgress({ current: completed + failed, total: needsSync.length });
+        toast.loading(`Synced ${completed + failed}/${needsSync.length} playlists...`, { id: "sync-all" });
+      }
+
+      if (completed > 0) {
+        toast.success(`Synced ${completed} playlist${completed !== 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}`, { id: "sync-all" });
+      } else if (failed > 0) {
+        toast.error(`Failed to sync ${failed} playlists`, { id: "sync-all" });
+      }
+      router.refresh();
+    } catch (err) {
+      console.error("Sync all error:", err);
+      toast.error("Sync failed", { id: "sync-all" });
     } finally {
       setSyncing(false);
       setSyncProgress(null);
