@@ -102,9 +102,10 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
       let plData: Record<string, unknown> | null = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         const plRes = await fetch(
-          `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}?market=US`,
+          `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
+        console.log(`[Spotify] GET /playlists/${playlist.providerPlaylistId} → ${plRes.status}`);
 
         if (plRes.status === 429) {
           const wait = Number(plRes.headers.get("Retry-After") ?? 3);
@@ -119,11 +120,16 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
           continue;
         }
 
-        if (!plRes.ok) throw new Error(`Spotify API: ${plRes.status}`);
+        if (!plRes.ok) {
+          const errText = await plRes.text();
+          console.error(`[Spotify] Error ${plRes.status}:`, errText.slice(0, 200));
+          throw new Error(`Spotify API: ${plRes.status}`);
+        }
         plData = await plRes.json();
 
         // Check for empty response when total > 0 (Spotify quirk)
         const tracks = plData!.tracks as { items?: unknown[]; total?: number } | undefined;
+        console.log(`[Spotify] Playlist response: ${tracks?.items?.length ?? 0} items, total=${tracks?.total ?? 0}`);
         if ((!tracks?.items || tracks.items.length === 0) && (tracks?.total ?? 0) > 0 && attempt < 2) {
           setSyncStatus(`Got empty response, retrying (${attempt + 1}/3)...`);
           await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));

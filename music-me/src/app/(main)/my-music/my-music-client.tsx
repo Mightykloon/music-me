@@ -258,8 +258,9 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     }
 
     // Try GET /playlists/{id} — returns full playlist with first 100 tracks inline
-    const url = `https://api.spotify.com/v1/playlists/${playlistId}?market=US`;
+    const url = `https://api.spotify.com/v1/playlists/${playlistId}`;
     const r1 = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    console.log(`[Spotify] GET /playlists/${playlistId} → ${r1.status}`);
 
     if (r1.status === 429) {
       const wait = Number(r1.headers.get("Retry-After") ?? 3);
@@ -279,12 +280,13 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       const pl = await r1.json();
       const total: number = pl.tracks?.total ?? 0;
       const items = pl.tracks?.items ?? [];
+      console.log(`[Spotify] Playlist ${playlistId}: ${items.length} items inline, total=${total}, name="${pl.name ?? "?"}"`);
       allItems.push(...items);
 
-      // If we got 0 items but total > 0, Spotify returned empty — retry once
-      if (items.length === 0 && total > 0 && attempt < 1) {
-        console.warn(`Playlist ${playlistId}: got 0 items but total=${total}, retrying...`);
-        await new Promise(r => setTimeout(r, 2000));
+      // If we got 0 items but total > 0, Spotify returned empty — retry
+      if (items.length === 0 && total > 0 && attempt < 2) {
+        console.warn(`Playlist ${playlistId}: got 0 items but total=${total}, retrying (${attempt + 1}/3)...`);
+        await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
         return fetchAllPlaylistTracks(token, playlistId, attempt + 1);
       }
 
