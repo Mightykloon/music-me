@@ -158,11 +158,11 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
     let previewUrl = track.previewUrl;
 
-    // If no Spotify preview, try Deezer as fallback
+    // If no Spotify preview, try Deezer as fallback (via server proxy to avoid CORS)
     if (!previewUrl) {
       try {
         const q = encodeURIComponent(`${track.artist} ${track.title}`);
-        const dRes = await fetch(`https://api.deezer.com/search?q=${q}&limit=1`);
+        const dRes = await fetch(`/api/music/deezer-search?q=${q}&limit=1`);
         if (dRes.ok) {
           const dData = await dRes.json();
           previewUrl = dData.data?.[0]?.preview ?? null;
@@ -228,17 +228,19 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     };
   }
 
-  // Fetch all tracks for a playlist from Spotify
-  // Strategy: GET /playlists/{id} returns first 100 tracks inline.
-  // Pagination via tracks.next may 403 in Dev Mode, so we handle partial results.
-  async function fetchAllPlaylistTracks(token: string, playlistId: string): Promise<{ items: Record<string, unknown>[]; total: number }> {
+  // Fetch all tracks for a playlist from Spotify with retry logic.
+  // Spotify Dev Mode inconsistently blocks requests — retries with backoff help.
+  async function fetchAllPlaylistTracks(
+    token: string,
+    playlistId: string,
+    attempt = 0
+  ): Promise<{ items: Record<string, unknown>[]; total: number }> {
     const allItems: Record<string, unknown>[] = [];
 
     // Helper: follow pagination, tolerant of 403s
-    async function paginate(nextUrl: string | null, auth: string): Promise<boolean> {
-      let paginationWorked = true;
+    async function paginate(nextUrl: string | null, auth: string) {
       while (nextUrl) {
-        await new Promise(r => setTimeout(r, 250));
+        await new Promise(r => setTimeout(r, 300));
         const res = await fetch(nextUrl, { headers: { Authorization: `Bearer ${auth}` } });
         if (res.status === 429) {
           const wait = Number(res.headers.get("Retry-After") ?? 3);
@@ -247,30 +249,44 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
         }
         if (!res.ok) {
           console.warn(`Pagination stopped at ${allItems.length} items: ${res.status}`);
-          paginationWorked = false;
           break;
         }
         const d = await res.json();
         allItems.push(...(d.items ?? []));
         nextUrl = d.next ?? null;
       }
-      return paginationWorked;
     }
 
     // Try GET /playlists/{id} — returns full playlist with first 100 tracks inline
-    const r1 = await fetch(
-      `https://api.spotify.com/v1/playlists/${playlistId}?fields=${encodeURIComponent("tracks(items(added_at,track(id,name,type,artists,album,preview_url,duration_ms,external_ids,external_urls)),total,next)")}&market=US`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const url = `https://api.spotify.com/v1/playlists/${playlistId}?market=US`;
+    const r1 = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+
     if (r1.status === 429) {
       const wait = Number(r1.headers.get("Retry-After") ?? 3);
       await new Promise(r => setTimeout(r, wait * 1000));
-      return fetchAllPlaylistTracks(token, playlistId);
+      return fetchAllPlaylistTracks(token, playlistId, attempt);
     }
+
+    if (r1.status === 403 && attempt < 2) {
+      // Retry with exponential backoff — Spotify Dev Mode is inconsistent
+      const wait = 2000 * (attempt + 1);
+      console.warn(`403 on playlist ${playlistId}, retrying in ${wait}ms (attempt ${attempt + 1}/3)`);
+      await new Promise(r => setTimeout(r, wait));
+      return fetchAllPlaylistTracks(token, playlistId, attempt + 1);
+    }
+
     if (r1.ok) {
       const pl = await r1.json();
       const total: number = pl.tracks?.total ?? 0;
-      allItems.push(...(pl.tracks?.items ?? []));
+      const items = pl.tracks?.items ?? [];
+      allItems.push(...items);
+
+      // If we got 0 items but total > 0, Spotify returned empty — retry once
+      if (items.length === 0 && total > 0 && attempt < 1) {
+        console.warn(`Playlist ${playlistId}: got 0 items but total=${total}, retrying...`);
+        await new Promise(r => setTimeout(r, 2000));
+        return fetchAllPlaylistTracks(token, playlistId, attempt + 1);
+      }
 
       // Try to paginate — may 403 in Dev Mode for /tracks endpoint
       if (pl.tracks?.next) {
@@ -278,12 +294,12 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       }
 
       if (allItems.length < total) {
-        console.warn(`Playlist ${playlistId}: got ${allItems.length}/${total} (pagination likely blocked by Dev Mode)`);
+        console.warn(`Playlist ${playlistId}: got ${allItems.length}/${total} (pagination blocked)`);
       }
       return { items: allItems, total };
     }
 
-    // Fallback: try /tracks endpoint directly (usually also 403 in Dev Mode)
+    // Fallback: try /tracks endpoint directly
     const r2 = await fetch(
       `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100&additional_types=track&market=US`,
       { headers: { Authorization: `Bearer ${token}` } }
@@ -295,7 +311,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       return { items: allItems, total: d.total ?? allItems.length };
     }
 
-    throw new Error(`Spotify blocked playlist ${playlistId} (${r1.status}/${r2.status})`);
+    throw new Error(`Spotify blocked (${r1.status}/${r2.status})`);
   }
 
   const handleSyncAll = async () => {
@@ -379,8 +395,8 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
         }
         setSyncProgress({ current: completed + failed, total: spotifyPlaylists.length });
         toast.loading(`${completed}/${spotifyPlaylists.length} playlists · ${totalTracksSynced} tracks`, { id: "sync-all" });
-        // Small delay between playlists to avoid rate limits
-        await new Promise(r => setTimeout(r, 300));
+        // Delay between playlists to avoid Spotify rate limits
+        await new Promise(r => setTimeout(r, 1000));
       }
 
       if (completed > 0) {

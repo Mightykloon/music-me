@@ -98,24 +98,53 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
       setSyncStatus("Fetching playlist from Spotify...");
 
-      // Use GET /playlists/{id} which returns tracks inline — less restricted
-      const plRes = await fetch(
-        `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}?fields=tracks(items(track(id,name,type,artists,album,preview_url,duration_ms,external_ids,external_urls),added_at),total,next)&market=US`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
+      // Retry up to 3 times — Spotify Dev Mode is inconsistent
+      let plData: Record<string, unknown> | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const plRes = await fetch(
+          `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}?market=US`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
 
-      if (!plRes.ok) throw new Error(`Spotify API: ${plRes.status}`);
-      const plData = await plRes.json();
+        if (plRes.status === 429) {
+          const wait = Number(plRes.headers.get("Retry-After") ?? 3);
+          setSyncStatus(`Rate limited, waiting ${wait}s...`);
+          await new Promise(r => setTimeout(r, wait * 1000));
+          continue;
+        }
 
-      const allItems: Record<string, unknown>[] = [...(plData.tracks?.items ?? [])];
-      const totalTracks: number = plData.tracks?.total ?? 0;
+        if (plRes.status === 403 && attempt < 2) {
+          setSyncStatus(`Spotify blocked, retrying (${attempt + 1}/3)...`);
+          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+          continue;
+        }
+
+        if (!plRes.ok) throw new Error(`Spotify API: ${plRes.status}`);
+        plData = await plRes.json();
+
+        // Check for empty response when total > 0 (Spotify quirk)
+        const tracks = plData!.tracks as { items?: unknown[]; total?: number } | undefined;
+        if ((!tracks?.items || tracks.items.length === 0) && (tracks?.total ?? 0) > 0 && attempt < 2) {
+          setSyncStatus(`Got empty response, retrying (${attempt + 1}/3)...`);
+          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+          plData = null;
+          continue;
+        }
+        break;
+      }
+
+      if (!plData) throw new Error("Spotify returned empty data after 3 attempts");
+
+      const tracksObj = plData.tracks as { items?: Record<string, unknown>[]; total?: number; next?: string } | undefined;
+      const allItems: Record<string, unknown>[] = [...(tracksObj?.items ?? [])];
+      const totalTracks: number = tracksObj?.total ?? 0;
       let totalSynced = 0;
 
       // Follow pagination
-      let nextUrl: string | null = plData.tracks?.next ?? null;
+      let nextUrl: string | null = tracksObj?.next ?? null;
       while (nextUrl) {
         setSyncStatus(`Fetching tracks ${allItems.length}/${totalTracks}...`);
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => setTimeout(r, 300));
         const nextRes = await fetch(nextUrl, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
@@ -158,8 +187,10 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
         }
       }
 
-      if (allItems.length < totalTracks) {
-        toast.success(`Synced ${totalSynced}/${totalTracks} tracks (Spotify Dev Mode limits pagination)`, { duration: 5000 });
+      if (tracks.length === 0 && totalTracks > 0) {
+        toast.error(`Spotify returned 0 tracks (Dev Mode restriction). Total should be ${totalTracks}.`, { duration: 5000 });
+      } else if (allItems.length < totalTracks) {
+        toast.success(`Synced ${totalSynced}/${totalTracks} tracks (pagination blocked by Dev Mode)`, { duration: 5000 });
       } else {
         toast.success(`Synced ${totalSynced} tracks!`);
       }
@@ -189,7 +220,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
     if (!previewUrl) {
       try {
         const q = encodeURIComponent(`${track.artist} ${track.title}`);
-        const dRes = await fetch(`https://api.deezer.com/search?q=${q}&limit=1`);
+        const dRes = await fetch(`/api/music/deezer-search?q=${q}&limit=1`);
         if (dRes.ok) {
           const dData = await dRes.json();
           previewUrl = dData.data?.[0]?.preview ?? null;
