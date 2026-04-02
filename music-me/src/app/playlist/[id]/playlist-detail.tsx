@@ -70,30 +70,114 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
   }, []);
 
 
+  // Map a Spotify track to our ingest format
+  function mapSpotifyTrack(t: Record<string, unknown>) {
+    const artists = t.artists as { name: string }[] | undefined;
+    const album = t.album as { name?: string; images?: { url: string }[] } | undefined;
+    const extIds = t.external_ids as { isrc?: string } | undefined;
+    const extUrls = t.external_urls as { spotify?: string } | undefined;
+    return {
+      provider: "SPOTIFY",
+      providerTrackId: t.id as string,
+      title: t.name as string,
+      artist: artists?.map(a => a.name).join(", ") ?? "",
+      album: album?.name ?? null,
+      albumArtUrl: album?.images?.[0]?.url ?? null,
+      previewUrl: (t.preview_url as string) ?? null,
+      duration: (t.duration_ms as number) ?? null,
+      isrc: extIds?.isrc ?? null,
+      externalUrl: extUrls?.spotify ?? null,
+    };
+  }
+
   const handleResync = async () => {
     setSyncing(true);
-    setSyncStatus("Syncing tracks from Spotify...");
+    setSyncStatus("Trying server-side sync...");
     try {
-      // Use server-side endpoint — it handles Spotify API calls with the user's token
+      // Strategy 1: Server-side
       const res = await fetch(`/api/music/playlists/${playlist.id}/fetch-tracks`, {
         method: "POST",
       });
       const result = await res.json();
-      console.log("[Re-sync result]", result);
+      console.log("[Re-sync server result]", result);
 
-      if (!res.ok) {
-        throw new Error(result.error || `Server error: ${res.status}`);
-      }
-
-      if (result.synced > 0) {
+      if (res.ok && result.synced > 0) {
         if (result.synced < result.total) {
-          toast.success(`Synced ${result.synced}/${result.total} tracks (pagination limited by Dev Mode)`, { duration: 5000 });
+          toast.success(`Synced ${result.synced}/${result.total} tracks`, { duration: 5000 });
         } else {
           toast.success(`Synced ${result.synced} tracks!`);
         }
-      } else {
-        toast.error(result.error || `Synced 0 tracks — Spotify may be blocking (Dev Mode).`, { duration: 5000 });
+        router.refresh();
+        return;
       }
+
+      // Strategy 2: Client-side (browser → Spotify directly)
+      setSyncStatus("Server blocked, trying browser-direct...");
+      console.log("[Re-sync] Falling back to client-side Spotify fetch");
+
+      const tokenRes = await fetch("/api/music/token");
+      if (!tokenRes.ok) throw new Error("Failed to get Spotify token");
+      const { accessToken } = await tokenRes.json();
+
+      const plRes = await fetch(
+        `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      console.log(`[Spotify browser] GET /playlists/${playlist.providerPlaylistId} → ${plRes.status}`);
+
+      if (!plRes.ok) throw new Error(`Spotify: ${plRes.status}`);
+      const plData = await plRes.json();
+      const items = (plData.tracks?.items ?? []) as Record<string, unknown>[];
+      const total = plData.tracks?.total ?? 0;
+      console.log(`[Spotify browser] ${items.length} items, total=${total}`);
+
+      if (items.length === 0) {
+        toast.error(`Spotify returned 0 tracks from both server and browser. Dev Mode is blocking.`, { duration: 5000 });
+        router.refresh();
+        return;
+      }
+
+      // Follow pagination
+      let nextUrl: string | null = plData.tracks?.next ?? null;
+      const allItems = [...items];
+      while (nextUrl) {
+        setSyncStatus(`Fetching tracks ${allItems.length}/${total}...`);
+        await new Promise(r => setTimeout(r, 300));
+        const nextRes = await fetch(nextUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+        if (!nextRes.ok) break;
+        const nextData = await nextRes.json();
+        allItems.push(...(nextData.items ?? []));
+        nextUrl = nextData.next ?? null;
+      }
+
+      // Map and ingest
+      const tracks = allItems
+        .filter((item) => {
+          const t = item.track as Record<string, unknown> | null;
+          return t && t.type === "track" && t.id;
+        })
+        .map((item, i) => ({
+          track: mapSpotifyTrack(item.track as Record<string, unknown>),
+          position: i,
+          addedAt: (item.added_at as string) || new Date().toISOString(),
+        }));
+
+      let totalSynced = 0;
+      for (let i = 0; i < tracks.length; i += 50) {
+        const batch = tracks.slice(i, i + 50);
+        setSyncStatus(`Saving tracks ${i + 1}–${Math.min(i + 50, tracks.length)}...`);
+        const ingestRes = await fetch(`/api/music/playlists/${playlist.id}/ingest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tracks: batch, total }),
+        });
+        if (ingestRes.ok) {
+          const r = await ingestRes.json();
+          totalSynced += r.synced ?? 0;
+        }
+      }
+
+      toast.success(`Synced ${totalSynced} tracks via browser!`);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sync failed");
@@ -119,14 +203,19 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
     // If no Spotify preview, try Deezer as fallback
     if (!previewUrl) {
       try {
-        const q = encodeURIComponent(`${track.artist} ${track.title}`);
-        const dRes = await fetch(`/api/music/deezer-search?q=${q}&limit=1`);
+        // Simplify query: first artist + title without parenthetical
+        const mainArtist = track.artist.split(",")[0].trim();
+        const mainTitle = track.title.replace(/\s*\(.*?\)\s*/g, "").trim();
+        const q = encodeURIComponent(`${mainArtist} ${mainTitle}`);
+        console.log(`[Deezer] Searching: ${mainArtist} - ${mainTitle}`);
+        const dRes = await fetch(`/api/music/deezer-search?q=${q}&limit=3`);
         if (dRes.ok) {
           const dData = await dRes.json();
+          console.log(`[Deezer] Results:`, dData.data?.length ?? 0);
           previewUrl = dData.data?.[0]?.preview ?? null;
         }
-      } catch {
-        // Deezer fallback failed silently
+      } catch (e) {
+        console.error("[Deezer] Search failed:", e);
       }
     }
 
