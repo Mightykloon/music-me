@@ -69,136 +69,29 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function mapTrack(t: Record<string, unknown>) {
-    const artists = t.artists as { name: string }[] | undefined;
-    const album = t.album as { name?: string; images?: { url: string }[] } | undefined;
-    const extIds = t.external_ids as { isrc?: string } | undefined;
-    const extUrls = t.external_urls as { spotify?: string } | undefined;
-    return {
-      provider: "SPOTIFY",
-      providerTrackId: t.id as string,
-      title: t.name as string,
-      artist: artists?.map(a => a.name).join(", ") ?? "",
-      album: album?.name ?? null,
-      albumArtUrl: album?.images?.[0]?.url ?? null,
-      previewUrl: (t.preview_url as string) ?? null,
-      duration: (t.duration_ms as number) ?? null,
-      isrc: extIds?.isrc ?? null,
-      externalUrl: extUrls?.spotify ?? null,
-    };
-  }
 
   const handleResync = async () => {
     setSyncing(true);
-    setSyncStatus("Getting token...");
+    setSyncStatus("Syncing tracks from Spotify...");
     try {
-      const tokenRes = await fetch("/api/music/token");
-      if (!tokenRes.ok) throw new Error("Failed to get Spotify token");
-      const { accessToken } = await tokenRes.json();
+      // Use server-side endpoint — it handles Spotify API calls with the user's token
+      const res = await fetch(`/api/music/playlists/${playlist.id}/fetch-tracks`, {
+        method: "POST",
+      });
+      const result = await res.json();
 
-      setSyncStatus("Fetching playlist from Spotify...");
-
-      // Retry up to 3 times — Spotify Dev Mode is inconsistent
-      let plData: Record<string, unknown> | null = null;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const plRes = await fetch(
-          `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        console.log(`[Spotify] GET /playlists/${playlist.providerPlaylistId} → ${plRes.status}`);
-
-        if (plRes.status === 429) {
-          const wait = Number(plRes.headers.get("Retry-After") ?? 3);
-          setSyncStatus(`Rate limited, waiting ${wait}s...`);
-          await new Promise(r => setTimeout(r, wait * 1000));
-          continue;
-        }
-
-        if (plRes.status === 403 && attempt < 2) {
-          setSyncStatus(`Spotify blocked, retrying (${attempt + 1}/3)...`);
-          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
-          continue;
-        }
-
-        if (!plRes.ok) {
-          const errText = await plRes.text();
-          console.error(`[Spotify] Error ${plRes.status}:`, errText.slice(0, 200));
-          throw new Error(`Spotify API: ${plRes.status}`);
-        }
-        plData = await plRes.json();
-
-        // Check for empty response when total > 0 (Spotify quirk)
-        const tracks = plData!.tracks as { items?: unknown[]; total?: number } | undefined;
-        console.log(`[Spotify] Playlist response: ${tracks?.items?.length ?? 0} items, total=${tracks?.total ?? 0}`);
-        if ((!tracks?.items || tracks.items.length === 0) && (tracks?.total ?? 0) > 0 && attempt < 2) {
-          setSyncStatus(`Got empty response, retrying (${attempt + 1}/3)...`);
-          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
-          plData = null;
-          continue;
-        }
-        break;
+      if (!res.ok) {
+        throw new Error(result.error || `Server error: ${res.status}`);
       }
 
-      if (!plData) throw new Error("Spotify returned empty data after 3 attempts");
-
-      const tracksObj = plData.tracks as { items?: Record<string, unknown>[]; total?: number; next?: string } | undefined;
-      const allItems: Record<string, unknown>[] = [...(tracksObj?.items ?? [])];
-      const totalTracks: number = tracksObj?.total ?? 0;
-      let totalSynced = 0;
-
-      // Follow pagination
-      let nextUrl: string | null = tracksObj?.next ?? null;
-      while (nextUrl) {
-        setSyncStatus(`Fetching tracks ${allItems.length}/${totalTracks}...`);
-        await new Promise(r => setTimeout(r, 300));
-        const nextRes = await fetch(nextUrl, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (nextRes.status === 429) {
-          const wait = Number(nextRes.headers.get("Retry-After") ?? 3);
-          setSyncStatus(`Rate limited, waiting ${wait}s...`);
-          await new Promise(r => setTimeout(r, wait * 1000));
-          continue;
+      if (result.synced > 0) {
+        if (result.synced < result.total) {
+          toast.success(`Synced ${result.synced}/${result.total} tracks (pagination limited by Dev Mode)`, { duration: 5000 });
+        } else {
+          toast.success(`Synced ${result.synced} tracks!`);
         }
-        if (!nextRes.ok) break;
-        const nextData = await nextRes.json();
-        allItems.push(...(nextData.items ?? []));
-        nextUrl = nextData.next ?? null;
-      }
-
-      // Map and filter tracks
-      const tracks = allItems
-        .filter((item) => {
-          const t = item.track as Record<string, unknown> | null;
-          return t && t.type === "track" && t.id;
-        })
-        .map((item, i) => ({
-          track: mapTrack(item.track as Record<string, unknown>),
-          position: i,
-          addedAt: (item.added_at as string) || new Date().toISOString(),
-        }));
-
-      // Send to server in batches
-      for (let i = 0; i < tracks.length; i += 50) {
-        const batch = tracks.slice(i, i + 50);
-        setSyncStatus(`Saving tracks ${i + 1}–${Math.min(i + 50, tracks.length)} of ${tracks.length}...`);
-        const ingestRes = await fetch(`/api/music/playlists/${playlist.id}/ingest`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tracks: batch, total: totalTracks }),
-        });
-        if (ingestRes.ok) {
-          const result = await ingestRes.json();
-          totalSynced += result.synced ?? 0;
-        }
-      }
-
-      if (tracks.length === 0 && totalTracks > 0) {
-        toast.error(`Spotify returned 0 tracks (Dev Mode restriction). Total should be ${totalTracks}.`, { duration: 5000 });
-      } else if (allItems.length < totalTracks) {
-        toast.success(`Synced ${totalSynced}/${totalTracks} tracks (pagination blocked by Dev Mode)`, { duration: 5000 });
       } else {
-        toast.success(`Synced ${totalSynced} tracks!`);
+        toast.error(result.error || `Synced 0 tracks — Spotify may be blocking (Dev Mode).`, { duration: 5000 });
       }
       router.refresh();
     } catch (err) {

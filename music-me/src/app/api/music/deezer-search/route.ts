@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "edge";
+export const maxDuration = 10;
 
 /**
  * Server-side proxy for Deezer search API.
- * Deezer's API doesn't support CORS from browsers, so we proxy through our server.
+ * Deezer doesn't support CORS from browsers, so we proxy through our server.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,31 +12,27 @@ export async function GET(request: Request) {
   const limit = searchParams.get("limit") ?? "1";
 
   if (!q) {
-    return NextResponse.json({ error: "Missing q parameter" }, { status: 400 });
+    return NextResponse.json({ data: [] });
   }
 
   try {
-    const url = `https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=${limit}`;
-    const res = await fetch(url, { cache: "no-store" });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch(
+      `https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
 
     if (!res.ok) {
-      const text = await res.text();
-      console.error("Deezer API error:", res.status, text);
-      return NextResponse.json(
-        { error: `Deezer API: ${res.status}`, data: [] },
-        { status: 200 } // return 200 with empty data so client doesn't crash
-      );
+      return NextResponse.json({ data: [] });
     }
 
     const data = await res.json();
-    return NextResponse.json(data, {
-      headers: { "Cache-Control": "public, s-maxage=3600" },
-    });
-  } catch (err) {
-    console.error("Deezer search proxy error:", err);
-    return NextResponse.json(
-      { error: "Deezer proxy failed", data: [] },
-      { status: 200 } // graceful fallback
-    );
+    return NextResponse.json(data);
+  } catch {
+    // Timeout or network error — return empty results gracefully
+    return NextResponse.json({ data: [] });
   }
 }
