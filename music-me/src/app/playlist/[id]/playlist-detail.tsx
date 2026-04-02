@@ -79,6 +79,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
         method: "POST",
       });
       const result = await res.json();
+      console.log("[Re-sync result]", result);
 
       if (!res.ok) {
         throw new Error(result.error || `Server error: ${res.status}`);
