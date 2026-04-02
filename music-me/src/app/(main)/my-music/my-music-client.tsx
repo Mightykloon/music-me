@@ -171,11 +171,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     }
 
     if (!previewUrl) {
-      if (track.externalUrl) {
-        window.open(track.externalUrl, "_blank");
-      } else {
-        toast.error("No preview available");
-      }
+      toast.error("No preview available for this track");
       return;
     }
 

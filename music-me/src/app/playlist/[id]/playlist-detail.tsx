@@ -130,12 +130,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
     }
 
     if (!previewUrl) {
-      // No preview available — open in Spotify instead
-      if (track.externalUrl) {
-        window.open(track.externalUrl, "_blank");
-      } else {
-        toast.error("No preview available for this track");
-      }
+      toast.error("No preview available for this track");
       return;
     }
 
