@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -72,12 +72,76 @@ interface MyMusicClientProps {
 export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicClientProps) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null);
   const [showSyncSetup, setShowSyncSetup] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [parityId, setParityId] = useState<string | null>(null);
   const [syncGroupName, setSyncGroupName] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(syncGroups.map(g => g.id)));
   const [deletingGroup, setDeletingGroup] = useState<string | null>(null);
+
+  // Map a Spotify track to our ingest format
+  function mapSpotifyTrack(t: Record<string, unknown>) {
+    const artists = t.artists as { name: string }[] | undefined;
+    const album = t.album as { name?: string; images?: { url: string }[] } | undefined;
+    const extIds = t.external_ids as { isrc?: string } | undefined;
+    const extUrls = t.external_urls as { spotify?: string } | undefined;
+    return {
+      provider: "SPOTIFY",
+      providerTrackId: t.id as string,
+      title: t.name as string,
+      artist: artists?.map(a => a.name).join(", ") ?? "",
+      album: album?.name ?? null,
+      albumArtUrl: album?.images?.[0]?.url ?? null,
+      previewUrl: (t.preview_url as string) ?? null,
+      duration: (t.duration_ms as number) ?? null,
+      isrc: extIds?.isrc ?? null,
+      externalUrl: extUrls?.spotify ?? null,
+    };
+  }
+
+  async function syncPlaylistBrowserSide(
+    token: string,
+    pl: PlaylistItem
+  ): Promise<number> {
+    const fields = "tracks(items(added_at,track(id,name,type,artists(name),album(name,images),preview_url,duration_ms,external_ids,external_urls)),total)";
+    const r = await fetch(
+      `https://api.spotify.com/v1/playlists/${pl.providerPlaylistId}?fields=${encodeURIComponent(fields)}&market=US`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!r.ok) return 0;
+    const data = await r.json();
+    const items = (data.tracks?.items ?? []) as Record<string, unknown>[];
+    const total = data.tracks?.total ?? 0;
+    if (items.length === 0) return 0;
+
+    // Don't follow pagination — uses /tracks endpoint which is 403 in Dev Mode
+    const tracks = items
+      .filter((item) => {
+        const t = item.track as Record<string, unknown> | null;
+        return t && t.type === "track" && t.id;
+      })
+      .map((item, i) => ({
+        track: mapSpotifyTrack(item.track as Record<string, unknown>),
+        position: i,
+        addedAt: (item.added_at as string) || new Date().toISOString(),
+      }));
+
+    let synced = 0;
+    for (let i = 0; i < tracks.length; i += 25) {
+      const batch = tracks.slice(i, i + 25);
+      const ingestRes = await fetch(`/api/music/playlists/${pl.id}/ingest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tracks: batch, total }),
+      });
+      if (ingestRes.ok) {
+        const r = await ingestRes.json();
+        synced += r.synced ?? 0;
+      }
+    }
+    return synced;
+  }
 
   // Group playlists by provider
   const byProvider = playlists.reduce<Record<string, PlaylistItem[]>>((acc, p) => {
@@ -103,15 +167,86 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
   const handleSyncAll = async () => {
     setSyncing(true);
     try {
-      for (const conn of connections) {
-        await fetch(`/api/music/connections/${conn.id}/sync`, { method: "POST" });
+      // Step 1: Refresh playlist metadata from Spotify
+      toast.loading("Refreshing playlists from Spotify...", { id: "sync-all" });
+      const spotifyConnections = connections.filter(c => c.provider === "SPOTIFY");
+      for (const conn of spotifyConnections) {
+        try {
+          await fetch(`/api/music/connections/${conn.id}/sync`, { method: "POST" });
+        } catch { /* ignore */ }
       }
-      toast.success("Playlists synced!");
+
+      // Step 2: Get Spotify token for browser-side track fetch
+      const tokenRes = await fetch("/api/music/token");
+      const spotifyToken = tokenRes.ok ? (await tokenRes.json()).accessToken : null;
+
+      // Step 3: Get updated local playlists
+      const res = await fetch("/api/music/playlists");
+      if (!res.ok) {
+        toast.error("Failed to fetch playlists", { id: "sync-all" });
+        return;
+      }
+      const data = await res.json();
+      const allPlaylists: PlaylistItem[] = Array.isArray(data) ? data : (data.items ?? []);
+      const spotifyPlaylists = allPlaylists.filter(p => p.provider === "SPOTIFY" && p.providerPlaylistId);
+
+      if (spotifyPlaylists.length === 0) {
+        toast.success("No Spotify playlists found", { id: "sync-all" });
+        return;
+      }
+
+      // Step 4: Sync playlists that need tracks (skip already-synced ones)
+      const needsSync = spotifyPlaylists.filter(p => p._count.tracks === 0);
+      const alreadySynced = spotifyPlaylists.length - needsSync.length;
+
+      if (needsSync.length === 0) {
+        toast.success(`All ${spotifyPlaylists.length} playlists already have tracks synced!`, { id: "sync-all" });
+        router.refresh();
+        return;
+      }
+
+      toast.loading(`Syncing ${needsSync.length} playlists (${alreadySynced} already synced)...`, { id: "sync-all" });
+      setSyncProgress({ current: 0, total: needsSync.length });
+      let completed = 0;
+      let failed = 0;
+      let totalTracksSynced = 0;
+
+      for (const pl of needsSync) {
+        let synced = 0;
+        if (spotifyToken) {
+          try {
+            synced = await syncPlaylistBrowserSide(spotifyToken, pl);
+          } catch (err) {
+            console.error(`Browser sync failed for "${pl.name}":`, err);
+          }
+        }
+
+        if (synced > 0) {
+          completed++;
+          totalTracksSynced += synced;
+        } else {
+          failed++;
+          console.log(`[Sync] "${pl.name}" returned 0 tracks, extending delay`);
+        }
+
+        setSyncProgress({ current: completed + failed, total: needsSync.length });
+        toast.loading(`${completed}/${needsSync.length} playlists · ${totalTracksSynced} tracks`, { id: "sync-all" });
+        // 5s delay between playlists to avoid Spotify rate limiting
+        await new Promise(r => setTimeout(r, 5000));
+      }
+
+      if (completed > 0) {
+        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} rate-limited — retry later)` : ""}`, { id: "sync-all", duration: 6000 });
+      } else if (failed > 0) {
+        toast.error(`Spotify rate-limited all ${failed} playlists. Wait a minute and try again.`, { id: "sync-all", duration: 6000 });
+      }
       router.refresh();
-    } catch {
-      toast.error("Sync failed");
+    } catch (err) {
+      console.error("Sync all error:", err);
+      toast.error(`Sync failed: ${err instanceof Error ? err.message : "Unknown error"}`, { id: "sync-all" });
     } finally {
       setSyncing(false);
+      setSyncProgress(null);
     }
   };
 
@@ -491,8 +626,9 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
               </div>
               <div className="space-y-1">
                 {pls.map((p) => (
-                  <div
+                  <Link
                     key={p.id}
+                    href={`/playlist/${p.id}`}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/20 transition-colors group"
                   >
                     {p.coverImageUrl ? (
@@ -519,12 +655,12 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{p._count.tracks} tracks</span>
+                        <span>{p._count.tracks}/{p.trackCount} tracks</span>
                         <span>·</span>
                         <span>{p.isPublic ? "Public" : "Private"}</span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

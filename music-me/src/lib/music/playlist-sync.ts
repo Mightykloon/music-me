@@ -7,7 +7,7 @@ import type { MusicProviderType } from "@prisma/client";
 /**
  * Get a valid access token for a connection, refreshing if expired.
  */
-async function getValidToken(connection: {
+export async function getValidToken(connection: {
   id: string;
   accessToken: string;
   refreshToken: string | null;
