@@ -59,7 +59,7 @@ export async function POST(
       },
     });
 
-    // Create notification
+    // Create FOLLOW notification
     await db.notification.create({
       data: {
         userId: target.id,
@@ -70,7 +70,41 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ action: "followed" });
+    // Check if this creates a mutual follow (friendship)
+    const reverseFollow = await db.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: target.id,
+          followingId: session.user.id,
+        },
+      },
+    });
+
+    let isFriend = false;
+    if (reverseFollow) {
+      isFriend = true;
+      // Notify both users about the new friendship
+      await db.notification.createMany({
+        data: [
+          {
+            userId: session.user.id,
+            actorId: target.id,
+            type: "FRIEND",
+            referenceId: target.id,
+            referenceType: "user",
+          },
+          {
+            userId: target.id,
+            actorId: session.user.id,
+            type: "FRIEND",
+            referenceId: session.user.id,
+            referenceType: "user",
+          },
+        ],
+      });
+    }
+
+    return NextResponse.json({ action: "followed", isFriend });
   } catch {
     return NextResponse.json(
       { error: "Something went wrong" },
@@ -96,18 +130,23 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const isFollowing = session?.user?.id
-      ? !!(await db.follow.findUnique({
-          where: {
-            followerId_followingId: {
-              followerId: session.user.id,
-              followingId: target.id,
-            },
-          },
-        }))
-      : false;
+    if (!session?.user?.id) {
+      return NextResponse.json({ isFollowing: false, isFriend: false });
+    }
 
-    return NextResponse.json({ isFollowing });
+    const [meToThem, themToMe] = await Promise.all([
+      db.follow.findUnique({
+        where: { followerId_followingId: { followerId: session.user.id, followingId: target.id } },
+      }),
+      db.follow.findUnique({
+        where: { followerId_followingId: { followerId: target.id, followingId: session.user.id } },
+      }),
+    ]);
+
+    return NextResponse.json({
+      isFollowing: !!meToThem,
+      isFriend: !!meToThem && !!themToMe,
+    });
   } catch {
     return NextResponse.json(
       { error: "Something went wrong" },

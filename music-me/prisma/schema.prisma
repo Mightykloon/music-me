@@ -59,11 +59,15 @@ enum ReactionType {
 
 enum NotificationType {
   FOLLOW
+  FRIEND
   REACTION
   COMMENT
   REPOST
   MENTION
   PLAYLIST_DROP
+  MUSIC_REQUEST
+  SHARED_PLAYLIST_INVITE
+  BEST_FRIEND_ADD
 }
 
 // ─── Users ───────────────────────────────────────────────────────
@@ -108,6 +112,8 @@ model User {
   forumReplies     ForumReply[]     @relation("ForumReplies")
   forumReactions   ForumReaction[]
   playlistSyncGroups PlaylistSyncGroup[]
+  bestFriends        BestFriend[]       @relation("BestFriendOwner")
+  bestFriendOf       BestFriend[]       @relation("BestFriendTarget")
 
   @@index([username])
   @@index([email])
@@ -414,6 +420,20 @@ model Follow {
   @@id([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+}
+
+model BestFriend {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("BestFriendOwner", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("BestFriendTarget", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
 }
 
 model Link {

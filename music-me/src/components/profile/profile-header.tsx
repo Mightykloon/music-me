@@ -165,7 +165,7 @@ export function ProfileHeader({
             ) : (
               <>
                 <Button variant={isFollowing ? "outline" : "primary"} size="sm" onClick={onFollow}>
-                  {isFollowing ? (<><UserCheck className="w-4 h-4 mr-1.5" />Tuned In</>) : (<><UserPlus className="w-4 h-4 mr-1.5" />Tune In</>)}
+                  {isFollowing ? (<><UserCheck className="w-4 h-4 mr-1.5" />Following</>) : (<><UserPlus className="w-4 h-4 mr-1.5" />Follow</>)}
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleMessage} disabled={sendingMessage}>
                   {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <><MessageCircle className="w-4 h-4 mr-1.5" />Message</>}
@@ -185,8 +185,8 @@ export function ProfileHeader({
         )}
       </div>
       <div className="mt-4 flex items-center gap-6 text-sm">
-        <button className="hover:underline"><span className="font-semibold">{formatCount(user._count.followers)}</span>{" "}<span className="text-muted-foreground">Listeners</span></button>
-        <button className="hover:underline"><span className="font-semibold">{formatCount(user._count.following)}</span>{" "}<span className="text-muted-foreground">Tuned In</span></button>
+        <button className="hover:underline"><span className="font-semibold">{formatCount(user._count.followers)}</span>{" "}<span className="text-muted-foreground">Followers</span></button>
+        <button className="hover:underline"><span className="font-semibold">{formatCount(user._count.following)}</span>{" "}<span className="text-muted-foreground">Following</span></button>
         <span><span className="font-semibold">{formatCount(user._count.posts)}</span>{" "}<span className="text-muted-foreground">Posts</span></span>
       </div>
     </div>
