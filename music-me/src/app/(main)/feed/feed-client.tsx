@@ -22,7 +22,7 @@ export function FeedPageClient({ user }: FeedPageClientProps) {
       </div>
 
       {/* Trending sidebar — hidden on mobile/tablet */}
-      <aside className="hidden xl:block w-72 flex-shrink-0 sticky top-20 h-fit max-h-[calc(100vh-6rem)] overflow-y-auto pb-8">
+      <aside className="hidden lg:block w-72 flex-shrink-0 sticky top-20 h-fit max-h-[calc(100vh-6rem)] overflow-y-auto pb-8">
         <TrendingSidebar />
       </aside>
     </div>

@@ -29,7 +29,31 @@ export function TrendingSidebar() {
       .catch(() => {});
   }, []);
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="space-y-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="rounded-xl border border-border/50 p-4 animate-pulse">
+            <div className="h-4 w-28 bg-muted rounded mb-3" />
+            <div className="space-y-2">
+              {[1, 2, 3].map((j) => (
+                <div key={j} className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-muted" />
+                  <div className="flex-1 space-y-1">
+                    <div className="h-3 w-24 bg-muted rounded" />
+                    <div className="h-2 w-16 bg-muted rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const hasAny = data.artists.length > 0 || data.albums.length > 0 || data.playlists.length > 0 || data.genres.length > 0;
+  if (!hasAny) return null;
 
   return (
     <div className="space-y-6">

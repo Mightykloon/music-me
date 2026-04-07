@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Loader2,
 } from "lucide-react";
+import { FollowListModal } from "@/components/profile/follow-list-modal";
 
 const SOCIAL_ICONS: Record<string, { icon: string; color: string }> = {
   twitter: { icon: "𝕏", color: "#fff" },
@@ -79,6 +80,7 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   const router = useRouter();
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
   const te = (user.profile?.textEffects as { type?: string; color?: string; color2?: string; color3?: string; speed?: number; brightness?: number; displayEmoji?: string }) ?? {};
   const textEffect = te.type;
   const bioSize = user.profile?.bioFontSize ?? "base";
@@ -185,10 +187,17 @@ export function ProfileHeader({
         )}
       </div>
       <div className="mt-4 flex items-center gap-6 text-sm">
-        <button className="hover:underline"><span className="font-semibold">{formatCount(user._count.followers)}</span>{" "}<span className="text-muted-foreground">Followers</span></button>
-        <button className="hover:underline"><span className="font-semibold">{formatCount(user._count.following)}</span>{" "}<span className="text-muted-foreground">Following</span></button>
+        <button className="hover:underline" onClick={() => setFollowModal("followers")}><span className="font-semibold">{formatCount(user._count.followers)}</span>{" "}<span className="text-muted-foreground">Followers</span></button>
+        <button className="hover:underline" onClick={() => setFollowModal("following")}><span className="font-semibold">{formatCount(user._count.following)}</span>{" "}<span className="text-muted-foreground">Following</span></button>
         <span><span className="font-semibold">{formatCount(user._count.posts)}</span>{" "}<span className="text-muted-foreground">Posts</span></span>
       </div>
+      {followModal && (
+        <FollowListModal
+          username={user.username}
+          type={followModal}
+          onClose={() => setFollowModal(null)}
+        />
+      )}
     </div>
   );
 }
