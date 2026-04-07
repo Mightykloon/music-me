@@ -92,35 +92,17 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
   const handleResync = async () => {
     setSyncing(true);
-    setSyncStatus("Trying server-side sync...");
+    setSyncStatus("Fetching tracks from Spotify...");
     try {
-      // Strategy 1: Server-side
-      const res = await fetch(`/api/music/playlists/${playlist.id}/fetch-tracks`, {
-        method: "POST",
-      });
-      const result = await res.json();
-      console.log("[Re-sync server result]", result);
-
-      if (res.ok && result.synced > 0) {
-        if (result.synced < result.total) {
-          toast.success(`Synced ${result.synced}/${result.total} tracks`, { duration: 5000 });
-        } else {
-          toast.success(`Synced ${result.synced} tracks!`);
-        }
-        router.refresh();
-        return;
-      }
-
-      // Strategy 2: Client-side (browser → Spotify directly)
-      setSyncStatus("Server blocked, trying browser-direct...");
-      console.log("[Re-sync] Falling back to client-side Spotify fetch");
-
+      // Go straight to browser-direct Spotify (server-side is always blocked by Dev Mode)
       const tokenRes = await fetch("/api/music/token");
       if (!tokenRes.ok) throw new Error("Failed to get Spotify token");
       const { accessToken } = await tokenRes.json();
 
+      // Use fields param to request only what we need — lighter response
+      const fields = "tracks(items(added_at,track(id,name,type,artists(name),album(name,images),preview_url,duration_ms,external_ids,external_urls)),total,next)";
       const plRes = await fetch(
-        `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}`,
+        `https://api.spotify.com/v1/playlists/${playlist.providerPlaylistId}?fields=${encodeURIComponent(fields)}&market=US`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       console.log(`[Spotify browser] GET /playlists/${playlist.providerPlaylistId} → ${plRes.status}`);
@@ -132,26 +114,23 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
       console.log(`[Spotify browser] ${items.length} items, total=${total}`);
 
       if (items.length === 0) {
-        toast.error(`Spotify returned 0 tracks from both server and browser. Dev Mode is blocking.`, { duration: 5000 });
-        router.refresh();
+        toast.error(
+          playlist.tracks.length > 0
+            ? `Spotify rate-limited. You already have ${playlist.tracks.length} tracks synced. Try again in a few minutes.`
+            : "Spotify returned 0 tracks. Dev Mode is blocking. Try again in a minute.",
+          { duration: 6000 }
+        );
         return;
       }
 
-      // Follow pagination
-      let nextUrl: string | null = plData.tracks?.next ?? null;
-      const allItems = [...items];
-      while (nextUrl) {
-        setSyncStatus(`Fetching tracks ${allItems.length}/${total}...`);
-        await new Promise(r => setTimeout(r, 300));
-        const nextRes = await fetch(nextUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
-        if (!nextRes.ok) break;
-        const nextData = await nextRes.json();
-        allItems.push(...(nextData.items ?? []));
-        nextUrl = nextData.next ?? null;
+      // NOTE: Don't follow pagination — the `next` URL uses /tracks endpoint
+      // which returns 403 in Spotify Dev Mode. We take what we get (up to 100).
+      if (total > items.length) {
+        console.log(`[Spotify browser] Got ${items.length}/${total} — pagination blocked by Dev Mode`);
       }
 
-      // Map and ingest
-      const tracks = allItems
+      // Map and ingest in batches of 25 (smaller batches to avoid ingest timeout)
+      const tracks = items
         .filter((item) => {
           const t = item.track as Record<string, unknown> | null;
           return t && t.type === "track" && t.id;
@@ -163,9 +142,9 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
         }));
 
       let totalSynced = 0;
-      for (let i = 0; i < tracks.length; i += 50) {
-        const batch = tracks.slice(i, i + 50);
-        setSyncStatus(`Saving tracks ${i + 1}–${Math.min(i + 50, tracks.length)}...`);
+      for (let i = 0; i < tracks.length; i += 25) {
+        const batch = tracks.slice(i, i + 25);
+        setSyncStatus(`Saving tracks ${i + 1}–${Math.min(i + 25, tracks.length)} of ${tracks.length}...`);
         const ingestRes = await fetch(`/api/music/playlists/${playlist.id}/ingest`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -177,7 +156,14 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
         }
       }
 
-      toast.success(`Synced ${totalSynced} tracks via browser!`);
+      if (totalSynced > 0) {
+        const msg = total > totalSynced + playlist.tracks.length
+          ? `Synced ${totalSynced} tracks (${Math.min(totalSynced + playlist.tracks.length, total)}/${total} — Spotify Dev Mode caps at 100 per request)`
+          : `Synced ${totalSynced} tracks!`;
+        toast.success(msg, { duration: 5000 });
+      } else {
+        toast.error("All fetched tracks were already synced.");
+      }
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sync failed");
@@ -186,6 +172,33 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
       setSyncStatus("");
     }
   };
+
+  /** Search Deezer for a playable 30s preview, trying multiple query strategies */
+  async function findDeezerPreview(artist: string, title: string): Promise<string | null> {
+    const mainArtist = artist.split(",")[0].trim();
+    const mainTitle = title.replace(/\s*\(.*?\)\s*/g, "").trim();
+
+    const queries = [
+      `${mainArtist} ${mainTitle}`,
+      `${mainTitle} ${mainArtist}`,
+      mainTitle,
+    ];
+
+    for (const q of queries) {
+      try {
+        const dRes = await fetch(`/api/music/deezer-search?q=${encodeURIComponent(q)}&limit=5`);
+        if (!dRes.ok) continue;
+        const dData = await dRes.json();
+        const hit = (dData.data ?? []).find((d: { preview?: string }) => d.preview && d.preview.length > 0);
+        if (hit?.preview) {
+          console.log(`[Deezer] Found preview for "${mainTitle}" via query: "${q}"`);
+          return hit.preview;
+        }
+      } catch { /* try next query */ }
+    }
+    console.log(`[Deezer] No preview found for "${mainArtist} - ${mainTitle}" after ${queries.length} queries`);
+    return null;
+  }
 
   const handlePlay = async (track: Track) => {
     if (playingId === track.id) {
@@ -202,21 +215,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
     // If no Spotify preview, try Deezer as fallback
     if (!previewUrl) {
-      try {
-        // Simplify query: first artist + title without parenthetical
-        const mainArtist = track.artist.split(",")[0].trim();
-        const mainTitle = track.title.replace(/\s*\(.*?\)\s*/g, "").trim();
-        const q = encodeURIComponent(`${mainArtist} ${mainTitle}`);
-        console.log(`[Deezer] Searching: ${mainArtist} - ${mainTitle}`);
-        const dRes = await fetch(`/api/music/deezer-search?q=${q}&limit=3`);
-        if (dRes.ok) {
-          const dData = await dRes.json();
-          console.log(`[Deezer] Results:`, dData.data?.length ?? 0);
-          previewUrl = dData.data?.[0]?.preview ?? null;
-        }
-      } catch (e) {
-        console.error("[Deezer] Search failed:", e);
-      }
+      previewUrl = await findDeezerPreview(track.artist, track.title);
     }
 
     if (!previewUrl) {
