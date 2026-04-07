@@ -50,28 +50,60 @@ export async function POST(
       return NextResponse.json({ error: "Invalid tracks data" }, { status: 400 });
     }
 
+    // Batch with transactions for speed (fewer Neon round-trips)
     let synced = 0;
-    for (const rt of tracks) {
+    const CHUNK = 10;
+    for (let c = 0; c < tracks.length; c += CHUNK) {
+      const chunk = tracks.slice(c, c + CHUNK);
       try {
-        const track = await findOrCreateTrack(rt.track);
-        await db.playlistTrack.upsert({
-          where: {
-            playlistId_trackId: {
-              playlistId: playlist.id,
-              trackId: track.id,
-            },
-          },
-          update: { position: rt.position, addedAt: new Date(rt.addedAt) },
-          create: {
-            playlistId: playlist.id,
-            trackId: track.id,
-            position: rt.position,
-            addedAt: new Date(rt.addedAt),
-          },
-        });
-        synced++;
+        const results = await db.$transaction(
+          chunk.map((rt) =>
+            db.musicTrack.upsert({
+              where: {
+                provider_providerTrackId: {
+                  provider: rt.track.provider as "SPOTIFY" | "APPLE_MUSIC" | "SOUNDCLOUD" | "YOUTUBE_MUSIC" | "LASTFM" | "DEEZER" | "TIDAL",
+                  providerTrackId: rt.track.providerTrackId,
+                },
+              },
+              update: {
+                title: rt.track.title, artist: rt.track.artist, album: rt.track.album,
+                albumArtUrl: rt.track.albumArtUrl, previewUrl: rt.track.previewUrl,
+                duration: rt.track.duration, isrc: rt.track.isrc, externalUrl: rt.track.externalUrl,
+              },
+              create: {
+                provider: rt.track.provider as "SPOTIFY" | "APPLE_MUSIC" | "SOUNDCLOUD" | "YOUTUBE_MUSIC" | "LASTFM" | "DEEZER" | "TIDAL",
+                providerTrackId: rt.track.providerTrackId,
+                title: rt.track.title, artist: rt.track.artist, album: rt.track.album,
+                albumArtUrl: rt.track.albumArtUrl, previewUrl: rt.track.previewUrl,
+                duration: rt.track.duration, isrc: rt.track.isrc, externalUrl: rt.track.externalUrl,
+              },
+            })
+          )
+        );
+        await db.$transaction(
+          results.map((track, i) =>
+            db.playlistTrack.upsert({
+              where: { playlistId_trackId: { playlistId: playlist.id, trackId: track.id } },
+              update: { position: chunk[i].position, addedAt: new Date(chunk[i].addedAt) },
+              create: { playlistId: playlist.id, trackId: track.id, position: chunk[i].position, addedAt: new Date(chunk[i].addedAt) },
+            })
+          )
+        );
+        synced += results.length;
       } catch (err) {
-        console.error(`Failed to ingest track at position ${rt.position}:`, err);
+        console.error(`Failed to ingest chunk at ${c}:`, err);
+        // Fallback: process individually
+        for (const rt of chunk) {
+          try {
+            const track = await findOrCreateTrack(rt.track);
+            await db.playlistTrack.upsert({
+              where: { playlistId_trackId: { playlistId: playlist.id, trackId: track.id } },
+              update: { position: rt.position, addedAt: new Date(rt.addedAt) },
+              create: { playlistId: playlist.id, trackId: track.id, position: rt.position, addedAt: new Date(rt.addedAt) },
+            });
+            synced++;
+          } catch (e2) { console.error(`Failed track at ${rt.position}:`, e2); }
+        }
       }
     }
 

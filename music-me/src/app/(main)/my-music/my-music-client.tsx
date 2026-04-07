@@ -148,6 +148,27 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     return () => { audioRef.current?.pause(); };
   }, []);
 
+  /** Search Deezer for a playable 30s preview, trying multiple query strategies */
+  async function findDeezerPreview(artist: string, title: string): Promise<string | null> {
+    const mainArtist = artist.split(",")[0].trim();
+    const mainTitle = title.replace(/\s*\(.*?\)\s*/g, "").trim();
+    const queries = [
+      `${mainArtist} ${mainTitle}`,
+      `${mainTitle} ${mainArtist}`,
+      mainTitle,
+    ];
+    for (const q of queries) {
+      try {
+        const dRes = await fetch(`/api/music/deezer-search?q=${encodeURIComponent(q)}&limit=5`);
+        if (!dRes.ok) continue;
+        const dData = await dRes.json();
+        const hit = (dData.data ?? []).find((d: { preview?: string }) => d.preview && d.preview.length > 0);
+        if (hit?.preview) return hit.preview;
+      } catch { /* try next query */ }
+    }
+    return null;
+  }
+
   const handlePlay = async (track: TrackItem) => {
     if (playingId === track.id) {
       audioRef.current?.pause();
@@ -158,18 +179,8 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
     let previewUrl = track.previewUrl;
 
-    // If no Spotify preview, try Deezer as fallback (via server proxy)
     if (!previewUrl) {
-      try {
-        const mainArtist = track.artist.split(",")[0].trim();
-        const mainTitle = track.title.replace(/\s*\(.*?\)\s*/g, "").trim();
-        const q = encodeURIComponent(`${mainArtist} ${mainTitle}`);
-        const dRes = await fetch(`/api/music/deezer-search?q=${q}&limit=3`);
-        if (dRes.ok) {
-          const dData = await dRes.json();
-          previewUrl = dData.data?.[0]?.preview ?? null;
-        }
-      } catch { /* silent */ }
+      previewUrl = await findDeezerPreview(track.artist, track.title);
     }
 
     if (!previewUrl) {
@@ -231,8 +242,9 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     token: string,
     pl: PlaylistItem
   ): Promise<number> {
+    const fields = "tracks(items(added_at,track(id,name,type,artists(name),album(name,images),preview_url,duration_ms,external_ids,external_urls)),total)";
     const r = await fetch(
-      `https://api.spotify.com/v1/playlists/${pl.providerPlaylistId}`,
+      `https://api.spotify.com/v1/playlists/${pl.providerPlaylistId}?fields=${encodeURIComponent(fields)}&market=US`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!r.ok) return 0;
@@ -241,20 +253,9 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     const total = data.tracks?.total ?? 0;
     if (items.length === 0) return 0;
 
-    // Paginate
-    const allItems = [...items];
-    let nextUrl: string | null = data.tracks?.next ?? null;
-    while (nextUrl) {
-      await new Promise(r => setTimeout(r, 300));
-      const nextRes = await fetch(nextUrl, { headers: { Authorization: `Bearer ${token}` } });
-      if (!nextRes.ok) break;
-      const nextData = await nextRes.json();
-      allItems.push(...(nextData.items ?? []));
-      nextUrl = nextData.next ?? null;
-    }
+    // Don't follow pagination — next URL uses /tracks endpoint which is 403 in Dev Mode
 
-    // Map and ingest
-    const tracks = allItems
+    const tracks = items
       .filter((item) => {
         const t = item.track as Record<string, unknown> | null;
         return t && t.type === "track" && t.id;
@@ -266,8 +267,8 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       }));
 
     let synced = 0;
-    for (let i = 0; i < tracks.length; i += 50) {
-      const batch = tracks.slice(i, i + 50);
+    for (let i = 0; i < tracks.length; i += 25) {
+      const batch = tracks.slice(i, i + 25);
       const ingestRes = await fetch(`/api/music/playlists/${pl.id}/ingest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -312,26 +313,26 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
         return;
       }
 
-      // Step 4: Sync each — try server first, then browser fallback
-      toast.loading(`Syncing ${spotifyPlaylists.length} playlists...`, { id: "sync-all" });
-      setSyncProgress({ current: 0, total: spotifyPlaylists.length });
+      // Step 4: Sync playlists that need tracks (skip already-synced)
+      const needsSync = spotifyPlaylists.filter(p => p._count.tracks === 0);
+      const alreadySynced = spotifyPlaylists.length - needsSync.length;
+
+      if (needsSync.length === 0) {
+        toast.success(`All ${spotifyPlaylists.length} playlists already have tracks synced!`, { id: "sync-all" });
+        router.refresh();
+        return;
+      }
+
+      toast.loading(`Syncing ${needsSync.length} playlists (${alreadySynced} already synced)...`, { id: "sync-all" });
+      setSyncProgress({ current: 0, total: needsSync.length });
       let completed = 0;
       let failed = 0;
       let totalTracksSynced = 0;
 
-      for (const pl of spotifyPlaylists) {
+      // Skip server-side entirely (always blocked by Dev Mode) — go straight to browser
+      for (const pl of needsSync) {
         let synced = 0;
-        try {
-          // Try server-side first
-          const serverRes = await fetch(`/api/music/playlists/${pl.id}/fetch-tracks`, { method: "POST" });
-          if (serverRes.ok) {
-            const r = await serverRes.json();
-            synced = r.synced ?? 0;
-          }
-        } catch { /* server failed */ }
-
-        // If server got 0, try browser-side
-        if (synced === 0 && spotifyToken) {
+        if (spotifyToken) {
           try {
             synced = await syncPlaylistBrowserSide(spotifyToken, pl);
           } catch (err) {
@@ -344,18 +345,19 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
           totalTracksSynced += synced;
         } else {
           failed++;
+          console.log(`[Sync] "${pl.name}" returned 0 tracks, extending delay`);
         }
 
-        setSyncProgress({ current: completed + failed, total: spotifyPlaylists.length });
-        toast.loading(`${completed}/${spotifyPlaylists.length} playlists · ${totalTracksSynced} tracks`, { id: "sync-all" });
-        // 3s delay between playlists
-        await new Promise(r => setTimeout(r, 3000));
+        setSyncProgress({ current: completed + failed, total: needsSync.length });
+        toast.loading(`${completed}/${needsSync.length} playlists · ${totalTracksSynced} tracks`, { id: "sync-all" });
+        // 5s delay between playlists to avoid Spotify rate limiting
+        await new Promise(r => setTimeout(r, 5000));
       }
 
       if (completed > 0) {
-        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} failed)` : ""}`, { id: "sync-all", duration: 5000 });
+        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} rate-limited — retry later)` : ""}`, { id: "sync-all", duration: 6000 });
       } else if (failed > 0) {
-        toast.error(`All ${failed} playlists failed — Spotify Dev Mode is blocking.`, { id: "sync-all", duration: 5000 });
+        toast.error(`Spotify rate-limited all ${failed} playlists. Wait a minute and try again.`, { id: "sync-all", duration: 6000 });
       }
       router.refresh();
     } catch (err) {
