@@ -5,7 +5,7 @@ import Link from "next/link";
 import { TrendingUp, Music, Disc3, ListMusic, Flame } from "lucide-react";
 
 interface TrendingData {
-  artists: { name: string; playlists: number }[];
+  artists: { name: string; playlists: number; imageUrl: string | null }[];
   albums: { name: string; artist: string; artUrl: string | null; tracks: number }[];
   playlists: {
     id: string;
@@ -66,16 +66,28 @@ export function TrendingSidebar() {
           </h3>
           <div className="space-y-2">
             {data.artists.slice(0, 6).map((a, i) => (
-              <div key={a.name} className="flex items-center gap-2">
+              <Link
+                key={a.name}
+                href={`/discover?q=${encodeURIComponent(a.name)}`}
+                className="flex items-center gap-2 hover:bg-muted/30 rounded-lg p-1 -mx-1 transition-colors"
+              >
                 <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
-                  <Music className="w-3.5 h-3.5 text-primary/60" />
-                </div>
+                {a.imageUrl ? (
+                  <img
+                    src={a.imageUrl}
+                    alt={a.name}
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
+                    <Music className="w-3.5 h-3.5 text-primary/60" />
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{a.name}</p>
                   <p className="text-[10px] text-muted-foreground">{a.playlists} playlists</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -90,12 +102,13 @@ export function TrendingSidebar() {
           </h3>
           <div className="flex flex-wrap gap-1.5">
             {data.genres.map((g) => (
-              <span
+              <Link
                 key={g}
-                className="px-2.5 py-1 rounded-full text-xs font-medium bg-muted hover:bg-muted/80 transition-colors cursor-pointer"
+                href={`/discover?genre=${encodeURIComponent(g)}`}
+                className="px-2.5 py-1 rounded-full text-xs font-medium bg-muted hover:bg-primary/20 hover:text-primary transition-colors"
               >
                 {g}
-              </span>
+              </Link>
             ))}
           </div>
         </section>
@@ -110,7 +123,11 @@ export function TrendingSidebar() {
           </h3>
           <div className="space-y-2">
             {data.albums.slice(0, 5).map((a) => (
-              <div key={`${a.name}-${a.artist}`} className="flex items-center gap-2">
+              <Link
+                key={`${a.name}-${a.artist}`}
+                href={`/discover?q=${encodeURIComponent(`${a.name} ${a.artist}`)}`}
+                className="flex items-center gap-2 hover:bg-muted/30 rounded-lg p-1 -mx-1 transition-colors"
+              >
                 {a.artUrl ? (
                   <img src={a.artUrl} alt="" className="w-9 h-9 rounded object-cover flex-shrink-0" />
                 ) : (
@@ -122,7 +139,7 @@ export function TrendingSidebar() {
                   <p className="text-sm font-medium truncate">{a.name}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{a.artist}</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

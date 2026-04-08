@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "react-hot-toast";
 import { useEffect } from "react";
+import { PlayerBar } from "@/components/player/player-bar";
 
 const themeMap: Record<string, Record<string, string>> = {
   dark: { "--background": "#0a0a0a", "--foreground": "#ededed", "--muted": "#1a1a2e", "--muted-foreground": "#a1a1aa", "--border": "#27272a", "--primary": "#8b5cf6", "--ring": "#8b5cf6", "--secondary": "#6d28d9", "--accent": "#a78bfa" },
@@ -40,6 +41,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <ThemeLoader />
       {children}
+      <PlayerBar />
       <Toaster
         position="bottom-right"
         toastOptions={{

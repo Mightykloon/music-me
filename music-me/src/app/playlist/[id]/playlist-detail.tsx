@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 // Using native <img> for external CDN cover art (Spotify uses many subdomains)
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Music, Play, Pause, ExternalLink, Clock, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/ui/avatar";
+import { usePlayerStore, type PlayerTrack } from "@/lib/player-store";
 
 interface Track {
   id: string;
@@ -53,19 +54,14 @@ function formatDuration(ms: number | null) {
 
 export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
   const router = useRouter();
-  const [playingId, setPlayingId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string>("");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Auto-sync tracks if playlist has 0 tracks loaded
   useEffect(() => {
     if (playlist.tracks.length === 0) {
       handleResync();
     }
-    return () => {
-      audioRef.current?.pause();
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -195,35 +191,32 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
     return null;
   }
 
-  const handlePlay = async (track: Track) => {
-    if (playingId === track.id) {
-      audioRef.current?.pause();
-      setPlayingId(null);
+  const { play: playerPlay, playQueue, currentTrack: globalTrack, isPlaying: globalPlaying, togglePlay: globalToggle } = usePlayerStore();
+
+  const toPlayerTrack = (t: Track): PlayerTrack => ({
+    id: t.id,
+    title: t.title,
+    artist: t.artist,
+    albumArtUrl: t.albumArtUrl,
+    previewUrl: t.previewUrl,
+    externalUrl: t.externalUrl,
+    provider: t.provider,
+  });
+
+  const handlePlay = (track: Track) => {
+    if (globalTrack?.id === track.id) {
+      globalToggle();
       return;
     }
+    const allTracks = playlist.tracks.map((pt) => toPlayerTrack(pt.track));
+    const idx = playlist.tracks.findIndex((pt) => pt.track.id === track.id);
+    playQueue(allTracks, idx >= 0 ? idx : 0);
+  };
 
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-
-    let previewUrl = track.previewUrl;
-
-    // If no Spotify preview, try Deezer as fallback
-    if (!previewUrl) {
-      previewUrl = await findDeezerPreview(track.artist, track.title);
-    }
-
-    if (!previewUrl) {
-      toast.error("No preview available for this track");
-      return;
-    }
-
-    const audio = new Audio(previewUrl);
-    audio.volume = 0.5;
-    audio.play();
-    audio.onended = () => setPlayingId(null);
-    audioRef.current = audio;
-    setPlayingId(track.id);
+  const handlePlayAll = () => {
+    if (playlist.tracks.length === 0) return;
+    const allTracks = playlist.tracks.map((pt) => toPlayerTrack(pt.track));
+    playQueue(allTracks, 0);
   };
 
   return (
@@ -298,6 +291,19 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
         </div>
       </div>
 
+      {/* Play all */}
+      {playlist.tracks.length > 0 && (
+        <div className="mb-6">
+          <button
+            onClick={handlePlayAll}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/80 transition-colors"
+          >
+            <Play className="w-5 h-5" />
+            Play All
+          </button>
+        </div>
+      )}
+
       {/* Track list */}
       <div className="border border-border/50 rounded-xl overflow-hidden">
         <div className="grid grid-cols-[2rem_1fr_3rem] sm:grid-cols-[2rem_1fr_1fr_4rem] gap-3 px-4 py-2 border-b border-border/50 text-xs text-muted-foreground">
@@ -333,7 +339,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
         ) : (
           playlist.tracks.map((pt, i) => {
             const t = pt.track;
-            const isPlaying = playingId === t.id;
+            const isPlaying = globalTrack?.id === t.id && globalPlaying;
             const hasPreview = !!t.previewUrl;
 
             return (
