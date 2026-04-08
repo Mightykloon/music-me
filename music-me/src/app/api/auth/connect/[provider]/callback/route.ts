@@ -34,8 +34,9 @@ export async function GET(
     const error = searchParams.get("error");
 
     if (error) {
+      const safeError = encodeURIComponent(error.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 50));
       return NextResponse.redirect(
-        new URL(`/settings/connections?error=${error}`, APP_URL)
+        new URL(`/settings/connections?error=${safeError}`, APP_URL)
       );
     }
 

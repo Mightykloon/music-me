@@ -156,16 +156,17 @@ export async function POST(
       }
     }
 
-    // Check for @mentions in content
-    const mentionMatches = content.match(/@(\w+)/g);
+    // Check for @mentions in content (limit to 10 per comment, max 30-char usernames)
+    const mentionMatches = content.match(/@(\w{1,30})/g);
     if (mentionMatches) {
-      for (const mention of mentionMatches) {
+      const uniqueMentions = [...new Set(mentionMatches)].slice(0, 10);
+      for (const mention of uniqueMentions) {
         const mentionedUsername = mention.slice(1);
         const mentionedUser = await db.user.findUnique({
           where: { username: mentionedUsername },
           select: { id: true },
         });
-        if (mentionedUser) {
+        if (mentionedUser && mentionedUser.id !== session.user.id) {
           void createNotification({
             userId: mentionedUser.id,
             actorId: session.user.id,

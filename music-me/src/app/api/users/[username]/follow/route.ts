@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(
   _request: Request,
@@ -11,6 +12,9 @@ export async function POST(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = rateLimit(session.user.id + ":follow", { limit: 60, windowSec: 60 });
+    if (!rl.success) return rateLimitResponse(rl.retryAfterSec);
 
     const { username } = await params;
     const target = await db.user.findUnique({

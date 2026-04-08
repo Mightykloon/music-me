@@ -159,7 +159,7 @@ function parseBBCode(raw: string): string {
   s = s.replace(
     /\[quote=([^\]]+)\]([\s\S]*?)\[\/quote\]/gi,
     (_m, author: string, text: string) =>
-      `<blockquote class="border-l-3 border-primary/40 pl-3 py-1 my-2 text-muted-foreground bg-muted/20 rounded-r-lg pr-3"><div class="text-xs font-medium text-primary/70 mb-1">${author} said:</div>${text}</blockquote>`
+      `<blockquote class="border-l-3 border-primary/40 pl-3 py-1 my-2 text-muted-foreground bg-muted/20 rounded-r-lg pr-3"><div class="text-xs font-medium text-primary/70 mb-1">${escapeHtml(author.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"'))} said:</div>${text}</blockquote>`
   );
   s = s.replace(
     /\[quote\]([\s\S]*?)\[\/quote\]/gi,
@@ -192,10 +192,13 @@ function parseBBCode(raw: string): string {
   // Strip [music]...[/music] tags from HTML output (rendered separately as React components)
   s = s.replace(/\[music[^\]]*\][\s\S]*?\[\/music\]/gi, "");
 
-  // Auto-link bare URLs that aren't already in tags
+  // Auto-link bare URLs that aren't already in tags (only http/https)
   s = s.replace(
     /(?<!")(?<!=)(https?:\/\/[^\s<"]+)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">$1</a>'
+    (_m, url: string) => {
+      const safeUrl = sanitizeUrl(url);
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">${url}</a>`;
+    }
   );
 
   // Newlines to <br>
@@ -210,11 +213,10 @@ function sanitizeUrl(url: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"');
-  // Only allow http, https, and data URLs
+  // Only allow http and https URLs
   if (
     decoded.startsWith("http://") ||
-    decoded.startsWith("https://") ||
-    decoded.startsWith("data:")
+    decoded.startsWith("https://")
   ) {
     return escapeHtml(decoded);
   }

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { rateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
   try {
+    const rl = rateLimit(getClientIp(request) + ":search", { limit: 30, windowSec: 60 });
+    if (!rl.success) return rateLimitResponse(rl.retryAfterSec);
+
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim();
     const type = searchParams.get("type") ?? "all";

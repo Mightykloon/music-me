@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { registerSchema } from "@/lib/auth/validation";
+import { rateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    const rl = rateLimit(getClientIp(request) + ":register", { limit: 5, windowSec: 600 });
+    if (!rl.success) return rateLimitResponse(rl.retryAfterSec);
+
     const body = await request.json();
     const result = registerSchema.safeParse(body);
 

@@ -174,11 +174,15 @@ export async function PATCH(
     }
 
     const body = await request.json();
+    const content = body.content;
+    if (typeof content !== "string" || content.length === 0 || content.length > 5000) {
+      return NextResponse.json({ error: "Content must be 1-5000 characters" }, { status: 400 });
+    }
 
     const updated = await db.post.update({
       where: { id },
       data: {
-        content: body.content,
+        content,
         editedAt: new Date(),
       },
       include: POST_INCLUDE,

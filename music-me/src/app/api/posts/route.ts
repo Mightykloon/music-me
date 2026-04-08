@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const createPostSchema = z.object({
   type: z.enum([
@@ -64,6 +65,9 @@ export async function POST(request: Request) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const rl = rateLimit(session.user.id + ":post", { limit: 30, windowSec: 60 });
+    if (!rl.success) return rateLimitResponse(rl.retryAfterSec);
 
     const body = await request.json();
     const result = createPostSchema.safeParse(body);

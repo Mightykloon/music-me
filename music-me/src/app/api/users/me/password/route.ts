@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import { rateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function PATCH(request: Request) {
   try {
+    const rl = rateLimit(getClientIp(request) + ":password", { limit: 5, windowSec: 300 });
+    if (!rl.success) return rateLimitResponse(rl.retryAfterSec);
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,7 +30,7 @@ export async function PATCH(request: Request) {
 
     if (!user?.passwordHash) {
       return NextResponse.json(
-        { error: "No password set for this account" },
+        { error: "Invalid credentials" },
         { status: 400 }
       );
     }
@@ -34,7 +38,7 @@ export async function PATCH(request: Request) {
     const valid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!valid) {
       return NextResponse.json(
-        { error: "Current password is incorrect" },
+        { error: "Invalid credentials" },
         { status: 400 }
       );
     }
