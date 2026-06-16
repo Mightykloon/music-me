@@ -95,7 +95,15 @@ export default function LandingPage() {
           <span>
             music<span className="text-primary">.me</span>
           </span>
-          <span>&copy; {new Date().getFullYear()}</span>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/privacy"
+              className="hover:text-foreground transition-colors"
+            >
+              Privacy
+            </Link>
+            <span>&copy; {new Date().getFullYear()}</span>
+          </div>
         </div>
       </footer>
     </div>
