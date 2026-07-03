@@ -4,10 +4,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "How music.me collects, uses, stores, and protects your personal data, and the rights you have over it.",
+    "How Remixd collects, uses, stores, and protects your personal data, and the rights you have over it.",
 };
 
-const LAST_UPDATED = "June 16, 2026";
+const LAST_UPDATED = "July 2, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
             href="/"
             className="text-xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight"
           >
-            music<span className="text-primary">.me</span>
+            remix<span className="text-primary">d</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link
@@ -51,15 +51,15 @@ export default function PrivacyPolicyPage() {
         <div className="prose-policy space-y-10 text-[15px] leading-relaxed text-muted-foreground">
           <Section title="1. Introduction">
             <p>
-              This Privacy Policy explains how music.me (&ldquo;music.me,&rdquo;
+              This Privacy Policy explains how Remixd (&ldquo;Remixd,&rdquo;
               &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) collects,
               uses, discloses, retains, and protects information about you when
               you use our website, applications, and related services
-              (collectively, the &ldquo;Service&rdquo;). music.me is a
-              music-based social platform that lets you build a customizable
-              profile, import playlists from streaming services, share posts and
-              lyric cards, participate in forums, and connect with other
-              listeners.
+              (collectively, the &ldquo;Service&rdquo;). Remixd is a music and
+              file-sharing community platform that lets you build a
+              customizable profile, import playlists from streaming services,
+              share posts, lyric cards, and audio files, participate in forums,
+              and connect with other listeners.
             </p>
             <p>
               By creating an account or otherwise using the Service, you
@@ -70,7 +70,7 @@ export default function PrivacyPolicyPage() {
 
           <Section title="2. Who Is Responsible for Your Data">
             <p>
-              music.me is the data controller for the personal data processed
+              Remixd is the data controller for the personal data processed
               through the Service. For privacy questions, requests, or
               complaints, contact us using the details in the{" "}
               <a href="#contact" className="text-primary hover:underline">
@@ -108,8 +108,8 @@ export default function PrivacyPolicyPage() {
                 </strong>{" "}
                 posts (text, images, polls, lyric cards, playlist drops, and
                 &ldquo;now playing&rdquo; cards), comments, reactions, forum
-                threads and replies (including any audio you upload), and direct
-                messages you send to other users.
+                threads and replies (including any audio files you upload), and
+                direct messages you send to other users.
               </li>
               <li>
                 <strong className="text-foreground">Social graph:</strong> the
@@ -183,7 +183,7 @@ export default function PrivacyPolicyPage() {
               <li>Create and maintain your account and profile;</li>
               <li>
                 Provide core features — feeds, posts, messaging, forums,
-                playlist import, lyrics, and music search;
+                file sharing, playlist import, lyrics, and music search;
               </li>
               <li>
                 Authenticate you and connect your music and login services on
@@ -248,10 +248,10 @@ export default function PrivacyPolicyPage() {
                 <strong className="text-foreground">
                   With other users:
                 </strong>{" "}
-                your profile, posts, comments, forum activity, and public
-                interactions are visible to others according to the visibility
-                settings you choose (public, followers-only, or private).
-                Direct messages are visible to the participants of the
+                your profile, posts, comments, forum activity, shared files, and
+                public interactions are visible to others according to the
+                visibility settings you choose (public, followers-only, or
+                private). Direct messages are visible to the participants of the
                 conversation.
               </li>
               <li>
@@ -277,14 +277,14 @@ export default function PrivacyPolicyPage() {
                   For legal reasons:
                 </strong>{" "}
                 we may disclose information if required by law, legal process, or
-                to protect the rights, property, or safety of music.me, our
+                to protect the rights, property, or safety of Remixd, our
                 users, or the public.
               </li>
               <li>
                 <strong className="text-foreground">
                   Business transfers:
                 </strong>{" "}
-                if music.me is involved in a merger, acquisition, or sale of
+                if Remixd is involved in a merger, acquisition, or sale of
                 assets, your information may be transferred as part of that
                 transaction, subject to this Policy.
               </li>
@@ -429,10 +429,10 @@ export default function PrivacyPolicyPage() {
               If you have questions about this Privacy Policy or wish to exercise
               your privacy rights, contact us at{" "}
               <a
-                href="mailto:privacy@music.me"
+                href="mailto:damian@nullberry.dev"
                 className="text-primary hover:underline"
               >
-                privacy@music.me
+                damian@nullberry.dev
               </a>
               .
             </p>
@@ -444,9 +444,17 @@ export default function PrivacyPolicyPage() {
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground transition-colors">
-            music<span className="text-primary">.me</span>
+            remix<span className="text-primary">d</span>
           </Link>
-          <span>&copy; {new Date().getFullYear()}</span>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/terms"
+              className="hover:text-foreground transition-colors"
+            >
+              Terms
+            </Link>
+            <span>&copy; {new Date().getFullYear()}</span>
+          </div>
         </div>
       </footer>
     </div>

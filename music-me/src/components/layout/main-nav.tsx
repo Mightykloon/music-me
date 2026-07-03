@@ -53,7 +53,7 @@ export function MainNav({ user, className }: MainNavProps) {
             href="/feed"
             className="text-xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight"
           >
-            music<span className="text-primary">.me</span>
+            remix<span className="text-primary">d</span>
           </Link>
 
           <div className="flex items-center gap-1">

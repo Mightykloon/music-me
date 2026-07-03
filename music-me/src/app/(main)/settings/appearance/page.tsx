@@ -8,7 +8,7 @@ export default function AppearanceSettingsPage() {
           Appearance
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Customize the look of your music.me experience.
+          Customize the look of your remixd experience.
         </p>
       </div>
 

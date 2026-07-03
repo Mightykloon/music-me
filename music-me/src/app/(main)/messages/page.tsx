@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { MessagesClient } from "./messages-client";
 
 export const metadata = {
-  title: "Messages — music.me",
+  title: "Messages — remixd",
 };
 
 export default async function MessagesPage() {

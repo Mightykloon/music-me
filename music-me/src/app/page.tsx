@@ -8,7 +8,7 @@ export default function LandingPage() {
       <header className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <span className="text-xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight">
-            music<span className="text-primary">.me</span>
+            remix<span className="text-primary">d</span>
           </span>
           <div className="flex items-center gap-4">
             <Link
@@ -34,7 +34,7 @@ export default function LandingPage() {
           <div className="relative">
             <div className="absolute inset-0 blur-[100px] opacity-30 bg-gradient-to-r from-primary via-accent to-secondary rounded-full" />
             <h1 className="relative text-6xl sm:text-8xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tighter">
-              music<span className="text-primary">.me</span>
+              remix<span className="text-primary">d</span>
             </h1>
           </div>
 
@@ -93,7 +93,7 @@ export default function LandingPage() {
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            music<span className="text-primary">.me</span>
+            remix<span className="text-primary">d</span>
           </span>
           <div className="flex items-center gap-6">
             <Link
@@ -101,6 +101,12 @@ export default function LandingPage() {
               className="hover:text-foreground transition-colors"
             >
               Privacy
+            </Link>
+            <Link
+              href="/terms"
+              className="hover:text-foreground transition-colors"
+            >
+              Terms
             </Link>
             <span>&copy; {new Date().getFullYear()}</span>
           </div>

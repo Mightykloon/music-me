@@ -45,7 +45,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight">
-            music<span className="text-primary">.me</span>
+            remix<span className="text-primary">d</span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Welcome back
