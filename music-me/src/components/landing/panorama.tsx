@@ -7,9 +7,8 @@ import { Palette, ListMusic, Mic2, LayoutGrid, Users, Headphones, Disc3, Radio, 
 import { LiveTile } from "@/components/metro/live-tile";
 import { Tilt } from "@/components/metro/tilt";
 import { RemixdWordmark } from "@/components/remixd-wordmark";
-import { MetroArt, MetroStripes } from "./metro-art";
+import { MetroArt } from "./metro-art";
 import { MetroBackdrop } from "./metro-backdrop";
-import { ArtMask } from "./art-mask";
 
 // The landing page as a Windows Phone panorama: one wide horizontal canvas
 // you swipe (or scroll) through. Each panel is narrower than the screen so the
@@ -18,6 +17,9 @@ import { ArtMask } from "./art-mask";
 
 const TITLE_SPEED = 0.35; // title moves at 35% of the content's speed
 const BACKDROP_SPEED = 0.15; // background motifs drift slower still
+
+const HEADPHONES_MASK = "url(/art/headphones.svg) left bottom / contain no-repeat";
+const HEADPHONES = { mask: HEADPHONES_MASK, WebkitMask: HEADPHONES_MASK };
 
 // "Turnstile": panels swing in like a door, one after another
 const turnstile = {
@@ -214,22 +216,17 @@ export function Panorama() {
         {/* 4 · join */}
         <motion.section
           {...panel(3)}
-          className="flex shrink-0 snap-start flex-col justify-end gap-6 pb-10 pl-3 pr-8 pt-[clamp(8rem,30vh,17rem)] sm:flex-row sm:items-end sm:gap-10 sm:pb-0 sm:pr-16"
+          className="flex shrink-0 snap-start flex-col justify-end gap-6 pb-10 pl-3 pr-8 pt-[clamp(8rem,30vh,17rem)] sm:flex-row sm:items-end sm:gap-8 sm:pr-16"
         >
-          {/* the headphones portrait: black ink on the accent stripes, like the
-              hero. On wider screens it runs to the bottom and fades out too. */}
-          <div
-            aria-hidden
-            className="relative aspect-[2132/3000] h-[calc(var(--pano-avail)-17rem)] shrink-0 self-start overflow-hidden sm:h-[calc(var(--pano-avail)+2.5rem)] sm:self-end"
-            style={{
-              maskImage: "linear-gradient(to bottom, #000 80%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, #000 80%, transparent 100%)",
-            }}
-          >
-            <MetroStripes className="absolute inset-0 h-full w-full" />
-            <ArtMask art="headphones" color="#000" className="absolute inset-x-[4%] top-[3%]" />
+          {/* the headphones portrait, floating: the accent print set slightly off
+              register behind a figure drawn just off the background colour. On
+              wide screens it spans exactly the tiles' height; on phones it fills
+              whatever height the text leaves. */}
+          <div aria-hidden className="relative min-h-0 w-[calc(88vw-2.75rem)] flex-1 sm:aspect-[2132/3000] sm:h-[calc(var(--pano-avail)-3.5rem)] sm:w-auto sm:flex-none">
+            <div className="absolute inset-0 translate-x-[6px] translate-y-[4px]" style={{ backgroundColor: "var(--metro-accent)", ...HEADPHONES }} />
+            <div className="absolute inset-0" style={{ backgroundColor: "var(--metro-shade)", ...HEADPHONES }} />
           </div>
-          <div className="flex w-[calc(88vw-2.75rem)] flex-col gap-6 sm:w-[400px] sm:pb-10">
+          <div className="flex w-[calc(88vw-2.75rem)] flex-col gap-6 sm:w-[400px]">
             <h2 className="metro-header text-5xl sm:text-6xl">join the mix</h2>
             <p className="max-w-sm text-muted-foreground">
               Make an account, connect a music service, and your profile starts sounding like you in a couple of minutes.

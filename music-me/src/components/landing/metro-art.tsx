@@ -27,20 +27,6 @@ const VIS = Array.from({ length: 30 }, (_, i) => {
   return Math.round(28 + wave * 50 + (i % 3) * 8);
 });
 
-// the striated accent background on its own, for other panels to share
-export function MetroStripes({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice" aria-hidden>
-      <rect width="600" height="600" fill="var(--metro-accent)" />
-      <g transform="rotate(-14 300 300)">
-        {BANDS.map((b) => (
-          <rect key={b.y} x="-200" y={b.y} width="1000" height={b.h} fill="#fff" opacity={b.o} />
-        ))}
-      </g>
-    </svg>
-  );
-}
-
 export function MetroArt({ className }: { className?: string }) {
   return (
     <div className={className} role="img" aria-label="A black silhouette of a dancer leaping out of an ink splash and rings, over bright stripes and a sunburst">

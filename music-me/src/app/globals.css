@@ -19,6 +19,7 @@
   --muted: #1f1f1f;             /* WP "chrome" */
   --muted-foreground: #a6a6a6;  /* WP subtle text */
   --border: #333333;
+  --metro-shade: #0d0d0d;       /* artwork drawn just off the background */
   --ring: var(--metro-accent);
   --primary: var(--metro-accent);
   --primary-foreground: #ffffff;
@@ -43,10 +44,12 @@
   --muted: #dddddd;
   --muted-foreground: #666666;
   --border: #cccccc;
+  --metro-shade: #f2f2f2;
   color-scheme: light;
 }
 
 :root:not([data-theme="light"]) { color-scheme: dark; }
+
 
 /* the 20 Windows Phone 8 accent colours */
 :root[data-accent="lime"]    { --metro-accent: #a4c400; }
