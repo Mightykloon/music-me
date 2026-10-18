@@ -73,12 +73,12 @@ export function ProfileHeader({
           src={user.profile?.profilePictureUrl}
           alt={user.displayName ?? user.username}
           size="2xl"
-          className="ring-4 ring-[var(--profile-primary)]/20"
+          className=""
         />
         <div className="flex-1 min-w-0 pt-2">
           <div className="flex items-center gap-2 flex-wrap">
             <h1
-              className={`text-2xl sm:text-3xl font-bold font-[family-name:var(--profile-heading-font)] truncate ${
+              className={`text-4xl sm:text-5xl font-light lowercase tracking-tight leading-none font-[family-name:var(--profile-heading-font)] truncate ${
                 textEffect ? `text-effect-${textEffect}` : ""
               }`}
               style={teStyle}
@@ -174,15 +174,15 @@ export function ProfileHeader({
       <div className="mt-4 flex items-center gap-6 text-sm">
         <button className="hover:underline">
           <span className="font-semibold">{formatCount(user._count.followers)}</span>{" "}
-          <span className="text-muted-foreground">Listeners</span>
+          <span className="text-muted-foreground">listeners</span>
         </button>
         <button className="hover:underline">
           <span className="font-semibold">{formatCount(user._count.following)}</span>{" "}
-          <span className="text-muted-foreground">Tuned In</span>
+          <span className="text-muted-foreground">tuned in</span>
         </button>
         <span>
           <span className="font-semibold">{formatCount(user._count.posts)}</span>{" "}
-          <span className="text-muted-foreground">Posts</span>
+          <span className="text-muted-foreground">posts</span>
         </span>
       </div>
     </div>

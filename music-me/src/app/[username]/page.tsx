@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { ProfileCanvas } from "./profile-canvas";
+import { MainNav } from "@/components/layout/main-nav";
 import type { ProfileLayoutProps } from "@/components/profile/layouts/types";
 
 export async function generateMetadata({
@@ -141,10 +142,16 @@ export default async function ProfilePage({
   }));
 
   return (
-    <ProfileCanvas
-      user={profileData as unknown as ProfileLayoutProps["user"]}
-      posts={postsData as unknown as ProfileLayoutProps["posts"]}
-      isOwn={isOwn}
-    />
+    <>
+      {/* signed-in visitors keep the site nav, so a profile isn't a dead end */}
+      {session?.user && <MainNav user={session.user} />}
+      <div className={session?.user ? "pb-16 sm:pb-0 sm:pt-16" : undefined}>
+        <ProfileCanvas
+          user={profileData as unknown as ProfileLayoutProps["user"]}
+          posts={postsData as unknown as ProfileLayoutProps["posts"]}
+          isOwn={isOwn}
+        />
+      </div>
+    </>
   );
 }
