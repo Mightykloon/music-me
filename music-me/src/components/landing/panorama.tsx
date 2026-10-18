@@ -7,7 +7,7 @@ import { Palette, ListMusic, Mic2, LayoutGrid, Users, Headphones, Disc3, Radio, 
 import { LiveTile } from "@/components/metro/live-tile";
 import { Tilt } from "@/components/metro/tilt";
 import { RemixdWordmark } from "@/components/remixd-wordmark";
-import { MetroArt } from "./metro-art";
+import { MetroArt, MetroStripes } from "./metro-art";
 import { MetroBackdrop } from "./metro-backdrop";
 import { ArtMask } from "./art-mask";
 
@@ -214,31 +214,40 @@ export function Panorama() {
         {/* 4 · join */}
         <motion.section
           {...panel(3)}
-          className="flex w-[88vw] max-w-[520px] shrink-0 snap-start flex-col justify-end gap-6 pb-10 pl-3 pr-8 pt-[clamp(8rem,30vh,17rem)] sm:pr-16"
+          className="flex shrink-0 snap-start flex-col justify-end gap-6 pb-10 pl-3 pr-8 pt-[clamp(8rem,30vh,17rem)] sm:flex-row sm:items-end sm:gap-10 sm:pb-0 sm:pr-16"
         >
-          {/* the speaker stack: paint takes the accent, ink and haze the text colour */}
-          <div aria-hidden className="relative" style={{ width: "min(100%, (var(--pano-avail) - 17rem) * 1.3)" }}>
-            <ArtMask art="speakersHaze" className="w-full" style={{ opacity: 0.22 }} />
-            <ArtMask art="speakersPaint" color="var(--metro-accent)" className="absolute inset-0" />
-            <ArtMask art="speakersInk" className="absolute inset-0" />
+          {/* the headphones portrait: black ink on the accent stripes, like the
+              hero. On wider screens it runs to the bottom and fades out too. */}
+          <div
+            aria-hidden
+            className="relative aspect-[2132/3000] h-[calc(var(--pano-avail)-17rem)] shrink-0 self-start overflow-hidden sm:h-[calc(var(--pano-avail)+2.5rem)] sm:self-end"
+            style={{
+              maskImage: "linear-gradient(to bottom, #000 80%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to bottom, #000 80%, transparent 100%)",
+            }}
+          >
+            <MetroStripes className="absolute inset-0 h-full w-full" />
+            <ArtMask art="headphones" color="#000" className="absolute inset-x-[4%] top-[3%]" />
           </div>
-          <h2 className="metro-header text-5xl sm:text-6xl">join the mix</h2>
-          <p className="max-w-sm text-muted-foreground">
-            Make an account, connect a music service, and your profile starts sounding like you in a couple of minutes.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Tilt>
-              <Link href="/register" className="metro-button metro-button-accent text-base">create account</Link>
-            </Tilt>
-            <Tilt>
-              <Link href="/login" className="metro-button text-base">log in</Link>
-            </Tilt>
+          <div className="flex w-[calc(88vw-2.75rem)] flex-col gap-6 sm:w-[400px] sm:pb-10">
+            <h2 className="metro-header text-5xl sm:text-6xl">join the mix</h2>
+            <p className="max-w-sm text-muted-foreground">
+              Make an account, connect a music service, and your profile starts sounding like you in a couple of minutes.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Tilt>
+                <Link href="/register" className="metro-button metro-button-accent text-base">create account</Link>
+              </Tilt>
+              <Tilt>
+                <Link href="/login" className="metro-button text-base">log in</Link>
+              </Tilt>
+            </div>
+            <nav className="flex gap-5 pt-4 text-sm lowercase text-muted-foreground">
+              <Link href="/privacy" className="hover:text-foreground">privacy</Link>
+              <Link href="/terms" className="hover:text-foreground">terms</Link>
+              <span>&copy; {new Date().getFullYear()} re:mixd</span>
+            </nav>
           </div>
-          <nav className="flex gap-5 pt-4 text-sm lowercase text-muted-foreground">
-            <Link href="/privacy" className="hover:text-foreground">privacy</Link>
-            <Link href="/terms" className="hover:text-foreground">terms</Link>
-            <span>&copy; {new Date().getFullYear()} re:mixd</span>
-          </nav>
         </motion.section>
       </div>
     </div>
