@@ -168,7 +168,7 @@ export default function ConnectionsPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium">{info.name}</h3>
                       {connection?.isPrimary && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        <span className="text-xs lowercase bg-primary text-white px-2 py-0.5">
                           Primary
                         </span>
                       )}

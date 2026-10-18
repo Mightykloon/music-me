@@ -364,7 +364,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
           </p>
           <Link
             href="/settings/connections"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+            className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
           >
             <Plus className="w-4 h-4" />
             Connect a Service
@@ -524,7 +524,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
                 value={syncGroupName}
                 onChange={(e) => setSyncGroupName(e.target.value)}
                 placeholder="Sync group name (e.g. 'My Favorites')"
-                className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm mb-4 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full px-3 py-2 bg-background border-2 border-border text-sm mb-4 focus:outline-none focus:border-primary"
               />
 
               <p className="text-xs text-muted-foreground mb-3">
@@ -599,7 +599,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
               <button
                 onClick={handleCreateSyncGroup}
                 disabled={selectedIds.size < 2 || !parityId || !syncGroupName.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                className="metro-button metro-button-accent min-h-[38px] px-4 text-sm disabled:opacity-50"
               >
                 <Link2 className="w-4 h-4" />
                 Create Sync Group
@@ -677,7 +677,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
           <button
             onClick={handleSyncAll}
             disabled={syncing}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+            className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
           >
             {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Sync Playlists

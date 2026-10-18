@@ -327,7 +327,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
                 <p className="mb-3">No tracks synced yet.</p>
                 <button
                   onClick={handleResync}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                  className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Sync Tracks Now

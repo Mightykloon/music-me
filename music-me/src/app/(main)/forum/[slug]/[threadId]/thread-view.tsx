@@ -532,7 +532,7 @@ export function ThreadView({
             <button
               onClick={handleReply}
               disabled={!replyContent.trim() || submitting}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              className="metro-button metro-button-accent min-h-[38px] px-4 text-sm disabled:opacity-50"
             >
               {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Post Reply

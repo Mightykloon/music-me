@@ -531,7 +531,7 @@ export default function ProfileEditorPage() {
               {(form.textEffects.type === "glow" || form.textEffects.type === "neon" || form.textEffects.type === "shadow-pop") && (
                 <div className="space-y-3 pl-3 border-l-2 border-primary/30">
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Color</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Color</label>
                     <input
                       type="color"
                       value={form.textEffects.color ?? "#8b5cf6"}
@@ -547,7 +547,7 @@ export default function ProfileEditorPage() {
                   </div>
                   {form.textEffects.type === "neon" && (
                     <div className="flex items-center gap-3">
-                      <label className="text-xs text-muted-foreground w-20">Brightness</label>
+                      <label className="text-xs lowercase text-muted-foreground w-20">Brightness</label>
                       <input
                         type="range"
                         min={0.3}
@@ -568,7 +568,7 @@ export default function ProfileEditorPage() {
               {form.textEffects.type === "animated-gradient" && (
                 <div className="space-y-3 pl-3 border-l-2 border-primary/30">
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Start</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Start</label>
                     <input
                       type="color"
                       value={form.textEffects.color ?? "#8b5cf6"}
@@ -578,7 +578,7 @@ export default function ProfileEditorPage() {
                     <input type="text" value={form.textEffects.color ?? "#8b5cf6"} onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })} className="input-field flex-1 text-xs" />
                   </div>
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Middle</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Middle</label>
                     <input
                       type="color"
                       value={form.textEffects.color2 ?? "#ec4899"}
@@ -588,7 +588,7 @@ export default function ProfileEditorPage() {
                     <input type="text" value={form.textEffects.color2 ?? "#ec4899"} onChange={(e) => update("textEffects", { ...form.textEffects, color2: e.target.value })} className="input-field flex-1 text-xs" />
                   </div>
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">End</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">End</label>
                     <input
                       type="color"
                       value={form.textEffects.color3 ?? "#f59e0b"}
@@ -598,7 +598,7 @@ export default function ProfileEditorPage() {
                     <input type="text" value={form.textEffects.color3 ?? "#f59e0b"} onChange={(e) => update("textEffects", { ...form.textEffects, color3: e.target.value })} className="input-field flex-1 text-xs" />
                   </div>
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
                     <input
                       type="range"
                       min={0.5}
@@ -625,7 +625,7 @@ export default function ProfileEditorPage() {
               {form.textEffects.type === "rainbow" && (
                 <div className="space-y-3 pl-3 border-l-2 border-primary/30">
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
                     <input
                       type="range"
                       min={1}
@@ -645,7 +645,7 @@ export default function ProfileEditorPage() {
               {form.textEffects.type === "glitch" && (
                 <div className="space-y-3 pl-3 border-l-2 border-primary/30">
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Color 1</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Color 1</label>
                     <input
                       type="color"
                       value={form.textEffects.color ?? "#ff0000"}
@@ -654,7 +654,7 @@ export default function ProfileEditorPage() {
                     />
                   </div>
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Color 2</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Color 2</label>
                     <input
                       type="color"
                       value={form.textEffects.color2 ?? "#00ffff"}
@@ -663,7 +663,7 @@ export default function ProfileEditorPage() {
                     />
                   </div>
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
                     <input
                       type="range"
                       min={0.5}
@@ -683,7 +683,7 @@ export default function ProfileEditorPage() {
               {(form.textEffects.type === "pulse" || form.textEffects.type === "flicker") && (
                 <div className="space-y-3 pl-3 border-l-2 border-primary/30">
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Color</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Color</label>
                     <input
                       type="color"
                       value={form.textEffects.color ?? "#8b5cf6"}
@@ -692,7 +692,7 @@ export default function ProfileEditorPage() {
                     />
                   </div>
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
                     <input
                       type="range"
                       min={0.5}
@@ -712,7 +712,7 @@ export default function ProfileEditorPage() {
               {form.textEffects.type === "wave" && (
                 <div className="space-y-3 pl-3 border-l-2 border-primary/30">
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-muted-foreground w-20">Speed</label>
+                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
                     <input
                       type="range"
                       min={1}
@@ -774,7 +774,7 @@ export default function ProfileEditorPage() {
           {/* Live preview panel */}
           <div className="hidden lg:block">
             <div className="sticky top-24">
-              <h2 className="text-sm font-medium text-muted-foreground mb-4">
+              <h2 className="metro-header text-2xl text-muted-foreground mb-4">
                 Live Preview
               </h2>
               <div
@@ -925,15 +925,15 @@ export default function ProfileEditorPage() {
         .input-field {
           width: 100%;
           padding: 0.5rem 0.75rem;
-          border-radius: 0.5rem;
-          background: var(--muted);
-          border: 1px solid var(--border);
+          background: var(--background);
+          border: 2px solid var(--border);
           color: var(--foreground);
           font-size: 0.875rem;
         }
+        /* Metro text box: the border takes the accent while focused */
         .input-field:focus {
           outline: none;
-          box-shadow: 0 0 0 2px var(--primary);
+          border-color: var(--primary);
         }
       `}</style>
     </div>
@@ -949,7 +949,7 @@ function Section({
 }) {
   return (
     <section>
-      <h2 className="text-lg font-semibold font-[family-name:var(--font-space-grotesk)] mb-4 pb-2 border-b border-border">
+      <h2 className="metro-header text-3xl mb-4">
         {title}
       </h2>
       <div className="space-y-4">{children}</div>
@@ -966,7 +966,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1.5 text-muted-foreground">
+      <label className="block text-sm lowercase text-muted-foreground mb-1.5">
         {label}
       </label>
       {children}

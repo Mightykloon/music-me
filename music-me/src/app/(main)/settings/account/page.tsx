@@ -51,7 +51,7 @@ export default function AccountSettingsPage() {
 
       {/* Email */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">Email</h2>
+        <h2 className="metro-header text-2xl">email</h2>
         <p className="text-sm text-muted-foreground">
           {session?.user?.email ?? "Not set"}
         </p>
@@ -59,14 +59,14 @@ export default function AccountSettingsPage() {
 
       {/* Change Password */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">Change Password</h2>
+        <h2 className="metro-header text-2xl">change password</h2>
         <form onSubmit={handleChangePassword} className="space-y-3 max-w-sm">
           <input
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             placeholder="Current password"
-            className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full px-3 py-2 bg-background border-2 border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary"
           />
           <input
             type="password"
@@ -74,7 +74,7 @@ export default function AccountSettingsPage() {
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="New password (min 8 characters)"
             minLength={8}
-            className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full px-3 py-2 bg-background border-2 border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary"
           />
           {message && (
             <p
@@ -86,7 +86,7 @@ export default function AccountSettingsPage() {
           <button
             type="submit"
             disabled={changingPassword || !currentPassword || !newPassword}
-            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+            className="metro-button metro-button-accent text-sm disabled:opacity-50"
           >
             {changingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
             Update Password
@@ -96,7 +96,7 @@ export default function AccountSettingsPage() {
 
       {/* Danger Zone */}
       <section className="space-y-3 border-t border-border pt-6">
-        <h2 className="text-sm font-semibold text-red-400">Danger Zone</h2>
+        <h2 className="metro-header text-2xl text-destructive">danger zone</h2>
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
           className="px-4 py-2 rounded-lg border border-red-500/50 text-red-400 text-sm hover:bg-red-500/10 transition-colors"

@@ -84,7 +84,7 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => handleInput(e.target.value)}
             placeholder="Search users, posts, tracks..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full pl-10 pr-4 py-2.5 bg-background border-2 border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary"
             autoFocus
           />
         </div>

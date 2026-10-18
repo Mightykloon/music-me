@@ -130,7 +130,7 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
           {!category.isLocked && (
             <button
               onClick={() => setShowComposer(!showComposer)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
             >
               <Plus className="w-4 h-4" />
               New Thread
@@ -153,7 +153,7 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Thread title..."
               maxLength={200}
-              className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full px-3 py-2 bg-background border-2 border-border text-sm font-medium placeholder:text-muted-foreground focus:outline-none focus:border-primary"
             />
             <ForumEditor
               value={content}
@@ -177,7 +177,7 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
               <button
                 onClick={handleSubmit}
                 disabled={!title.trim() || !content.trim() || submitting}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                className="metro-button metro-button-accent min-h-[38px] px-4 text-sm disabled:opacity-50"
               >
                 {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Post Thread
