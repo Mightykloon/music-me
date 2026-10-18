@@ -1,18 +1,31 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════
+   FRUTIGER METRO
+   Site chrome follows Microsoft's Metro design language (Zune / Windows
+   Phone 7–8): typography first, flat colour, square corners, no shadows,
+   a dark or light background plus one accent colour. Profiles keep their
+   own --profile-* tokens and text effects, untouched.
+   ═══════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --muted: #1a1a2e;
-  --muted-foreground: #a1a1aa;
-  --border: #27272a;
-  --ring: #8b5cf6;
-  --primary: #8b5cf6;
+  /* the accent: one of the 20 Windows Phone 8 accents, chosen by the
+     visitor in Settings → Appearance (data-accent on <html>) */
+  --metro-accent: #aa00ff;
+
+  /* dark theme (default): pure black, like Windows Phone's dark theme */
+  --background: #000000;
+  --foreground: #ffffff;
+  --muted: #1f1f1f;             /* WP "chrome" */
+  --muted-foreground: #a6a6a6;  /* WP subtle text */
+  --border: #333333;
+  --ring: var(--metro-accent);
+  --primary: var(--metro-accent);
   --primary-foreground: #ffffff;
-  --secondary: #6d28d9;
-  --accent: #a78bfa;
-  --destructive: #ef4444;
-  --success: #22c55e;
+  --secondary: color-mix(in srgb, var(--metro-accent) 70%, #000);
+  --accent: color-mix(in srgb, var(--metro-accent) 65%, #fff);
+  --destructive: #e51400;        /* WP red */
+  --success: #60a917;            /* WP green */
 
   /* Profile theming - overridden per-profile via inline styles */
   --profile-bg: #0a0a0a;
@@ -21,6 +34,60 @@
   --profile-accent: #a78bfa;
   --profile-font: "Inter", sans-serif;
   --profile-heading-font: "Space Grotesk", sans-serif;
+}
+
+/* light theme: white background, black text, like Windows Phone's light theme */
+:root[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #000000;
+  --muted: #dddddd;
+  --muted-foreground: #666666;
+  --border: #cccccc;
+  color-scheme: light;
+}
+
+:root:not([data-theme="light"]) { color-scheme: dark; }
+
+/* the 20 Windows Phone 8 accent colours */
+:root[data-accent="lime"]    { --metro-accent: #a4c400; }
+:root[data-accent="green"]   { --metro-accent: #60a917; }
+:root[data-accent="emerald"] { --metro-accent: #008a00; }
+:root[data-accent="teal"]    { --metro-accent: #00aba9; }
+:root[data-accent="cyan"]    { --metro-accent: #1ba1e2; }
+:root[data-accent="cobalt"]  { --metro-accent: #0050ef; }
+:root[data-accent="indigo"]  { --metro-accent: #6a00ff; }
+:root[data-accent="violet"]  { --metro-accent: #aa00ff; }
+:root[data-accent="pink"]    { --metro-accent: #f472d0; }
+:root[data-accent="magenta"] { --metro-accent: #d80073; }
+:root[data-accent="crimson"] { --metro-accent: #a20025; }
+:root[data-accent="red"]     { --metro-accent: #e51400; }
+:root[data-accent="orange"]  { --metro-accent: #fa6800; }
+:root[data-accent="amber"]   { --metro-accent: #f0a30a; }
+:root[data-accent="yellow"]  { --metro-accent: #d8c100; }
+:root[data-accent="brown"]   { --metro-accent: #825a2c; }
+:root[data-accent="olive"]   { --metro-accent: #6d8764; }
+:root[data-accent="steel"]   { --metro-accent: #647687; }
+:root[data-accent="mauve"]   { --metro-accent: #76608a; }
+:root[data-accent="sienna"]  { --metro-accent: #7a3b3f; }
+
+/* Metro chrome is square and flat: zero out Tailwind's corner radii and
+   shadows site-wide (rounded-full stays, for avatars and status dots) */
+@theme {
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow-xl: 0 0 #0000;
+  --shadow-2xl: 0 0 #0000;
 }
 
 @theme inline {
@@ -36,8 +103,11 @@
   --color-accent: var(--accent);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-space-grotesk);
+  /* Segoe is Metro's typeface but can't be served on the web; Windows
+     visitors get the real thing, everyone else gets Open Sans, drawn by the
+     same designer (Steve Matteson) */
+  --font-sans: "Segoe UI", "Segoe WP", var(--font-open-sans), system-ui, sans-serif;
+  --font-display: "Segoe UI", "Segoe WP", var(--font-open-sans), system-ui, sans-serif;
 }
 
 * {
@@ -45,10 +115,102 @@
   scrollbar-color: var(--border) transparent;
 }
 
+:root {
+  --metro-font: "Segoe UI", "Segoe WP", var(--font-open-sans), system-ui, sans-serif;
+  /* older components reference these directly; point them at Metro type */
+  --font-inter: var(--metro-font);
+  --font-space-grotesk: var(--metro-font);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans, "Inter", sans-serif);
+  font-family: var(--metro-font);
+}
+
+/* ── Metro type ─────────────────────────────────────────────────────── */
+
+/* the oversized, light, lowercase panorama title that runs off the edge */
+.metro-panorama-title {
+  font-family: var(--metro-font);
+  font-weight: 300;
+  text-transform: lowercase;
+  letter-spacing: -0.03em;
+  line-height: 0.85;
+  white-space: nowrap;
+}
+
+/* page and section headers: light weight, lowercase */
+.metro-header {
+  font-family: var(--metro-font);
+  font-weight: 300;
+  text-transform: lowercase;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* small caps-like app title above a pivot/panorama ("RE:MIXD") */
+.metro-app-title {
+  font-family: var(--metro-font);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Metro controls ─────────────────────────────────────────────────── */
+
+/* Windows Phone button: transparent with a thick foreground border;
+   fills with the accent while pressed */
+.metro-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border: 2px solid var(--foreground);
+  background: transparent;
+  color: var(--foreground);
+  font-weight: 600;
+  text-transform: lowercase;
+  transition: background-color 0.1s linear, border-color 0.1s linear, color 0.1s linear;
+}
+.metro-button:active { background: var(--metro-accent); border-color: var(--metro-accent); color: #fff; }
+.metro-button-accent { background: var(--metro-accent); border-color: var(--metro-accent); color: #fff; }
+.metro-button-accent:hover { filter: brightness(1.1); }
+
+/* circled app-bar icon */
+.metro-appbar-icon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid currentColor;
+  border-radius: 9999px;
+}
+
+/* tilt: tiles and list items tip toward the point being pressed */
+.metro-tilt {
+  transform: perspective(600px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(var(--tilt-s, 1));
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+}
+
+/* equaliser bars in the landing artwork */
+@keyframes metro-eq {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.35); }
+}
+.metro-eq-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: metro-eq 0.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metro-tilt { transform: none !important; }
+  .metro-eq-bar { animation: none; }
 }
 
 /* Smooth transitions for theme switching */
