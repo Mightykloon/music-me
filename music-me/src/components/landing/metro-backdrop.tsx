@@ -25,7 +25,7 @@ const PIECES: Piece[] = [
   // the cityscape rising behind "mixd" in the title
   { art: "city", color: TEXT, opacity: 0.2, className: "top-[-12%] left-[13%] h-[80%]", dots: 4 },
   { art: "ringsSplash", color: TEXT, opacity: 0.14, className: "bottom-[-10%] left-[29%] h-[40%]", dots: 5, flip: true },
-  { art: "speakersHaze", color: TEXT, opacity: 0.22, className: "top-[6%] left-[40%] h-[56%]", dots: 4 },
+  { art: "speakersHaze", color: TEXT, opacity: 0.22, className: "top-[10%] left-[49%] h-[40%]", dots: 4 },
   { art: "splashRings", color: TEXT, opacity: 0.12, className: "bottom-[-22%] left-[40%] h-[36%]", dots: 4 },
   { art: "dancer", color: ACCENT, opacity: 0.26, className: "bottom-[-8%] left-[50%] h-[56%]", dots: 6, flip: true },
   { art: "splashRings", color: TEXT, opacity: 0.14, className: "top-[-14%] left-[62%] h-[44%]", dots: 4 },
