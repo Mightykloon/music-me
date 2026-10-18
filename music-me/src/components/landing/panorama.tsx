@@ -119,7 +119,7 @@ export function Panorama() {
         {/* 1 · your sound */}
         <motion.section
           {...panel(0)}
-          className="flex w-[88vw] max-w-[640px] shrink-0 snap-start flex-col justify-end gap-6 pb-10 pl-5 pr-3 pt-[clamp(8rem,30vh,17rem)] sm:pl-10"
+          className="flex w-[88vw] max-w-[640px] shrink-0 sm:w-auto snap-start flex-col justify-end gap-6 pb-10 pl-5 pr-3 pt-[clamp(8rem,30vh,17rem)] sm:pl-10"
         >
           <div className="space-y-2">
             <h2 className="metro-header text-[2.6rem] leading-none sm:text-6xl">your sound.</h2>
@@ -149,16 +149,17 @@ export function Panorama() {
         {/* 2 · the art */}
         <motion.section
           {...panel(1)}
-          className="flex shrink-0 snap-start items-end pb-0 pl-3 pr-3 pt-[clamp(8rem,30vh,17rem)]"
+          className="flex shrink-0 snap-start items-end pb-10 pl-3 pr-3 pt-[clamp(8rem,30vh,17rem)]"
         >
-          {/* runs to the bottom of the screen and dissolves into the page, so the
-              visualiser sinks into the background instead of stopping at an edge */}
+          {/* sized to the tile grid on the next panel (1.5x its width plus a gap),
+              so their tops and bottoms line up; the visualiser still dissolves
+              into the page over the last stretch */}
           <div
             className="relative aspect-square overflow-hidden"
             style={{
-              width: "min(88vw - 1.5rem, 600px, var(--pano-avail) + 2.5rem)",
-              maskImage: "linear-gradient(to bottom, #000 74%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, #000 74%, transparent 100%)",
+              width: "min(88vw - 1.5rem, 788px, var(--pano-avail) - 3.5rem)",
+              maskImage: "linear-gradient(to bottom, #000 86%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to bottom, #000 86%, transparent 100%)",
             }}
           >
             <MetroArt className="absolute inset-0 h-full w-full" />
