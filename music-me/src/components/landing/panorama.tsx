@@ -8,7 +8,7 @@ import { LiveTile } from "@/components/metro/live-tile";
 import { Tilt } from "@/components/metro/tilt";
 import { RemixdWordmark } from "@/components/remixd-wordmark";
 import { MetroArt } from "./metro-art";
-import { MetroBackdrop, MetroGrain } from "./metro-backdrop";
+import { MetroBackdrop } from "./metro-backdrop";
 
 // The landing page as a Windows Phone panorama: one wide horizontal canvas
 // you swipe (or scroll) through. Each panel is narrower than the screen so the
@@ -98,9 +98,6 @@ export function Panorama() {
       <div ref={backdrop} aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-0 w-[140vw] text-foreground will-change-transform">
         <MetroBackdrop className="relative h-full w-full" />
       </div>
-
-      {/* film grain, fixed to the screen so it doesn't slide with the art */}
-      <MetroGrain className="pointer-events-none absolute inset-0 z-0 mix-blend-screen" />
 
       {/* top bar: app title + sign-in, always visible */}
       <header className="absolute right-0 top-0 z-20 flex items-center gap-4 p-4 sm:p-6">
