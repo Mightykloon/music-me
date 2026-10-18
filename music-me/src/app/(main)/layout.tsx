@@ -11,7 +11,7 @@ export default async function MainLayout({
   if (!session?.user) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <MainNav user={session.user} />
       <main className="pt-16">{children}</main>
     </div>

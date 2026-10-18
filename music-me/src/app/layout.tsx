@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Open_Sans } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { SiteBackdrop } from "@/components/site-backdrop";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -50,6 +51,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <SiteBackdrop />
         <Providers>{children}</Providers>
       </body>
     </html>

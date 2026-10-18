@@ -180,6 +180,7 @@ body {
   text-transform: lowercase;
   transition: background-color 0.1s linear, border-color 0.1s linear, color 0.1s linear;
 }
+.metro-button:hover,
 .metro-button:active { background: var(--metro-accent); border-color: var(--metro-accent); color: #fff; }
 .metro-button-accent { background: var(--metro-accent); border-color: var(--metro-accent); color: #fff; }
 .metro-button-accent:hover { filter: brightness(1.1); }
