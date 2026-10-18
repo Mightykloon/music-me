@@ -383,7 +383,7 @@ export function PostComposer({ user, onPost }: PostComposerProps) {
           )}
 
           {/* Actions bar */}
-          <div className="mt-3 flex items-center gap-1">
+          <div className="mt-3 flex flex-wrap items-center gap-x-0.5 gap-y-2 sm:gap-x-1">
             <input
               ref={fileInputRef}
               type="file"

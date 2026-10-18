@@ -13,7 +13,8 @@ export default async function MainLayout({
   return (
     <div className="min-h-screen">
       <MainNav user={session.user} />
-      <main className="pt-16">{children}</main>
+      {/* top nav on wide screens, bottom app bar on phones */}
+      <main className="pb-16 sm:pb-0 sm:pt-16">{children}</main>
     </div>
   );
 }
