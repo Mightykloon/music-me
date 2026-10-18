@@ -401,7 +401,7 @@ function LyricCard({ data }: { data: Record<string, unknown> }) {
         {trackTitle && (
           <p className="text-xs text-white/60 mt-3 flex items-center justify-center gap-1">
             <Music className="w-3 h-3" />
-            {trackTitle} — {trackArtist}
+            {trackTitle} · {trackArtist}
           </p>
         )}
       </div>

@@ -115,7 +115,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
     const total = data.tracks?.total ?? 0;
     if (items.length === 0) return 0;
 
-    // Don't follow pagination — uses /tracks endpoint which is 403 in Dev Mode
+    // Don't follow pagination: uses /tracks endpoint which is 403 in Dev Mode
     const tracks = items
       .filter((item) => {
         const t = item.track as Record<string, unknown> | null;
@@ -236,9 +236,9 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
       }
 
       if (completed > 0) {
-        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} rate-limited — retry later)` : ""}`, { id: "sync-all", duration: 6000 });
+        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} hit Spotify's rate limit, try again later)` : ""}`, { id: "sync-all", duration: 6000 });
       } else if (failed > 0) {
-        toast.error(`Spotify rate-limited all ${failed} playlists. Wait a minute and try again.`, { id: "sync-all", duration: 6000 });
+        toast.error(`All ${failed} playlists hit Spotify's rate limit. Wait a minute and try again.`, { id: "sync-all", duration: 6000 });
       }
       router.refresh();
     } catch (err) {

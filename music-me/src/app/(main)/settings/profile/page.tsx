@@ -24,10 +24,10 @@ const FONT_OPTIONS = [
 ];
 
 const LAYOUT_OPTIONS = [
-  { value: "CLASSIC", label: "Classic", desc: "Traditional top-to-bottom" },
+  { value: "CLASSIC", label: "Classic", desc: "Traditional, top to bottom" },
   { value: "BENTO", label: "Bento", desc: "Grid card layout" },
   { value: "MINIMAL", label: "Minimal", desc: "Clean and centered" },
-  { value: "MAGAZINE", label: "Magazine", desc: "Editorial two-column" },
+  { value: "MAGAZINE", label: "Magazine", desc: "Editorial, in two columns" },
   { value: "MYSPACE", label: "MySpace", desc: "Throwback bordered sections" },
 ];
 
@@ -905,7 +905,7 @@ export default function ProfileEditorPage() {
         />
       )}
 
-      {/* Background crop editor modal — 9:16 portrait for mobile-first pages */}
+      {/* Background crop editor modal: 9:16 portrait for mobile-first pages */}
       {cropBgImage && (
         <ImageCropEditor
           imageSrc={cropBgImage}

@@ -46,7 +46,7 @@ export function ProfileCanvas({ user, posts, isOwn }: Props) {
     >
       {/* Background layer */}
       <div className="fixed inset-0 -z-10">
-        {/* Base color — always rendered underneath */}
+        {/* Base color: always rendered underneath */}
         <div
           className="absolute inset-0"
           style={{ backgroundColor: profile?.backgroundColor ?? "#0a0a0a" }}

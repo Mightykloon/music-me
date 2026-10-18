@@ -7,7 +7,7 @@ const FORUM_CATEGORIES = [
     slug: "general",
     icon: "💬",
     color: "#8b5cf6",
-    description: "Talk about anything music-related",
+    description: "Talk about anything to do with music",
     children: [
       { name: "Introductions", slug: "introductions", icon: "👋", description: "New here? Say hi!" },
       { name: "Music News", slug: "music-news", icon: "📰", description: "Latest news from the music world" },
@@ -23,8 +23,8 @@ const FORUM_CATEGORIES = [
     children: [
       { name: "Hip-Hop / Rap", slug: "hip-hop", icon: "🎤", description: "Bars, beats, and culture" },
       { name: "R&B / Soul", slug: "rnb-soul", icon: "💜", description: "Smooth vibes and vocal excellence" },
-      { name: "Pop", slug: "pop", icon: "⭐", description: "Chart-toppers and pop perfection" },
-      { name: "Rock / Alternative", slug: "rock", icon: "🎸", description: "Guitar-driven and beyond" },
+      { name: "Pop", slug: "pop", icon: "⭐", description: "Chart toppers and pop perfection" },
+      { name: "Rock / Alternative", slug: "rock", icon: "🎸", description: "Built on guitars, and beyond" },
       { name: "Electronic / EDM", slug: "electronic", icon: "🎛️", description: "Synths, drops, and dancefloors" },
       { name: "Indie / Underground", slug: "indie", icon: "🌙", description: "Hidden gems and rising artists" },
       { name: "Jazz / Blues", slug: "jazz-blues", icon: "🎷", description: "Improvisation and soul" },
@@ -58,12 +58,12 @@ const FORUM_CATEGORIES = [
     slug: "indie-submissions",
     icon: "📻",
     color: "#10b981",
-    description: "Submit and discover indie music with in-browser playback",
+    description: "Submit and discover indie music, played right in your browser",
     children: [
       { name: "Original Songs", slug: "original-songs", icon: "🎙️", description: "Share your original music" },
       { name: "Remixes & Covers", slug: "remixes-covers", icon: "🔄", description: "Your take on existing tracks" },
       { name: "Feedback Requests", slug: "feedback-requests", icon: "📝", description: "Get constructive criticism" },
-      { name: "Weekly Spotlight", slug: "weekly-spotlight", icon: "🌟", description: "Community-voted best submissions" },
+      { name: "Weekly Spotlight", slug: "weekly-spotlight", icon: "🌟", description: "The best submissions, voted on by the community" },
     ],
   },
   {

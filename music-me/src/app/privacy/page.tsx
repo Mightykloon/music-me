@@ -55,8 +55,8 @@ export default function PrivacyPolicyPage() {
               &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) collects,
               uses, discloses, retains, and protects information about you when
               you use our website, applications, and related services
-              (collectively, the &ldquo;Service&rdquo;). Remixd is a music and
-              file-sharing community platform that lets you build a
+              (collectively, the &ldquo;Service&rdquo;). Remixd is a community
+              platform for sharing music and files that lets you build a
               customizable profile, import playlists from streaming services,
               share posts, lyric cards, and audio files, participate in forums,
               and connect with other listeners.
@@ -131,7 +131,7 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc pl-6 space-y-1.5">
               <li>
                 <strong className="text-foreground">OAuth tokens:</strong> when
-                you connect a third-party account (Google, Spotify, Apple Music,
+                you connect an account from another service (Google, Spotify, Apple Music,
                 YouTube Music, Last.fm, Deezer, or SoundCloud), we store the
                 access and refresh tokens needed to act on your behalf. These
                 tokens are encrypted at rest.
@@ -146,7 +146,7 @@ export default function PrivacyPolicyPage() {
               <li>
                 <strong className="text-foreground">Music data:</strong>{" "}
                 playlists, tracks, album artwork, preview URLs, synced lyrics,
-                and your currently-playing track, as made available by the
+                and the track you are currently playing, as made available by the
                 connected service.
               </li>
             </ul>
@@ -182,7 +182,7 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc pl-6 space-y-1.5">
               <li>Create and maintain your account and profile;</li>
               <li>
-                Provide core features — feeds, posts, messaging, forums,
+                Provide core features: feeds, posts, messaging, forums,
                 file sharing, playlist import, lyrics, and music search;
               </li>
               <li>
@@ -221,7 +221,7 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong className="text-foreground">Consent:</strong> where you
-                connect a third-party service or otherwise opt in (you may
+                connect another service or otherwise opt in (you may
                 withdraw consent at any time);
               </li>
               <li>
@@ -250,7 +250,7 @@ export default function PrivacyPolicyPage() {
                 </strong>{" "}
                 your profile, posts, comments, forum activity, shared files, and
                 public interactions are visible to others according to the
-                visibility settings you choose (public, followers-only, or
+                visibility settings you choose (public, followers only, or
                 private). Direct messages are visible to the participants of the
                 conversation.
               </li>
@@ -291,7 +291,7 @@ export default function PrivacyPolicyPage() {
             </ul>
           </Section>
 
-          <Section title="7. Third-Party Services">
+          <Section title="7. Connected Services">
             <p>
               The Service integrates with the following third parties. We
               encourage you to review their privacy policies:
@@ -322,7 +322,7 @@ export default function PrivacyPolicyPage() {
           <Section title="8. Cookies and Similar Technologies">
             <p>
               We use cookies and similar technologies that are strictly
-              necessary to operate the Service — primarily to keep you signed in
+              necessary to operate the Service, primarily to keep you signed in
               and to protect the security of your session. Because these cookies
               are essential to the functioning of the Service, disabling them in
               your browser may prevent you from logging in or using core
@@ -346,7 +346,7 @@ export default function PrivacyPolicyPage() {
             <p>
               We implement technical and organizational measures designed to
               protect your information, including hashing of passwords,
-              encryption of third-party access and refresh tokens at rest,
+              encryption at rest of access and refresh tokens for connected services,
               encrypted connections (HTTPS), and access controls. No method of
               transmission or storage is completely secure, however, and we
               cannot guarantee absolute security.
@@ -377,7 +377,7 @@ export default function PrivacyPolicyPage() {
                 marketing;
               </li>
               <li>
-                Data portability — receive your data in a portable format;
+                Data portability: receive your data in a portable format;
               </li>
               <li>Withdraw consent where processing is based on consent; and</li>
               <li>
@@ -386,9 +386,9 @@ export default function PrivacyPolicyPage() {
             </ul>
             <p className="mt-3">
               You can exercise many of these rights directly in your account
-              settings — for example, editing your profile, managing connected
+              settings, for example by editing your profile, managing connected
               services, or deleting content. For any request we cannot fulfill
-              in-app, contact us using the details below. We will not
+              in the app, contact us using the details below. We will not
               discriminate against you for exercising your privacy rights.
             </p>
 

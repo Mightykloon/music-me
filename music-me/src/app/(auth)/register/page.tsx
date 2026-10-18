@@ -44,7 +44,7 @@ export default function RegisterPage() {
       });
 
       if (signInResult?.error) {
-        setError("Account created but sign-in failed. Try logging in.");
+        setError("Account created, but signing in failed. Try logging in.");
         setLoading(false);
         return;
       }

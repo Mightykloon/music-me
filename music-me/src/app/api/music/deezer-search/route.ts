@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     const data = await res.json();
     return NextResponse.json(data);
   } catch {
-    // Timeout or network error — return empty results gracefully
+    // Timeout or network error: return empty results gracefully
     return NextResponse.json({ data: [] });
   }
 }

@@ -251,7 +251,7 @@ export class SpotifyProvider implements MusicProvider {
 
 /**
  * Get a Spotify access token via Client Credentials flow.
- * This doesn't require a user — just the app's CLIENT_ID + SECRET.
+ * This doesn't require a user: just the app's CLIENT_ID + SECRET.
  * Useful for fetching public playlist data when user tokens have expired.
  */
 export async function getSpotifyClientToken(): Promise<string> {

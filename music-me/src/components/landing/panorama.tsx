@@ -99,7 +99,7 @@ export function Panorama() {
         ref={scroller}
         tabIndex={0}
         role="region"
-        aria-label="re:mixd overview — scroll sideways"
+        aria-label="re:mixd overview, scroll sideways"
         className="relative z-10 flex h-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {/* 1 · your sound */}
@@ -163,7 +163,7 @@ export function Panorama() {
               className="col-span-2 aspect-square"
               faces={[
                 { body: <Palette className="h-12 w-12" strokeWidth={1.5} />, label: "custom profiles" },
-                { body: <p className="text-lg leading-snug">colors, fonts, layouts, vibes — make it yours.</p>, label: "custom profiles" },
+                { body: <p className="text-lg leading-snug">colors, fonts, layouts, vibes. make it yours.</p>, label: "custom profiles" },
               ]}
             />
             <LiveTile
@@ -186,8 +186,8 @@ export function Panorama() {
               className="col-span-2 aspect-square"
               offset={2700}
               faces={[
-                { body: <LayoutGrid className="h-12 w-12" strokeWidth={1.5} />, label: "anti-doomscroll" },
-                { body: <p className="text-lg leading-snug">stream, grid, radio, or magazine — you choose.</p>, label: "anti-doomscroll" },
+                { body: <LayoutGrid className="h-12 w-12" strokeWidth={1.5} />, label: "no doomscrolling" },
+                { body: <p className="text-lg leading-snug">stream, grid, radio, or magazine. you choose.</p>, label: "no doomscrolling" },
               ]}
             />
             <div className="col-span-2 grid grid-cols-2 gap-2">

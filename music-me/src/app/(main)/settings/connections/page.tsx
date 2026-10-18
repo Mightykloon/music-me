@@ -210,7 +210,7 @@ export default function ConnectionsPage() {
                           connection && handleSync(connection.id)
                         }
                         disabled={syncing === connection?.id}
-                        title="Re-sync playlists"
+                        title="Sync playlists again"
                       >
                         <RefreshCw
                           className={`w-4 h-4 ${syncing === connection?.id ? "animate-spin" : ""}`}

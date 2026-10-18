@@ -51,7 +51,7 @@ export function ForumHome({ categories }: { categories: Category[] }) {
               </h2>
               {category.description && (
                 <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">
-                  — {category.description}
+                  · {category.description}
                 </span>
               )}
             </div>

@@ -14,7 +14,7 @@ interface ImageCropEditorProps {
   imageSrc: string;
   onComplete: (croppedDataUrl: string) => void;
   onCancel: () => void;
-  aspectRatio?: number; // width/height — 1 for square, 9/16 for portrait, 16/9 for landscape
+  aspectRatio?: number; // width/height: 1 for square, 9/16 for portrait, 16/9 for landscape
   circular?: boolean;
   outputWidth?: number; // output resolution width (default 512)
 }

@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { ForumHome } from "./forum-home";
 
 export const metadata = {
-  title: "Forum — remixd",
+  title: "Forum",
 };
 
 export default async function ForumPage() {

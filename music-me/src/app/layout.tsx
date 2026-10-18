@@ -16,11 +16,11 @@ const openSans = Open_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "remixd — your sound. your identity.",
+    default: "remixd | your sound. your identity.",
     template: "%s | remixd",
   },
   description:
-    "A music-based social platform with customizable profiles, playlist imports, live lyrics, and an anti-doomscroll feed.",
+    "A social platform built around music, with customizable profiles, playlist imports, live lyrics, and a feed made to stop doomscrolling.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
   ),

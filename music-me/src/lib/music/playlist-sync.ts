@@ -22,7 +22,7 @@ export async function getValidToken(connection: {
     return token;
   }
 
-  // Token expired — try to refresh
+  // Token expired: try to refresh
   if (!connection.refreshToken) {
     throw new Error("Token expired and no refresh token available");
   }
