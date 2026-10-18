@@ -28,7 +28,7 @@ const PIECES: Piece[] = [
   { art: "ringsSplash", color: TEXT, opacity: 0.14, className: "bottom-[-10%] left-[29%] h-[40%]", dots: 5, flip: true },
   // the haze art sits in the lower middle of its frame (36-79% across,
   // 52-86% down), so these frames hang off the top to put the art in the gaps
-  { art: "speakersHaze", color: TEXT, opacity: 0.22, className: "top-[-30%] left-[32.5%] h-[84%]", dots: 4 },
+  { art: "speakersHaze", color: TEXT, opacity: 0.22, className: "top-[-20%] left-[31%] h-[84%]", dots: 4 },
   { art: "splashRings", color: TEXT, opacity: 0.12, className: "bottom-[-22%] left-[40%] h-[36%]", dots: 4 },
   { art: "dancer", color: ACCENT, opacity: 0.26, className: "bottom-[-8%] left-[50%] h-[56%]", dots: 6, flip: true },
   { art: "splashRings", color: TEXT, opacity: 0.14, className: "top-[-14%] left-[62%] h-[44%]", dots: 4 },
