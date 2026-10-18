@@ -19,6 +19,7 @@ type Piece = { art: ArtName; color: string; opacity: number; className: string; 
 // so no straight cut line shows.
 const PIECES: Piece[] = [
   { art: "ringsSplash", color: TEXT, opacity: 0.12, className: "top-[-8%] left-[-7%] h-[38%]", dots: 4, turn: 20 },
+  { art: "speakersInk", color: TEXT, opacity: 0.18, className: "top-[20%] left-[-5%] h-[42%]", dots: 4 },
   { art: "splashRings", color: ACCENT, opacity: 0.22, className: "bottom-[-20%] left-[-4%] h-[52%]", dots: 5 },
   { art: "speakersPaint", color: ACCENT, opacity: 0.24, className: "bottom-[-14%] left-[12%] h-[54%]", dots: 5, flip: true },
   // the cityscape rising behind "mixd" in the title
