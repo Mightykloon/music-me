@@ -16,6 +16,24 @@ export const ART = {
 
 export type ArtName = keyof typeof ART;
 
+// A halftone screen tile: CELLS x CELLS dots at the given pitch, each with its
+// own radius from a smooth wobble, so the dots vary in size like a real print
+// instead of forming a uniform grid.
+const CELLS = 12;
+function halftoneTile(pitch: number) {
+  let dots = "";
+  for (let y = 0; y < CELLS; y++) {
+    for (let x = 0; x < CELLS; x++) {
+      const t = (Math.sin(x * 0.9 + y * 0.4) + Math.sin(y * 1.3 - x * 0.5 + 2) + Math.sin((x + y) * 2.1)) / 3; // -1..1
+      const r = pitch * (0.24 + 0.16 * t);
+      dots += `<circle cx="${(x + 0.5) * pitch}" cy="${(y + 0.5) * pitch}" r="${r.toFixed(2)}"/>`;
+    }
+  }
+  const size = CELLS * pitch;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">${dots}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 0 0 / ${size}px ${size}px`;
+}
+
 export function ArtMask({
   art,
   color = "currentColor",
@@ -25,14 +43,14 @@ export function ArtMask({
 }: {
   art: ArtName;
   color?: string;
-  /** draw the art as a halftone: a dot grid at this pitch (px), intersected with the art */
+  /** draw the art as a halftone: a dot screen at this pitch (px), intersected with the art */
   halftone?: number;
   className?: string;
   style?: CSSProperties;
 }) {
   const { src, w, h } = ART[art];
   const shape = `url(${src}) center / contain no-repeat`;
-  const mask = halftone ? `${shape}, radial-gradient(#000 38%, transparent 42%) 0 0 / ${halftone}px ${halftone}px` : shape;
+  const mask = halftone ? `${shape}, ${halftoneTile(halftone)}` : shape;
   return (
     <div
       aria-hidden

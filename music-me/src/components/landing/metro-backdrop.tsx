@@ -15,15 +15,16 @@ type Piece = { art: ArtName; color: string; opacity: number; className: string; 
 // positions are % of the backdrop: 1.4 screens wide, which is all of it
 // that ever comes into view at the backdrop's slow scroll speed
 const PIECES: Piece[] = [
-  { art: "splashRings", color: ACCENT, opacity: 0.2, className: "bottom-[-10%] left-[-2%] h-[42%]", dots: 10, turn: -12 },
-  { art: "city", color: TEXT, opacity: 0.09, className: "top-[4%] left-[17%] h-[34%]", dots: 7, turn: 8 },
-  { art: "ringsSplash", color: TEXT, opacity: 0.12, className: "bottom-[0%] left-[27%] h-[34%]", dots: 9, flip: true },
-  { art: "speakersHaze", color: TEXT, opacity: 0.16, className: "top-[10%] left-[37%] h-[46%]", dots: 8 },
-  { art: "dancer", color: ACCENT, opacity: 0.24, className: "bottom-[-6%] left-[50%] h-[46%]", dots: 11, flip: true },
-  { art: "splashRings", color: TEXT, opacity: 0.12, className: "top-[-8%] left-[61%] h-[40%]", dots: 7, turn: 18 },
-  { art: "city", color: TEXT, opacity: 0.12, className: "bottom-[-12%] left-[70%] h-[62%]", dots: 9 },
-  { art: "ringsSplash", color: ACCENT, opacity: 0.24, className: "top-[4%] left-[83%] h-[40%]", dots: 10, turn: -8 },
-  { art: "speakersInk", color: TEXT, opacity: 0.14, className: "bottom-[4%] left-[90%] h-[36%]", dots: 8, flip: true },
+  { art: "splashRings", color: ACCENT, opacity: 0.22, className: "bottom-[-10%] left-[-3%] h-[46%]", dots: 5, turn: -12 },
+  // the cityscape rising behind "mixd" in the title
+  { art: "city", color: TEXT, opacity: 0.2, className: "top-[-6%] left-[13%] h-[78%]", dots: 4, turn: 6 },
+  { art: "ringsSplash", color: TEXT, opacity: 0.14, className: "bottom-[-2%] left-[30%] h-[38%]", dots: 5, flip: true },
+  { art: "speakersHaze", color: TEXT, opacity: 0.22, className: "top-[6%] left-[40%] h-[56%]", dots: 4 },
+  { art: "dancer", color: ACCENT, opacity: 0.26, className: "bottom-[-8%] left-[50%] h-[56%]", dots: 6, flip: true },
+  { art: "splashRings", color: TEXT, opacity: 0.14, className: "top-[-8%] left-[62%] h-[44%]", dots: 4, turn: 18 },
+  { art: "city", color: TEXT, opacity: 0.14, className: "bottom-[-12%] left-[70%] h-[66%]", dots: 5 },
+  { art: "ringsSplash", color: ACCENT, opacity: 0.26, className: "top-[2%] left-[82%] h-[50%]", dots: 6, turn: -8 },
+  { art: "speakersInk", color: TEXT, opacity: 0.18, className: "bottom-[2%] left-[89%] h-[44%]", dots: 4, flip: true },
 ];
 
 function pieceStyle(p: Piece): CSSProperties {
