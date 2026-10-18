@@ -8,6 +8,7 @@ import { LiveTile } from "@/components/metro/live-tile";
 import { Tilt } from "@/components/metro/tilt";
 import { RemixdWordmark } from "@/components/remixd-wordmark";
 import { MetroArt } from "./metro-art";
+import { MetroBackdrop } from "./metro-backdrop";
 
 // The landing page as a Windows Phone panorama: one wide horizontal canvas
 // you swipe (or scroll) through. Each panel is narrower than the screen so the
@@ -15,6 +16,7 @@ import { MetroArt } from "./metro-art";
 // at a slower speed.
 
 const TITLE_SPEED = 0.35; // title moves at 35% of the content's speed
+const BACKDROP_SPEED = 0.15; // background motifs drift slower still
 
 // "Turnstile": panels swing in like a door, one after another
 const turnstile = {
@@ -30,6 +32,7 @@ const turnstile = {
 export function Panorama() {
   const scroller = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLDivElement>(null);
+  const backdrop = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -40,6 +43,9 @@ export function Panorama() {
     const onScroll = () => {
       if (title.current && !reduced) {
         title.current.style.transform = `translate3d(${-el.scrollLeft * TITLE_SPEED}px,0,0)`;
+      }
+      if (backdrop.current && !reduced) {
+        backdrop.current.style.transform = `translate3d(${-el.scrollLeft * BACKDROP_SPEED}px,0,0)`;
       }
     };
 
@@ -79,11 +85,16 @@ export function Panorama() {
       <div
         ref={title}
         aria-hidden
-        className="pointer-events-none absolute left-[-1.5vh] top-[-2.5vh] z-0 select-none text-foreground will-change-transform"
+        className="pointer-events-none absolute left-[-1.5vh] top-[-2.5vh] z-[1] select-none text-foreground will-change-transform"
       >
         <RemixdWordmark className="h-[clamp(7rem,27vh,16rem)] w-auto" />
       </div>
       <h1 className="sr-only">re:mixd</h1>
+
+      {/* faint motifs behind everything, drifting slowest */}
+      <div ref={backdrop} aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-0 w-[260vh] min-w-[160vw] text-foreground will-change-transform">
+        <MetroBackdrop className="h-full w-full" />
+      </div>
 
       {/* top bar: app title + sign-in, always visible */}
       <header className="absolute right-0 top-0 z-20 flex items-center gap-4 p-4 sm:p-6">
