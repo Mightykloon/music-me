@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { RemixdWordmark } from "@/components/remixd-wordmark";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
@@ -43,18 +44,19 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight">
-            remix<span className="text-primary">d</span>
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Welcome back
-          </p>
+        <div className="space-y-4">
+          <Link href="/" aria-label="re:mixd home" className="block w-fit">
+            <RemixdWordmark className="h-9 w-auto" />
+          </Link>
+          <div>
+            <h1 className="metro-header text-5xl">log in</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Welcome back.</p>
+          </div>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1.5">
+            <label htmlFor="email" className="block text-sm lowercase text-muted-foreground mb-1.5">
               Email
             </label>
             <input
@@ -62,13 +64,13 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
               placeholder="you@example.com"
               required
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-1.5">
+            <label htmlFor="password" className="block text-sm lowercase text-muted-foreground mb-1.5">
               Password
             </label>
             <input
@@ -76,23 +78,23 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 bg-background border-2 border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
               placeholder="********"
               required
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 text-center">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="metro-button metro-button-accent w-full disabled:opacity-50"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? "Logging in..." : "Log in"}
+            {loading ? "logging in" : "log in"}
           </button>
         </form>
 
@@ -100,8 +102,8 @@ export default function LoginPage() {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-border" />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">or continue with</span>
+          <div className="relative flex justify-start text-xs lowercase">
+            <span className="bg-background pr-2 text-muted-foreground">or continue with</span>
           </div>
         </div>
 
@@ -109,7 +111,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => signIn("spotify", { callbackUrl: "/feed" })}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors text-sm font-medium"
+            className="metro-button w-full text-sm"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
@@ -119,7 +121,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => signIn("google", { callbackUrl: "/feed" })}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors text-sm font-medium"
+            className="metro-button w-full text-sm"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -131,7 +133,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
           <Link href="/register" className="text-primary hover:underline font-medium">
             Sign up
