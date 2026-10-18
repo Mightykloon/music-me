@@ -41,8 +41,8 @@ export default function AccountSettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-bold font-[family-name:var(--font-space-grotesk)]">
-          Account
+        <h1 className="metro-header text-5xl">
+          account
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Manage your account settings and security.

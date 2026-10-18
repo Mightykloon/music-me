@@ -110,8 +110,8 @@ export function MessagesClient({
     return (
       <div className="max-w-2xl mx-auto">
         <div className="px-4 py-4 border-b border-border/50">
-          <h1 className="text-xl font-bold font-[family-name:var(--font-space-grotesk)]">
-            Messages
+          <h1 className="metro-header text-5xl">
+            messages
           </h1>
         </div>
 

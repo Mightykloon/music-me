@@ -28,8 +28,8 @@ export function ForumHome({ categories }: { categories: Category[] }) {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="px-4 py-6 border-b border-border/50">
-        <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)]">
-          Forum
+        <h1 className="metro-header text-5xl">
+          forum
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Discuss music, share your work, discover indie artists
@@ -44,7 +44,7 @@ export function ForumHome({ categories }: { categories: Category[] }) {
             <div className="flex items-center gap-2 px-4 py-3">
               <span className="text-lg">{category.icon}</span>
               <h2
-                className="text-sm font-bold uppercase tracking-wider"
+                className="text-2xl font-light lowercase tracking-tight"
                 style={{ color: category.color ?? "#8b5cf6" }}
               >
                 {category.name}

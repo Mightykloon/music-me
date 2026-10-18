@@ -331,8 +331,8 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Library className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)]">
-            My Music
+          <h1 className="metro-header text-5xl">
+            my music
           </h1>
         </div>
         <div className="flex items-center gap-2">

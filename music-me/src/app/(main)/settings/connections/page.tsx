@@ -138,8 +138,8 @@ export default function ConnectionsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)] mb-2">
-        Music Connections
+      <h1 className="metro-header text-5xl mb-2">
+        music connections
       </h1>
       <p className="text-muted-foreground text-sm mb-8">
         Connect your music services to import playlists, show what you're

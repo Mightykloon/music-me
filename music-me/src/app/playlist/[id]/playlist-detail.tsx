@@ -270,7 +270,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
           <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
             Playlist
           </p>
-          <h1 className="text-2xl sm:text-4xl font-bold mb-2">
+          <h1 className="text-4xl sm:text-6xl font-light tracking-tight leading-none mb-2">
             {playlist.name}
           </h1>
           {playlist.description && (

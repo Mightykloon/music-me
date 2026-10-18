@@ -461,7 +461,7 @@ export function ThreadView({
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-lg font-bold font-[family-name:var(--font-space-grotesk)] flex items-center gap-2">
+            <h1 className="text-3xl font-light tracking-tight leading-tight flex items-center gap-2">
               {thread.isPinned && <Pin className="w-4 h-4 text-primary" />}
               {thread.isLocked && <Lock className="w-4 h-4 text-muted-foreground" />}
               {thread.title}

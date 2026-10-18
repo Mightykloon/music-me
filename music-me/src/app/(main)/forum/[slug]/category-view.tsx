@@ -123,7 +123,7 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <span className="text-xl">{category.icon}</span>
-            <h1 className="text-xl font-bold font-[family-name:var(--font-space-grotesk)]">
+            <h1 className="text-4xl font-light tracking-tight leading-none">
               {category.name}
             </h1>
           </div>

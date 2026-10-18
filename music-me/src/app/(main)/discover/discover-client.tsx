@@ -27,8 +27,8 @@ export function DiscoverClient({
   return (
     <div className="max-w-4xl mx-auto">
       <div className="px-4 py-4 border-b border-border/50">
-        <h1 className="text-xl font-bold font-[family-name:var(--font-space-grotesk)]">
-          Discover
+        <h1 className="metro-header text-5xl">
+          discover
         </h1>
       </div>
 
@@ -37,7 +37,7 @@ export function DiscoverClient({
         <section className="px-4 py-4 border-b border-border/50">
           <div className="flex items-center gap-2 mb-3">
             <Users className="w-4 h-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">People to Follow</h2>
+            <h2 className="metro-header text-2xl">people to follow</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {suggestedUsers.map((user) => (
@@ -72,7 +72,7 @@ export function DiscoverClient({
       <section>
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50">
           <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Trending</h2>
+          <h2 className="metro-header text-2xl">trending</h2>
         </div>
         {trendingPosts.length > 0 ? (
           trendingPosts.map((post) => (

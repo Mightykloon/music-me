@@ -242,8 +242,8 @@ export default function ProfileEditorPage() {
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)]">
-            Edit Profile
+          <h1 className="metro-header text-5xl">
+            edit profile
           </h1>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (

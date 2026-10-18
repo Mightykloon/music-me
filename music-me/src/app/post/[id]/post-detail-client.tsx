@@ -120,7 +120,7 @@ export function PostDetailClient({
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="font-semibold text-lg">Post</h1>
+        <h1 className="metro-header text-4xl">post</h1>
       </div>
 
       {/* Post */}
