@@ -1,13 +1,12 @@
-import { RingCluster, StarRings, InkSplatter, MusicStaff, Speaker } from "./metro-motifs";
+import { ArtMask } from "./art-mask";
 
-// the point everything is composed around, and the line the speakers stand on
-const FOCUS = { x: 316, y: 290 };
-const BASELINE = 410;
-
-// Frutiger Metro hero artwork: black vector motifs over a bright, striated
+// Frutiger Metro hero artwork: a black silhouette over a bright, striated
 // background in the visitor's accent colour (the look of mid-2000s iPod
-// silhouette ads and Zune/Xbox 360 era art). Built from the original motif
-// library in metro-motifs.tsx; recolours itself from --metro-accent.
+// silhouette ads and Zune era art). One focal point, the dancer, with the
+// sunburst centred on them and the visualiser rising from the bottom edge.
+
+// where the sunburst radiates from (the dancer's torso), in the 600 x 600 box
+const FOCUS = { x: 270, y: 250 };
 
 const RAYS = Array.from({ length: 16 }, (_, i) => i);
 const BANDS = [
@@ -30,45 +29,27 @@ const VIS = Array.from({ length: 30 }, (_, i) => {
 
 export function MetroArt({ className }: { className?: string }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 600 600"
-      preserveAspectRatio="xMidYMid slice"
-      role="img"
-      aria-label="Black silhouettes of speakers bursting from an ink splash, with a music staff, rings, stars and flourishes over bright stripes"
-    >
+    <div className={className} role="img" aria-label="A black silhouette of a dancer leaping out of an ink splash and rings, over bright stripes and a sunburst">
       {/* background: accent colour, striated, with a sunburst */}
-      <rect width="600" height="600" fill="var(--metro-accent)" />
-      <g transform="rotate(-14 300 300)">
-        {BANDS.map((b) => (
-          <rect key={b.y} x="-200" y={b.y} width="1000" height={b.h} fill="#fff" opacity={b.o} />
-        ))}
-      </g>
-      {/* Composition: one focal point (the speaker pair, centred on a shared
-          baseline just above the visualiser), with the sunburst and splash
-          centred on it. The staff is the line the eye follows, from the left
-          edge over the speakers to the star badge top-right; the ring cluster
-          anchors bottom-left on the same diagonal. */}
-      <g transform={`translate(${FOCUS.x} ${FOCUS.y})`} opacity="0.15">
-        {RAYS.map((i) => (
-          <polygon key={i} points="0,0 -16,-480 16,-480" fill="#fff" transform={`rotate(${(i * 360) / RAYS.length})`} />
-        ))}
-      </g>
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice" aria-hidden>
+        <rect width="600" height="600" fill="var(--metro-accent)" />
+        <g transform="rotate(-14 300 300)">
+          {BANDS.map((b) => (
+            <rect key={b.y} x="-200" y={b.y} width="1000" height={b.h} fill="#fff" opacity={b.o} />
+          ))}
+        </g>
+        <g transform={`translate(${FOCUS.x} ${FOCUS.y})`} opacity="0.15">
+          {RAYS.map((i) => (
+            <polygon key={i} points="0,0 -16,-480 16,-480" fill="#fff" transform={`rotate(${(i * 360) / RAYS.length})`} />
+          ))}
+        </g>
+      </svg>
 
-      {/* behind the focal point */}
-      <InkSplatter x={FOCUS.x} y={FOCUS.y - 10} s={1.15} seed={11} />
-      <MusicStaff x={-12} y={-34} s={0.95} />
+      {/* focal point: the dancer, sitting just above the visualiser */}
+      <ArtMask art="dancer" color="#000" className="absolute left-[8%] top-[5%] w-[86%]" />
 
-      {/* anchors on the diagonal */}
-      <RingCluster x={52} y={470} s={0.5} />
-      <StarRings x={536} y={96} s={0.42} />
-
-      {/* focal point: both cabinets share a baseline (y = BASELINE) */}
-      <Speaker x={250} y={BASELINE - 85} s={0.5} rot={-6} />
-      <Speaker x={372} y={BASELINE - 105} s={0.62} rot={6} />
-
-      {/* visualiser */}
-      <g>
+      {/* visualiser, in front, sinking off the bottom */}
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice" aria-hidden>
         {VIS.map((h, i) => (
           <rect
             key={i}
@@ -81,7 +62,7 @@ export function MetroArt({ className }: { className?: string }) {
             style={{ animationDelay: `${(i * 173) % 1100}ms`, animationDuration: `${780 + ((i * 97) % 420)}ms` }}
           />
         ))}
-      </g>
-    </svg>
+      </svg>
+    </div>
   );
 }

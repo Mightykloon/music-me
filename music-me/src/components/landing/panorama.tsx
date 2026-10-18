@@ -9,6 +9,7 @@ import { Tilt } from "@/components/metro/tilt";
 import { RemixdWordmark } from "@/components/remixd-wordmark";
 import { MetroArt } from "./metro-art";
 import { MetroBackdrop } from "./metro-backdrop";
+import { ArtMask } from "./art-mask";
 
 // The landing page as a Windows Phone panorama: one wide horizontal canvas
 // you swipe (or scroll) through. Each panel is narrower than the screen so the
@@ -91,9 +92,9 @@ export function Panorama() {
       </div>
       <h1 className="sr-only">re:mixd</h1>
 
-      {/* faint motifs behind everything, drifting slowest */}
+      {/* faint artwork behind everything, drifting slowest */}
       <div ref={backdrop} aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-0 w-[260vh] min-w-[160vw] text-foreground will-change-transform">
-        <MetroBackdrop className="h-full w-full" />
+        <MetroBackdrop className="relative h-full w-full" />
       </div>
 
       {/* top bar: app title + sign-in, always visible */}
@@ -215,6 +216,12 @@ export function Panorama() {
           {...panel(3)}
           className="flex w-[88vw] max-w-[520px] shrink-0 snap-start flex-col justify-end gap-6 pb-10 pl-3 pr-8 pt-[clamp(8rem,30vh,17rem)] sm:pr-16"
         >
+          {/* the speaker stack: paint takes the accent, ink and haze the text colour */}
+          <div aria-hidden className="relative" style={{ width: "min(100%, (var(--pano-avail) - 17rem) * 1.3)" }}>
+            <ArtMask art="speakersHaze" className="w-full" style={{ opacity: 0.22 }} />
+            <ArtMask art="speakersPaint" color="var(--metro-accent)" className="absolute inset-0" />
+            <ArtMask art="speakersInk" className="absolute inset-0" />
+          </div>
           <h2 className="metro-header text-5xl sm:text-6xl">join the mix</h2>
           <p className="max-w-sm text-muted-foreground">
             Make an account, connect a music service, and your profile starts sounding like you in a couple of minutes.
