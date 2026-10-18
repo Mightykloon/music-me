@@ -219,12 +219,12 @@ export function Panorama() {
           className="flex shrink-0 snap-start flex-col justify-end gap-6 pb-10 pl-3 pr-8 pt-[clamp(8rem,30vh,17rem)] sm:flex-row sm:items-end sm:gap-8 sm:pr-16"
         >
           {/* the headphones portrait, floating: the accent print set slightly off
-              register behind a black figure. On wide screens its top lines up with
+              register behind a figure in the text colour. On wide screens its top lines up with
               the tiles and its cropped bottom edge runs off the bottom of the page;
               on phones it fills whatever height the text leaves. */}
           <div aria-hidden className="relative min-h-0 w-[calc(88vw-2.75rem)] flex-1 sm:aspect-[2132/3000] sm:-mb-10 sm:h-[calc(var(--pano-avail)-1rem)] sm:w-auto sm:flex-none">
             <div className="absolute inset-0 translate-x-[6px] translate-y-[4px]" style={{ backgroundColor: "var(--metro-accent)", ...HEADPHONES }} />
-            <div className="absolute inset-0" style={{ backgroundColor: "#000", ...HEADPHONES }} />
+            <div className="absolute inset-0" style={{ backgroundColor: "currentColor", ...HEADPHONES }} />
           </div>
           <div className="flex w-[calc(88vw-2.75rem)] flex-col gap-6 sm:w-[400px]">
             <h2 className="metro-header text-5xl sm:text-6xl">join the mix</h2>
