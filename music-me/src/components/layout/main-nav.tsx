@@ -14,6 +14,7 @@ import {
   Library,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RemixdWordmark } from "@/components/remixd-wordmark";
 
 interface MainNavProps {
   user: {
@@ -26,103 +27,81 @@ interface MainNavProps {
 }
 
 const navItems = [
-  { href: "/feed", icon: Home, label: "Home" },
-  { href: "/discover", icon: Compass, label: "Discover" },
-  { href: "/my-music", icon: Library, label: "My Music" },
-  { href: "/forum", icon: MessageSquareText, label: "Forum" },
-  { href: "/search", icon: Search, label: "Search" },
-  { href: "/notifications", icon: Bell, label: "Notifications" },
-  { href: "/messages", icon: MessageCircle, label: "Messages" },
+  { href: "/feed", icon: Home, label: "home" },
+  { href: "/discover", icon: Compass, label: "discover" },
+  { href: "/my-music", icon: Library, label: "my music" },
+  { href: "/forum", icon: MessageSquareText, label: "forum" },
+  { href: "/search", icon: Search, label: "search" },
+  { href: "/notifications", icon: Bell, label: "notifications" },
+  { href: "/messages", icon: MessageCircle, label: "messages" },
 ];
+
+// Windows Phone app-bar button: a circled icon that fills with the accent
+const appBarButton = "metro-appbar-icon transition-colors hover:border-primary hover:bg-primary hover:text-white";
 
 export function MainNav({ user, className }: MainNavProps) {
   const pathname = usePathname();
   const username = (user as { username?: string }).username;
+  const profileHref = username ? `/${username}` : "/settings/profile";
 
   return (
     <>
-      {/* Desktop top nav */}
-      <header
-        className={cn(
-          "fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl hidden sm:block",
-          className
-        )}
-      >
+      {/* Desktop: a pivot header. The current page is white with an accent
+          bar under it; the rest are grey. */}
+      <header className={cn("fixed top-0 w-full z-50 bg-background hidden sm:block", className)}>
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link
-            href="/feed"
-            className="text-xl font-bold font-[family-name:var(--font-space-grotesk)] tracking-tight"
-          >
-            remix<span className="text-primary">d</span>
+          <Link href="/feed" aria-label="re:mixd home">
+            <RemixdWordmark className="h-6 w-auto" />
           </Link>
 
-          <div className="flex items-center gap-1">
+          <div className="flex h-full items-stretch gap-1">
             {navItems.map((item) => {
               const active = pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-                    active
-                      ? "text-primary bg-primary/10"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    "relative flex items-center gap-2 px-3 text-[0.95rem] lowercase transition-colors after:absolute after:inset-x-3 after:bottom-0 after:h-[3px]",
+                    active ? "text-foreground after:bg-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span className="hidden lg:inline">{item.label}</span>
+                  <item.icon className="w-4 h-4 lg:hidden" aria-hidden />
+                  <span className="sr-only lg:not-sr-only">{item.label}</span>
                 </Link>
               );
             })}
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/feed"
-              className="p-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <PlusCircle className="w-5 h-5" />
+            <Link href="/feed" aria-label="new post" className={appBarButton}>
+              <PlusCircle className="w-5 h-5" strokeWidth={1.75} />
             </Link>
-            <Link
-              href={username ? `/${username}` : "/settings/profile"}
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
-            >
-              <User className="w-5 h-5" />
+            <Link href={profileHref} aria-label="your profile" className={appBarButton}>
+              <User className="w-5 h-5" strokeWidth={1.75} />
             </Link>
           </div>
         </nav>
       </header>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 w-full z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl sm:hidden">
-        <div className="flex items-center justify-around h-14">
-          <Link href="/feed" className={mobileNavClass(pathname, "/feed")}>
-            <Home className="w-5 h-5" />
+      {/* Mobile: a Windows Phone app bar of circled icons */}
+      <nav className="fixed bottom-0 w-full z-50 bg-muted sm:hidden">
+        <div className="flex items-center justify-around h-16">
+          <Link href="/feed" aria-label="home" className={mobileNavClass(pathname, "/feed")}>
+            <Home className="w-5 h-5" strokeWidth={1.75} />
           </Link>
-          <Link
-            href="/discover"
-            className={mobileNavClass(pathname, "/discover")}
-          >
-            <Compass className="w-5 h-5" />
+          <Link href="/discover" aria-label="discover" className={mobileNavClass(pathname, "/discover")}>
+            <Compass className="w-5 h-5" strokeWidth={1.75} />
           </Link>
-          <Link
-            href="/feed"
-            className="p-2 rounded-full bg-primary text-primary-foreground"
-          >
-            <PlusCircle className="w-5 h-5" />
+          <Link href="/feed" aria-label="new post" className="metro-appbar-icon border-primary bg-primary text-white">
+            <PlusCircle className="w-5 h-5" strokeWidth={1.75} />
           </Link>
-          <Link
-            href="/messages"
-            className={mobileNavClass(pathname, "/messages")}
-          >
-            <MessageCircle className="w-5 h-5" />
+          <Link href="/messages" aria-label="messages" className={mobileNavClass(pathname, "/messages")}>
+            <MessageCircle className="w-5 h-5" strokeWidth={1.75} />
           </Link>
-          <Link
-            href={username ? `/${username}` : "/settings/profile"}
-            className={mobileNavClass(pathname, `/${username}`)}
-          >
-            <User className="w-5 h-5" />
+          <Link href={profileHref} aria-label="your profile" className={mobileNavClass(pathname, `/${username}`)}>
+            <User className="w-5 h-5" strokeWidth={1.75} />
           </Link>
         </div>
       </nav>
@@ -132,8 +111,5 @@ export function MainNav({ user, className }: MainNavProps) {
 
 function mobileNavClass(pathname: string, href: string) {
   const active = pathname === href || pathname.startsWith(href + "/");
-  return cn(
-    "p-2 rounded-lg transition-colors",
-    active ? "text-primary" : "text-muted-foreground"
-  );
+  return cn("metro-appbar-icon transition-colors", active ? "text-foreground" : "text-muted-foreground");
 }

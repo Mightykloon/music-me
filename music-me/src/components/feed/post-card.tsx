@@ -147,7 +147,7 @@ export function PostCard({ post, compact = false, className }: PostCardProps) {
           <div className="flex items-center gap-1.5">
             <Link
               href={`/${post.author.username}`}
-              className="font-semibold text-sm hover:underline truncate"
+              className="text-[0.95rem] font-semibold lowercase hover:text-primary truncate"
             >
               {post.author.displayName ?? post.author.username}
             </Link>
@@ -234,7 +234,7 @@ export function PostCard({ post, compact = false, className }: PostCardProps) {
 
           {/* Playlist drop */}
           {post.type === "PLAYLIST_DROP" && post.attachedPlaylist && (
-            <div className="mt-3 flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
+            <div className="mt-3 flex items-center gap-3 p-2 pr-3 bg-muted">
               {post.attachedPlaylist.coverImageUrl ? (
                 <Image
                   src={post.attachedPlaylist.coverImageUrl}
@@ -273,7 +273,7 @@ export function PostCard({ post, compact = false, className }: PostCardProps) {
             <div className="relative">
               <button
                 onClick={() => setShowReactions(!showReactions)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors text-xs"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-xs"
               >
                 <Flame className={`w-4 h-4 ${userReactions.size > 0 ? "text-primary" : ""}`} />
                 {reactionCount > 0 && <span>{reactionCount}</span>}
@@ -302,13 +302,13 @@ export function PostCard({ post, compact = false, className }: PostCardProps) {
 
             <Link
               href={`/post/${post.id}`}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-blue-500/10 text-muted-foreground hover:text-blue-400 transition-colors text-xs"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-xs"
             >
               <MessageCircle className="w-4 h-4" />
               {post._count.comments > 0 && <span>{post._count.comments}</span>}
             </Link>
 
-            <button className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-green-500/10 text-muted-foreground hover:text-green-400 transition-colors text-xs">
+            <button className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-xs">
               <Repeat2 className="w-4 h-4" />
               {post._count.reposts > 0 && <span>{post._count.reposts}</span>}
             </button>

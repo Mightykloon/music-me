@@ -224,7 +224,7 @@ export function PostComposer({ user, onPost }: PostComposerProps) {
                       setMediaPreviews((p) => p.filter((_, j) => j !== i));
                       setMediaUrls((p) => p.filter((_, j) => j !== i));
                     }}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white"
+                    className="absolute top-1 right-1 p-1 bg-black/70 text-white"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -369,9 +369,9 @@ export function PostComposer({ user, onPost }: PostComposerProps) {
                   <button
                     key={t}
                     onClick={() => setLyricTemplate(t)}
-                    className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                    className={`text-xs lowercase px-2 py-1 border transition-colors ${
                       lyricTemplate === t
-                        ? "border-primary bg-primary/10 text-primary"
+                        ? "border-primary bg-primary text-white"
                         : "border-border text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -492,7 +492,7 @@ export function PostComposer({ user, onPost }: PostComposerProps) {
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="metro-button metro-button-accent min-h-[36px] px-4 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {submitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
