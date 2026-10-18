@@ -19,16 +19,20 @@ export type ArtName = keyof typeof ART;
 export function ArtMask({
   art,
   color = "currentColor",
+  halftone,
   className,
   style,
 }: {
   art: ArtName;
   color?: string;
+  /** draw the art as a halftone: a dot grid at this pitch (px), intersected with the art */
+  halftone?: number;
   className?: string;
   style?: CSSProperties;
 }) {
   const { src, w, h } = ART[art];
-  const mask = `url(${src}) center / contain no-repeat`;
+  const shape = `url(${src}) center / contain no-repeat`;
+  const mask = halftone ? `${shape}, radial-gradient(#000 38%, transparent 42%) 0 0 / ${halftone}px ${halftone}px` : shape;
   return (
     <div
       aria-hidden
@@ -38,6 +42,8 @@ export function ArtMask({
         backgroundColor: color,
         mask,
         WebkitMask: mask,
+        // keep only the dots that fall inside the art
+        ...(halftone ? { maskComposite: "intersect", WebkitMaskComposite: "source-in" } : null),
         ...style,
       }}
     />
