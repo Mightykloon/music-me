@@ -111,9 +111,12 @@
   --font-display: "Segoe UI", "Segoe WP", var(--font-open-sans), system-ui, sans-serif;
 }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+/* in the base layer so utilities like [scrollbar-width:none] can override it */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
 }
 
 :root {
