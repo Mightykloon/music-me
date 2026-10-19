@@ -69,10 +69,10 @@ const byActivity = (subs: SubCategory[]) =>
   subs.map((s, order) => ({ s, order })).sort((a, b) => b.s.activity - a.s.activity || a.order - b.order).map(({ s }) => s);
 
 // Solid fronts are a near-black fill with a solid icon; outlined fronts are
-// just a grey border with a dark icon.
+// a border in the text colour (white on dark); both get a solid icon.
 const FRONT_CLASS: Record<Front, string> = {
   solid: "bg-[var(--metro-tile)] text-foreground",
-  outline: "border-2 border-border text-foreground",
+  outline: "border-2 border-foreground text-foreground",
 };
 
 // Like the reactor tiles on damian.digital: every so often one random tile
@@ -153,9 +153,9 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
     label,
     body: (
       <div className="flex h-full flex-col justify-between">
-        {/* solid tiles: a solid icon in the text colour; outlined tiles: a
-            dark icon that stays as quiet as the outline */}
-        <Icon aria-hidden className={front === "solid" ? "text-foreground" : "text-border"} size={iconSize} weight="fill" />
+        {/* a solid icon in the text colour (white on dark), on both the solid
+            and the outlined tiles */}
+        <Icon aria-hidden className="text-foreground" size={iconSize} weight="fill" />
 
         {wide && sub.description && (
           <p className={`${large ? "text-xl font-light" : "text-sm"} leading-snug opacity-90`}>{sub.description.toLowerCase()}</p>
