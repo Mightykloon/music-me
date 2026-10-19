@@ -33,3 +33,48 @@ export function PunchedFill({
     </svg>
   );
 }
+
+// A tile's fill with bold text hole-punched out of its top-right corner, the
+// tops of the letters touching the tile's top edge. `textClassName` styles the
+// cut (e.g. "opacity-0 group-hover:opacity-100" to punch it only on hover).
+export function PunchedCornerText({
+  text,
+  fill,
+  size = 17,
+  inset = 12,
+  textClassName,
+}: {
+  text: string;
+  fill: string;
+  size?: number; // font size in px
+  inset?: number; // distance from the right edge, in px
+  textClassName?: string;
+}) {
+  const id = `punch-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
+  return (
+    <svg aria-hidden className="absolute inset-0 -z-10 h-full w-full">
+      <defs>
+        <mask id={id}>
+          <rect width="100%" height="100%" fill="white" />
+          {/* hanging from the top edge; pulled up by the space Segoe UI / Open Sans
+              leave above their ascenders (~0.34em), so the letters meet the edge */}
+          <text
+            x="100%"
+            dx={-inset}
+            y={-size * 0.34}
+            textAnchor="end"
+            dominantBaseline="text-before-edge"
+            fontSize={size}
+            fontWeight={800}
+            fill="black"
+            className={textClassName}
+            style={{ fontFamily: "var(--metro-font)", transition: "opacity 150ms" }}
+          >
+            {text}
+          </text>
+        </mask>
+      </defs>
+      <rect width="100%" height="100%" fill={fill} mask={`url(#${id})`} />
+    </svg>
+  );
+}

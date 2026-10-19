@@ -10,7 +10,7 @@ import {
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
 import { LiveTile, type TileFace } from "@/components/metro/live-tile";
-import { PunchedFill } from "@/components/metro/punched-fill";
+import { PunchedCornerText, PunchedFill } from "@/components/metro/punched-fill";
 
 interface LatestThread {
   id: string;
@@ -78,7 +78,9 @@ const FRONT_CLASS: Record<Front, string> = {
 };
 const FRONT_FILL = "var(--muted)";
 // every back is solid accent: colour means "something new here"
-const BACK_CLASS = "bg-primary text-white";
+// painted by PunchedCornerText, so "browse →" can be cut out of the corner
+const BACK_CLASS = "isolate text-white";
+const BACK_FILL = "var(--metro-accent)";
 
 // an icon per sub-forum (by slug), from Phosphor's solid set
 const ICONS: Record<string, PhosphorIcon> = {
@@ -128,13 +130,28 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
   const reply = thread?.replies[0];
   const count = `${sub._count.threads} ${sub._count.threads === 1 ? "thread" : "threads"}`;
 
+  // Top row of the back: what this is on the left; on the right, a reserved
+  // slot where "browse →" is punched out of the tile on hover (bold, its
+  // letters touching the top edge), so it never sits over text.
+  const topRow = (kicker: string) => (
+    <div className="flex items-start gap-2">
+      <PunchedCornerText
+        text="browse →"
+        fill={BACK_FILL}
+        textClassName="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
+      />
+      <p className="min-w-0 flex-1 text-[0.7rem] uppercase leading-tight tracking-wider opacity-80">{kicker}</p>
+      <span aria-hidden className="w-[4.75rem] shrink-0" />
+    </div>
+  );
+
   const backFace: TileFace = thread
     ? {
         className: BACK_CLASS,
         label: reply ? `@${reply.author.username} replied ${ago(reply.createdAt)}` : `@${thread.author.username} · ${ago(thread.createdAt)}`,
         body: (
           <div className="flex h-full flex-col gap-1 overflow-hidden">
-            <p className="pr-14 text-[0.7rem] uppercase tracking-wider opacity-80">{reply ? "latest reply" : "latest thread"} · {count}</p>
+            {topRow(`${reply ? "latest reply" : "latest thread"} · ${count}`)}
             {reply ? (
               <>
                 <p className={`leading-snug ${wide ? "line-clamp-3 text-base" : "line-clamp-2 text-sm"}`}>{reply.content}</p>
@@ -149,20 +166,15 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
     : {
         className: BACK_CLASS,
         label,
-        body: <p className="text-base font-light leading-snug">no threads yet. start the first one.</p>,
+        body: (
+          <div className="flex h-full flex-col gap-1 overflow-hidden">
+            {topRow("no threads yet")}
+            <p className="text-base font-light leading-snug">start the first one.</p>
+          </div>
+        ),
       };
 
-  // hovering a tile flips it to this side; "browse →" says it's a way in
-  const browse = (
-    <span
-      aria-hidden
-      className="absolute right-3 top-3 text-xs lowercase opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-    >
-      browse →
-    </span>
-  );
-
-  return [frontFace, { ...backFace, body: <>{browse}{backFace.body}</> }];
+  return [frontFace, backFace];
 }
 
 export function ForumHome({ categories }: { categories: Category[] }) {
