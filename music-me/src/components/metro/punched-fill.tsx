@@ -34,21 +34,24 @@ export function PunchedFill({
   );
 }
 
+// how far the punched corner text runs past the tile's edges, in em
+const BLEED_TOP = 0.08;
+const BLEED_RIGHT = 0.22;
+
 // A tile's fill with bold capitals hole-punched out of its top-right corner,
-// the tops of the letters touching the tile's top edge. `textClassName`
+// bleeding off it: the tops of the letters run past the top edge and the last
+// letter past the right edge, as if stamped over the corner. `textClassName`
 // styles the cut (e.g. "opacity-0 group-hover:opacity-100" to punch it only
 // on hover).
 export function PunchedCornerText({
   text,
   fill,
   size = 17,
-  inset = 12,
   textClassName,
 }: {
   text: string;
   fill: string;
   size?: number; // font size in px
-  inset?: number; // distance from the right edge, in px
   textClassName?: string;
 }) {
   const id = `punch-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
@@ -59,11 +62,12 @@ export function PunchedCornerText({
           <rect width="100%" height="100%" fill="white" />
           {/* Capitals all share one height, so every letter reaches the edge.
               Hanging from the top, pulled up by the space Segoe UI leaves above
-              its capitals (0.37em; Open Sans 0.34em) so they meet the edge. */}
+              its capitals (0.37em; Open Sans 0.34em) plus the bleed; anchored
+              at the right edge and pushed past it by the bleed. */}
           <text
             x="100%"
-            dx={-inset}
-            y={-size * 0.37}
+            dx={size * BLEED_RIGHT}
+            y={-size * (0.37 + BLEED_TOP)}
             textAnchor="end"
             dominantBaseline="text-before-edge"
             fontSize={size}
