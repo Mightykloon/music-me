@@ -225,9 +225,9 @@ export function Panorama() {
         >
           {/* the headphones portrait, floating: the accent print set slightly off
               register behind a figure in the text colour. On wide screens its top lines up with
-              the tiles and its cropped bottom edge runs off the bottom of the page;
-              on phones it fills whatever height the text leaves. */}
-          <div aria-hidden className="relative min-h-0 w-[calc(88vw-2.75rem)] flex-1 sm:aspect-[2132/3000] sm:-mb-10 sm:h-[calc(var(--pano-avail)-1rem)] sm:w-auto sm:flex-none">
+              the tiles; on phones it sits below the text and fills the height left.
+              Either way its cropped bottom edge runs off the bottom of the page. */}
+          <div aria-hidden className="relative order-last -mb-10 min-h-0 w-[calc(88vw-2.75rem)] flex-1 sm:order-none sm:aspect-[2132/3000] sm:h-[calc(var(--pano-avail)-1rem)] sm:w-auto sm:flex-none">
             <div className="absolute inset-0 translate-x-[6px] translate-y-[4px]" style={{ backgroundColor: "var(--metro-accent)", ...HEADPHONES }} />
             <div className="absolute inset-0" style={{ backgroundColor: "currentColor", ...HEADPHONES }} />
           </div>
