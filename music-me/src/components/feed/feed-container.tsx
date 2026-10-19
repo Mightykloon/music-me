@@ -13,10 +13,10 @@ import { PostCard, type PostCardData } from "./post-card";
 import type { FeedDisplayMode, FeedSource } from "@/types";
 
 const DISPLAY_MODES: { value: FeedDisplayMode; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
-  { value: "stream", icon: List, label: "Stream" },
-  { value: "grid", icon: LayoutGrid, label: "Grid" },
-  { value: "radio", icon: Radio, label: "Radio" },
-  { value: "magazine", icon: Newspaper, label: "Magazine" },
+  { value: "stream", icon: List, label: "stream" },
+  { value: "grid", icon: LayoutGrid, label: "grid" },
+  { value: "radio", icon: Radio, label: "radio" },
+  { value: "magazine", icon: Newspaper, label: "magazine" },
 ];
 
 const FEED_SOURCES: { value: FeedSource; label: string }[] = [
@@ -101,36 +101,39 @@ export function FeedContainer() {
   return (
     <div>
       {/* Feed header */}
-      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        {/* Source tabs */}
-        <div className="flex items-center">
-          {FEED_SOURCES.map((source) => (
-            <button
-              key={source.value}
-              onClick={() => setFeedSource(source.value)}
-              className={`flex-1 py-3 text-sm font-medium text-center transition-colors relative ${
-                feedSource === source.value
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {source.label}
-              {feedSource === source.value && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-primary rounded-full" />
-              )}
-            </button>
-          ))}
+      <div className="sticky top-0 sm:top-16 z-20 bg-background">
+        {/* Source tabs: a Metro pivot. Big light lowercase headers, the
+            current one white and the rest dimmed. */}
+        <div className="flex items-end">
+          <div className="flex min-w-0 flex-1 items-baseline gap-4 sm:gap-5 overflow-x-auto px-4 pb-2 pt-3 [scrollbar-width:none]">
+            {FEED_SOURCES.map((source) => (
+              <button
+                key={source.value}
+                onClick={() => setFeedSource(source.value)}
+                aria-pressed={feedSource === source.value}
+                className={`shrink-0 text-3xl font-light lowercase leading-none tracking-tight transition-colors ${
+                  feedSource === source.value
+                    ? "text-foreground"
+                    : "text-muted-foreground/50 hover:text-muted-foreground"
+                }`}
+              >
+                {source.label}
+              </button>
+            ))}
+          </div>
 
           {/* Display mode toggle */}
-          <div className="flex items-center gap-0.5 px-3 border-l border-border/50">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 pr-2 sm:px-3 pb-2">
             {DISPLAY_MODES.map(({ value, icon: Icon, label }) => (
               <button
                 key={value}
                 onClick={() => setFeedDisplayMode(value)}
                 title={label}
-                className={`p-1.5 rounded-md transition-colors ${
+                aria-label={label}
+                aria-pressed={feedDisplayMode === value}
+                className={`p-1.5 transition-colors ${
                   feedDisplayMode === value
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary text-white"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
               >

@@ -120,7 +120,7 @@ export function PostDetailClient({
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="font-semibold text-lg">Post</h1>
+        <h1 className="metro-header text-4xl">post</h1>
       </div>
 
       {/* Post */}
@@ -142,7 +142,7 @@ export function PostDetailClient({
           <button
             onClick={handleComment}
             disabled={!newComment.trim() || submitting}
-            className="p-2 rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+            className="p-2 bg-primary text-primary-foreground disabled:opacity-50"
           >
             {submitting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -207,12 +207,12 @@ export function PostDetailClient({
                     }
                     if (e.key === "Escape") setReplyingTo(null);
                   }}
-                  className="flex-1 bg-muted/30 rounded-lg px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  className="flex-1 bg-background border-2 border-border px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary"
                 />
                 <button
                   onClick={() => handleReply(comment.id)}
                   disabled={!replyContent.trim() || submitting}
-                  className="p-1.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+                  className="p-1.5 bg-primary text-primary-foreground disabled:opacity-50"
                 >
                   <Send className="w-3 h-3" />
                 </button>

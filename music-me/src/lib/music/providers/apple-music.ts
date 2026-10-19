@@ -41,7 +41,7 @@ export class AppleMusicProvider implements MusicProvider {
     expiresAt: Date | null;
   }> {
     // Apple Music user tokens are obtained client-side via MusicKit
-    throw new Error("Apple Music tokens must be refreshed client-side via MusicKit");
+    throw new Error("Apple Music tokens must be refreshed in the browser via MusicKit");
   }
 
   async searchTracks(

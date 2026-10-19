@@ -301,7 +301,7 @@ export function ForumEditor({
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="https://example.com"
-              className="w-full px-3 py-1.5 rounded-lg bg-muted/50 border border-border text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full px-3 py-1.5 bg-background border-2 border-border text-xs placeholder:text-muted-foreground focus:outline-none focus:border-primary"
               autoFocus
               onKeyDown={(e) => e.key === "Enter" && handleInsertLink()}
             />
@@ -309,13 +309,13 @@ export function ForumEditor({
               value={linkText}
               onChange={(e) => setLinkText(e.target.value)}
               placeholder="Display text (optional)"
-              className="w-full px-3 py-1.5 rounded-lg bg-muted/50 border border-border text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full px-3 py-1.5 bg-background border-2 border-border text-xs placeholder:text-muted-foreground focus:outline-none focus:border-primary"
               onKeyDown={(e) => e.key === "Enter" && handleInsertLink()}
             />
           </div>
           <button
             onClick={handleInsertLink}
-            className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90"
+            className="metro-button metro-button-accent min-h-[32px] px-3 text-xs"
           >
             Insert
           </button>
@@ -344,7 +344,7 @@ export function ForumEditor({
         placeholder={placeholder}
         rows={rows}
         maxLength={maxLength}
-        className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-y min-h-[100px]"
+        className="w-full px-3 py-2 bg-background border-2 border-border text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-y min-h-[100px]"
       />
 
       {/* Character count */}
@@ -501,7 +501,7 @@ function MusicSearchPanel({
           onChange={(e) => handleInput(e.target.value)}
           placeholder="Search for a song..."
           autoFocus
-          className="w-full pl-8 pr-8 py-1.5 rounded-lg bg-muted/50 border border-border text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full pl-8 pr-8 py-1.5 bg-background border-2 border-border text-xs placeholder:text-muted-foreground focus:outline-none focus:border-primary"
         />
         {loading && (
           <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-muted-foreground" />

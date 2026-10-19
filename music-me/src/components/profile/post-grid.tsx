@@ -27,11 +27,9 @@ interface PostGridProps {
 export function PostGrid({ posts, className }: PostGridProps) {
   if (posts.length === 0) {
     return (
-      <div className={`text-center py-16 ${className ?? ""}`}>
-        <div className="w-12 h-12 rounded-full bg-white/[0.03] flex items-center justify-center mx-auto mb-3">
-          <Music className="w-5 h-5 text-muted-foreground/50" />
-        </div>
-        <p className="text-sm text-muted-foreground">No posts yet</p>
+      <div className={`text-center py-12 text-muted-foreground ${className ?? ""}`}>
+        <Music className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <p className="text-sm lowercase">no posts yet</p>
       </div>
     );
   }
@@ -40,12 +38,12 @@ export function PostGrid({ posts, className }: PostGridProps) {
     <div className={className}>
       <div className="flex items-center gap-2 mb-4">
         <LayoutList className="w-4 h-4 text-[var(--profile-primary)]" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Posts</h2>
+        <h2 className="metro-header text-3xl font-[family-name:var(--profile-heading-font)]">posts</h2>
         <span className="text-xs text-muted-foreground/60 ml-auto">{posts.length}</span>
       </div>
       <div className="flex flex-col gap-3">
         {posts.map((post) => (
-          <Link href={`/post/${post.id}`} key={post.id} className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-[var(--profile-primary)]/20 transition-all duration-300">
+          <Link href={`/post/${post.id}`} key={post.id} className="block p-4 bg-black/70 hover:bg-black/85 transition-colors">
             <div className="flex items-center gap-2.5 mb-2.5">
               <Avatar src={post.author.profile?.profilePictureUrl} alt={post.author.displayName ?? post.author.username} size="sm" />
               <div className="flex-1 min-w-0">

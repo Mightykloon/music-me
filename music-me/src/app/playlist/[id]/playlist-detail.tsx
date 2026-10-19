@@ -111,8 +111,8 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
       if (items.length === 0) {
         toast.error(
           playlist.tracks.length > 0
-            ? `Spotify rate-limited. You already have ${playlist.tracks.length} tracks synced. Try again in a few minutes.`
-            : "Spotify returned 0 tracks. Dev Mode may be rate-limiting. Try again in a minute.",
+            ? `Spotify's rate limit was hit. You already have ${playlist.tracks.length} tracks synced. Try again in a few minutes.`
+            : "Spotify returned 0 tracks. Dev Mode is blocking. Try again in a minute.",
           { duration: 6000 }
         );
         return;
@@ -120,7 +120,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
       // Don't follow pagination — next URL uses /tracks endpoint which returns 403 in Dev Mode
       if (total > items.length) {
-        console.log(`[Spotify browser] Got ${items.length}/${total} — pagination blocked by Dev Mode`);
+        console.log(`[Spotify browser] Got ${items.length}/${total}: pagination blocked by Dev Mode`);
       }
 
       const tracks = items
@@ -151,7 +151,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
 
       if (totalSynced > 0) {
         const msg = total > totalSynced + playlist.tracks.length
-          ? `Synced ${totalSynced} tracks (${Math.min(totalSynced + playlist.tracks.length, total)}/${total} — Dev Mode caps at 100 per request)`
+          ? `Synced ${totalSynced} tracks (${Math.min(totalSynced + playlist.tracks.length, total)}/${total}). Spotify Dev Mode caps each request at 100.`
           : `Synced ${totalSynced} tracks!`;
         toast.success(msg, { duration: 5000 });
       } else {
@@ -258,7 +258,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
           <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
             Playlist
           </p>
-          <h1 className="text-2xl sm:text-4xl font-bold mb-2">
+          <h1 className="text-4xl sm:text-6xl font-light tracking-tight leading-none mb-2">
             {playlist.name}
           </h1>
           {playlist.description && (
@@ -328,7 +328,7 @@ export function PlaylistDetail({ playlist }: { playlist: PlaylistData }) {
                 <p className="mb-3">No tracks synced yet.</p>
                 <button
                   onClick={handleResync}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                  className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Sync Tracks Now

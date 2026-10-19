@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { NotificationsClient } from "./notifications-client";
 
 export const metadata = {
-  title: "Notifications — remixd",
+  title: "Notifications",
 };
 
 export default async function NotificationsPage() {

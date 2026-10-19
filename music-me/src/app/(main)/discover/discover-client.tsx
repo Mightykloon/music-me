@@ -132,7 +132,7 @@ export function DiscoverClient({
   return (
     <div className="max-w-4xl mx-auto">
       {/* Search bar - always visible */}
-      <div className="sticky top-16 z-10 bg-background/80 backdrop-blur-lg px-4 py-3 border-b border-border/50">
+      <div className="sticky top-0 sm:top-16 z-10 bg-background px-4 py-3">
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
@@ -140,7 +140,7 @@ export function DiscoverClient({
             value={query}
             onChange={(e) => handleInput(e.target.value)}
             placeholder="Search users, posts, tracks..."
-            className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full pl-10 pr-10 py-2.5 bg-background border-2 border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary"
           />
           {isSearching && (
             <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors">
@@ -156,9 +156,9 @@ export function DiscoverClient({
               <button
                 key={t}
                 onClick={() => handleTabChange(t)}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                className={`px-3 py-1 text-xs lowercase transition-colors ${
                   searchTab === t
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary text-white"
                     : "bg-muted/50 text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -326,7 +326,7 @@ export function DiscoverClient({
             <section className="px-4 py-4 border-b border-border/50">
               <div className="flex items-center gap-2 mb-3">
                 <Users className="w-4 h-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold">People to Follow</h2>
+                <h2 className="metro-header text-2xl">people to follow</h2>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {suggestedUsers.map((user) => (
@@ -362,7 +362,7 @@ export function DiscoverClient({
             <section className="px-4 py-4 border-b border-border/50">
               <div className="flex items-center gap-2 mb-3">
                 <Disc3 className="w-4 h-4 text-muted-foreground" />
-                <h2 className="text-sm font-semibold">Popular Playlists</h2>
+                <h2 className="metro-header text-2xl">popular playlists</h2>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {popularPlaylists.map((pl) => (
@@ -403,7 +403,7 @@ export function DiscoverClient({
           <section>
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50">
               <TrendingUp className="w-4 h-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Trending</h2>
+              <h2 className="metro-header text-2xl">trending</h2>
             </div>
             {trendingPosts.length > 0 ? (
               trendingPosts.map((post) => (

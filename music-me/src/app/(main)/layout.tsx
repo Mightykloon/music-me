@@ -11,9 +11,10 @@ export default async function MainLayout({
   if (!session?.user) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <MainNav user={session.user} />
-      <main className="pt-16 pb-safe sm:pb-0">{children}</main>
+      {/* top nav on wide screens, bottom app bar on phones */}
+      <main className="pb-16 sm:pb-0 sm:pt-16">{children}</main>
     </div>
   );
 }

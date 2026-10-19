@@ -355,9 +355,9 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       }
 
       if (completed > 0) {
-        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} rate-limited — retry later)` : ""}`, { id: "sync-all", duration: 6000 });
+        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} hit Spotify's rate limit, try again later)` : ""}`, { id: "sync-all", duration: 6000 });
       } else if (failed > 0) {
-        toast.error(`Spotify rate-limited all ${failed} playlists. Wait a minute and try again.`, { id: "sync-all", duration: 6000 });
+        toast.error(`All ${failed} playlists hit Spotify's rate limit. Wait a minute and try again.`, { id: "sync-all", duration: 6000 });
       }
       router.refresh();
     } catch (err) {
@@ -454,7 +454,9 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Library className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)]">My Music</h1>
+          <h1 className="metro-header text-5xl">
+            my music
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -481,8 +483,13 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
         <div className="text-center py-20">
           <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-lg font-semibold mb-2">Connect your music services</h2>
-          <p className="text-sm text-muted-foreground mb-4">Link Spotify, Apple Music, or other services to see your playlists here.</p>
-          <Link href="/settings/connections" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
+          <p className="text-sm text-muted-foreground mb-4">
+            Link Spotify, Apple Music, or other services to see your playlists here.
+          </p>
+          <Link
+            href="/settings/connections"
+            className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
+          >
             <Plus className="w-4 h-4" />
             Connect a Service
           </Link>
@@ -631,7 +638,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
           <button
             onClick={handleSyncAll}
             disabled={syncing}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+            className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
           >
             {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Sync Playlists

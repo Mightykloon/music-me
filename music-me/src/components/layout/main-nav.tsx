@@ -2,17 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  Compass,
-  PlusCircle,
-  Bell,
-  User,
-  Library,
-  Users,
-} from "lucide-react";
+import { Home, Compass, PlusCircle, Bell, User, Library, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RemixdLogo } from "@/components/ui/remixd-logo";
+import { RemixdWordmark } from "@/components/remixd-wordmark";
 
 interface MainNavProps {
   user: {
@@ -24,76 +16,86 @@ interface MainNavProps {
   className?: string;
 }
 
+// `also`: other paths that count as this section (the forum and messages
+// live under community)
 const navItems = [
-  { href: "/feed", icon: Home, label: "Home" },
-  { href: "/discover", icon: Compass, label: "Discover" },
-  { href: "/community", icon: Users, label: "Community" },
-  { href: "/notifications", icon: Bell, label: "Notifications" },
-  { href: "/my-music", icon: Library, label: "Library" },
+  { href: "/feed", icon: Home, label: "home" },
+  { href: "/discover", icon: Compass, label: "discover" },
+  { href: "/community", icon: Users, label: "community", also: ["/forum", "/messages"] },
+  { href: "/notifications", icon: Bell, label: "notifications" },
+  { href: "/my-music", icon: Library, label: "library" },
 ];
+
+const isActive = (pathname: string, href: string, also: string[] = []) =>
+  [href, ...also].some((p) => pathname === p || pathname.startsWith(p + "/"));
+
+// Windows Phone app-bar button: a circled icon that fills with the accent
+const appBarButton = "metro-appbar-icon transition-colors hover:border-primary hover:bg-primary hover:text-white";
 
 export function MainNav({ user, className }: MainNavProps) {
   const pathname = usePathname();
   const username = (user as { username?: string }).username;
+  const profileHref = username ? `/${username}` : "/settings/profile";
 
   return (
     <>
-      {/* Desktop top nav */}
-      <header
-        className={cn(
-          "fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl hidden sm:block",
-          className
-        )}
-      >
+      {/* Desktop: a pivot header. The current page is white with an accent
+          bar under it; the rest are grey. */}
+      <header className={cn("fixed top-0 w-full z-50 bg-background hidden sm:block", className)}>
         <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/feed" className="flex items-center">
-            <RemixdLogo height={22} />
+          <Link href="/feed" aria-label="re:mixd home">
+            <RemixdWordmark className="h-6 w-auto" />
           </Link>
-          <div className="flex items-center gap-1">
+
+          <div className="flex h-full items-stretch gap-1">
             {navItems.map((item) => {
-              const active = pathname.startsWith(item.href);
+              const active = isActive(pathname, item.href, item.also);
               return (
-                <Link key={item.href} href={item.href} className={cn("flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors", active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
-                  <item.icon className="w-4 h-4" />
-                  <span className="hidden lg:inline">{item.label}</span>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative flex items-center gap-2 px-3 text-[0.95rem] lowercase transition-colors after:absolute after:inset-x-3 after:bottom-0 after:h-[3px]",
+                    active ? "text-foreground after:bg-primary" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <item.icon className="w-4 h-4 lg:hidden" aria-hidden />
+                  <span className="sr-only lg:not-sr-only">{item.label}</span>
                 </Link>
               );
             })}
           </div>
+
           <div className="flex items-center gap-3">
-            <Link href="/feed" className="p-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-              <PlusCircle className="w-5 h-5" />
+            <Link href="/feed" aria-label="new post" className={appBarButton}>
+              <PlusCircle className="w-5 h-5" strokeWidth={1.75} />
             </Link>
-            <Link href={username ? `/${username}` : "/settings/profile"} className="p-2 rounded-lg hover:bg-muted transition-colors">
-              <User className="w-5 h-5" />
+            <Link href={profileHref} aria-label="your profile" className={appBarButton}>
+              <User className="w-5 h-5" strokeWidth={1.75} />
             </Link>
           </div>
         </nav>
       </header>
 
-      {/* Mobile bottom nav: Discover, Community, Home (center bubble), Notifications, Profile */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl sm:hidden safe-bottom">
-        <div className="flex items-center justify-around h-16 px-2">
-          <Link href="/discover" className={mobileNavClass(pathname, "/discover")}>
-            <Compass className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5">Discover</span>
+      {/* Mobile: a Windows Phone app bar of circled icons. Home sits in the
+          middle, filled with the accent. */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-muted sm:hidden safe-bottom">
+        <div className="flex items-center justify-around h-16">
+          <Link href="/discover" aria-label="discover" className={mobileNavClass(pathname, "/discover")}>
+            <Compass className="w-5 h-5" strokeWidth={1.75} />
           </Link>
-          <Link href="/community" className={mobileNavClass(pathname, "/community", ["/forum", "/messages"])}>
-            <Users className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5">Community</span>
+          <Link href="/community" aria-label="community" className={mobileNavClass(pathname, "/community", ["/forum", "/messages"])}>
+            <Users className="w-5 h-5" strokeWidth={1.75} />
           </Link>
-          <Link href="/feed" className="flex flex-col items-center justify-center -mt-4">
-            <span className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-              <Home className="w-6 h-6" />
-            </span>
+          <Link href="/feed" aria-label="home" className="metro-appbar-icon border-primary bg-primary text-white">
+            <Home className="w-5 h-5" strokeWidth={1.75} />
           </Link>
-          <Link href="/my-music" className={mobileNavClass(pathname, "/my-music")}>
-            <Library className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5">Library</span>
+          <Link href="/my-music" aria-label="library" className={mobileNavClass(pathname, "/my-music")}>
+            <Library className="w-5 h-5" strokeWidth={1.75} />
           </Link>
-          <Link href={username ? `/${username}` : "/settings/profile"} className={mobileNavClass(pathname, `/${username}`)}>
-            <User className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5">Profile</span>
+          <Link href={profileHref} aria-label="your profile" className={mobileNavClass(pathname, `/${username}`)}>
+            <User className="w-5 h-5" strokeWidth={1.75} />
           </Link>
         </div>
       </nav>
@@ -101,13 +103,9 @@ export function MainNav({ user, className }: MainNavProps) {
   );
 }
 
-function mobileNavClass(pathname: string, href: string, additionalPaths?: string[]) {
-  const active =
-    pathname === href ||
-    pathname.startsWith(href + "/") ||
-    (additionalPaths?.some((p) => pathname === p || pathname.startsWith(p + "/")) ?? false);
+function mobileNavClass(pathname: string, href: string, also?: string[]) {
   return cn(
-    "flex flex-col items-center justify-center gap-0 min-w-[3rem] py-1 rounded-lg transition-colors",
-    active ? "text-primary" : "text-muted-foreground"
+    "metro-appbar-icon transition-colors",
+    isActive(pathname, href, also) ? "text-foreground" : "text-muted-foreground"
   );
 }
