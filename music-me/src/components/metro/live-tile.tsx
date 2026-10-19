@@ -15,6 +15,13 @@ export type TileFace = {
   className?: string;
 };
 
+// The hover look for a tile's back face: solid accent normally, one smooth
+// accent outline with nothing inside while the tile is hovered. The border is
+// always there (transparent) so the content doesn't shift. Needs a `group`
+// on the tile or an ancestor.
+export const HOVER_OUTLINE =
+  "border-2 border-transparent transition-colors duration-200 group-hover:bg-transparent group-hover:border-primary group-hover:text-foreground";
+
 // The card: two sides back to back. Each flip turns it half a turn on its
 // horizontal axis, and the side coming round is filled with the next face
 // while it's still facing away.

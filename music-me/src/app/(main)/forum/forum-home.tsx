@@ -10,7 +10,7 @@ import {
   Newspaper, PianoKeys, Repeat, Skull, Sparkle, SpeakerHifi, Star, Ticket, Tree, Trophy, VinylRecord, Waveform,
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
-import { LiveTile, type TileFace } from "@/components/metro/live-tile";
+import { HOVER_OUTLINE, LiveTile, type TileFace } from "@/components/metro/live-tile";
 
 interface LatestThread {
   id: string;
@@ -124,8 +124,7 @@ function useRoamingOutlines(ids: string[]) {
 // "something new here"). Hovered, it turns into one smooth accent outline
 // with nothing inside. The border is always there (transparent) so the
 // content doesn't shift.
-const BACK_CLASS =
-  "bg-primary text-white border-2 border-transparent transition-colors duration-200 group-hover:bg-transparent group-hover:border-primary group-hover:text-foreground";
+const BACK_CLASS = `bg-primary text-white ${HOVER_OUTLINE}`;
 
 // an icon per sub-forum (by slug), from Phosphor's solid set
 const ICONS: Record<string, PhosphorIcon> = {
