@@ -4,10 +4,11 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import {
-  AudioLines, AudioWaveform, BookOpen, Coffee, Disc3, Drum, Flame, Guitar, Hand, Handshake, Headphones,
-  Heart, Laptop, Lightbulb, MessageSquareText, Mic, MicVocal, Moon, Music, Newspaper, Piano, Repeat,
-  Skull, SlidersVertical, Sparkles, Speaker, Star, Ticket, TreePine, Trophy, Zap, type LucideIcon,
-} from "lucide-react";
+  BookOpen, ChatText, Coffee, Equalizer, Faders, Fire, GlobeHemisphereEast, Guitar, HandWaving, Handshake,
+  Headphones, Heart, Laptop, Lightbulb, Lightning, Microphone, MicrophoneStage, MoonStars, MusicNotes,
+  Newspaper, PianoKeys, Repeat, Skull, Sparkle, SpeakerHifi, Star, Ticket, Tree, Trophy, VinylRecord, Waveform,
+  type Icon as PhosphorIcon,
+} from "@phosphor-icons/react";
 import { LiveTile, type TileFace } from "@/components/metro/live-tile";
 import { PunchedFill } from "@/components/metro/punched-fill";
 
@@ -58,40 +59,37 @@ const SIZE_CLASS: Record<Size, { cell: string; tile: string }> = {
   small: { cell: "", tile: "aspect-square" },
 };
 
-// Fronts mix solid accent, accent outline and solid dark so a group never
-// turns into one slab of colour; the big tiles are always solid.
-type Front = "solid" | "outline" | "dark";
-const FRONTS: Front[] = ["solid", "outline", "dark", "outline", "solid", "dark", "solid", "outline"];
+// Idle fronts are quiet: solid dark grey or a grey outline, never the accent.
+// Colour only appears when a tile flips to show new activity. Big and wide
+// tiles are always solid.
+type Front = "solid" | "outline";
+const FRONTS: Front[] = ["solid", "outline", "solid", "solid", "outline", "solid", "outline", "solid"];
 // busiest first; ties keep the forum's own order
 const byActivity = (subs: SubCategory[]) =>
   subs.map((s, order) => ({ s, order })).sort((a, b) => b.s.activity - a.s.activity || a.order - b.order).map(({ s }) => s);
 
 const frontOf = (i: number, size: Size): Front => (size === "small" ? FRONTS[(i * 3) % FRONTS.length] : "solid");
 
-// Fronts are painted by PunchedFill (so the icon can be cut out of them);
-// outlined fronts have no fill to punch, so their icon is drawn in the accent.
+// Solid fronts are painted by PunchedFill so the icon can be cut out of them;
+// outlined fronts have no fill to punch, so their icon is drawn in grey.
 const FRONT_CLASS: Record<Front, string> = {
-  solid: "isolate text-white",
-  outline: "border-2 border-primary text-foreground",
-  dark: "isolate text-foreground",
+  solid: "isolate text-foreground",
+  outline: "border-2 border-border text-foreground",
 };
-const FRONT_FILL: Partial<Record<Front, string>> = {
-  solid: "var(--metro-accent)",
-  dark: "var(--muted)",
-};
-// every back is solid accent, whatever the front
+const FRONT_FILL = "var(--muted)";
+// every back is solid accent: colour means "something new here"
 const BACK_CLASS = "bg-primary text-white";
 
-// an icon per sub-forum (by slug), replacing the emoji
-const ICONS: Record<string, LucideIcon> = {
-  introductions: Hand, "music-news": Newspaper, "hot-takes": Flame,
-  "hip-hop": Mic, "rnb-soul": Heart, pop: Star, rock: Guitar, electronic: AudioWaveform,
-  indie: Moon, "jazz-blues": Piano, classical: Music, metal: Skull, "country-folk": TreePine,
-  latin: Disc3, "kpop-jpop": Sparkles, afrobeats: Drum, "punk-ska": Zap, "lofi-chill": Coffee,
-  "beat-showcases": AudioLines, "production-tips": Lightbulb, "daw-talk": Laptop,
-  "mixing-mastering": SlidersVertical, "sound-design": Speaker, collabs: Handshake,
-  "original-songs": MicVocal, "remixes-covers": Repeat, "feedback-requests": MessageSquareText,
-  "weekly-spotlight": Trophy, "concerts-festivals": Ticket, vinyl: Disc3,
+// an icon per sub-forum (by slug), from Phosphor's solid set
+const ICONS: Record<string, PhosphorIcon> = {
+  introductions: HandWaving, "music-news": Newspaper, "hot-takes": Fire,
+  "hip-hop": Microphone, "rnb-soul": Heart, pop: Star, rock: Guitar, electronic: Waveform,
+  indie: MoonStars, "jazz-blues": PianoKeys, classical: MusicNotes, metal: Skull, "country-folk": Tree,
+  latin: VinylRecord, "kpop-jpop": Sparkle, afrobeats: GlobeHemisphereEast, "punk-ska": Lightning,
+  "lofi-chill": Coffee, "beat-showcases": Equalizer, "production-tips": Lightbulb, "daw-talk": Laptop,
+  "mixing-mastering": Faders, "sound-design": SpeakerHifi, collabs: Handshake,
+  "original-songs": MicrophoneStage, "remixes-covers": Repeat, "feedback-requests": ChatText,
+  "weekly-spotlight": Trophy, "concerts-festivals": Ticket, vinyl: VinylRecord,
   "music-history": BookOpen, gear: Headphones,
 };
 
@@ -101,23 +99,22 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
   const label = sub.name.toLowerCase();
   const large = size === "large";
   const wide = size !== "small"; // room for more text
-  const Icon = ICONS[sub.slug] ?? Music;
-  const iconSize = large ? 104 : 44;
-  const fill = FRONT_FILL[front];
+  const Icon = ICONS[sub.slug] ?? MusicNotes;
+  const iconSize = large ? 96 : 40;
 
   const frontFace: TileFace = {
     className: FRONT_CLASS[front],
     label,
     body: (
       <div className="flex h-full flex-col justify-between">
-        {fill ? (
+        {front === "solid" ? (
           <>
             {/* the icon is a hole in the tile; keep its space in the layout */}
-            <PunchedFill icon={Icon} fill={fill} size={iconSize} strokeWidth={large ? 1.5 : 2} />
+            <PunchedFill icon={Icon} fill={FRONT_FILL} size={iconSize} />
             <span aria-hidden style={{ height: iconSize - 12 }} />
           </>
         ) : (
-          <Icon aria-hidden className="text-primary" width={iconSize} height={iconSize} strokeWidth={2} />
+          <Icon aria-hidden className="text-muted-foreground" size={iconSize} weight="fill" />
         )}
         {wide && sub.description && (
           <p className={`${large ? "text-xl font-light" : "text-sm"} leading-snug opacity-90`}>{sub.description.toLowerCase()}</p>
@@ -205,7 +202,8 @@ export function ForumHome({ categories }: { categories: Category[] }) {
             </h2>
             <div className="grid grid-cols-2 gap-2 sm:grid-flow-col-dense sm:grid-rows-3 sm:auto-cols-[clamp(8.5rem,calc((100dvh-19rem)/3),11.5rem)] sm:grid-cols-none">
               {byActivity(category.children).map((sub, i, all) => {
-                const offset = (tileIndex++ * 733) % 4000;
+                // slow, scattered flips: each tile turns every ~14s, starts spread over ~14s
+                const offset = (tileIndex++ * 1931) % 14000;
                 const size = sizeOf(sub.activity, i, all[0].activity);
                 return (
                   <Link
@@ -217,7 +215,7 @@ export function ForumHome({ categories }: { categories: Category[] }) {
                     <LiveTile
                       faces={faces(sub, frontOf(i, size), size)}
                       offset={offset}
-                      interval={5200}
+                      interval={14000}
                       // each face paints its own fill (outlined fronts flip to solid)
                       className={`${SIZE_CLASS[size].tile} bg-transparent text-foreground`}
                     />
