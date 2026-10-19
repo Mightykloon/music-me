@@ -46,7 +46,7 @@ export function MetroArt({ className }: { className?: string }) {
       </svg>
 
       {/* focal point: the dancer, sitting just above the visualiser */}
-      <ArtMask art="dancer" color="#000" className="absolute left-[8%] top-[5%] w-[86%]" />
+      <ArtMask art="dancer" color="#000" className="absolute left-[8%] top-1/2 w-[86%] -translate-y-[55%]" />
 
       {/* visualiser, in front, sinking off the bottom */}
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice" aria-hidden>
