@@ -11,7 +11,7 @@ import {
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
 import { LiveTile, type TileFace } from "@/components/metro/live-tile";
-import { PunchedCornerText, PunchedFill } from "@/components/metro/punched-fill";
+import { PunchedCornerText } from "@/components/metro/punched-fill";
 
 interface LatestThread {
   id: string;
@@ -68,13 +68,12 @@ type Front = "solid" | "outline";
 const byActivity = (subs: SubCategory[]) =>
   subs.map((s, order) => ({ s, order })).sort((a, b) => b.s.activity - a.s.activity || a.order - b.order).map(({ s }) => s);
 
-// Solid fronts are painted by PunchedFill so the icon can be cut out of them;
-// outlined fronts have no fill to punch, so their icon is drawn in grey.
+// Solid fronts are a near-black fill with a solid icon; outlined fronts are
+// just a grey border with a dark icon.
 const FRONT_CLASS: Record<Front, string> = {
-  solid: "isolate text-foreground",
+  solid: "bg-[var(--metro-tile)] text-foreground",
   outline: "border-2 border-border text-foreground",
 };
-const FRONT_FILL = "var(--metro-tile)";
 
 // Like the reactor tiles on damian.digital: every so often one random tile
 // gains or loses its outline, stuttering on the way like a flickering light,
@@ -154,15 +153,10 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
     label,
     body: (
       <div className="flex h-full flex-col justify-between">
-        {front === "solid" ? (
-          <>
-            {/* the icon is a hole in the tile; keep its space in the layout */}
-            <PunchedFill icon={Icon} fill={FRONT_FILL} size={iconSize} />
-            <span aria-hidden style={{ height: iconSize - 12 }} />
-          </>
-        ) : (
-          <Icon aria-hidden className="text-muted-foreground" size={iconSize} weight="fill" />
-        )}
+        {/* solid tiles: a solid icon in the text colour; outlined tiles: a
+            dark icon that stays as quiet as the outline */}
+        <Icon aria-hidden className={front === "solid" ? "text-foreground" : "text-border"} size={iconSize} weight="fill" />
+
         {wide && sub.description && (
           <p className={`${large ? "text-xl font-light" : "text-sm"} leading-snug opacity-90`}>{sub.description.toLowerCase()}</p>
         )}
