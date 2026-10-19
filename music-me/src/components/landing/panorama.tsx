@@ -221,17 +221,9 @@ export function Panorama() {
         {/* 4 · join */}
         <motion.section
           {...panel(3)}
-          className="flex shrink-0 snap-start flex-col justify-end gap-6 pb-10 pl-3 pr-8 pt-[clamp(8rem,30vh,17rem)] sm:flex-row sm:items-end sm:gap-8 sm:pr-16"
+          className="flex shrink-0 snap-start items-end gap-6 pb-10 pl-3 pr-3 pt-[clamp(8rem,30vh,17rem)] sm:gap-10"
         >
-          {/* the headphones portrait, floating: the accent print set slightly off
-              register behind a figure in the text colour. On wide screens its top lines up with
-              the tiles; on phones it sits below the text and fills the height left.
-              Either way its cropped bottom edge runs off the bottom of the page. */}
-          <div aria-hidden className="relative order-last -mb-10 min-h-0 w-[calc(88vw-2.75rem)] flex-1 sm:order-none sm:aspect-[2132/3000] sm:h-[calc(var(--pano-avail)-1rem)] sm:w-auto sm:flex-none">
-            <div className="absolute inset-0 translate-x-[6px] translate-y-[4px]" style={{ backgroundColor: "var(--metro-accent)", ...HEADPHONES }} />
-            <div className="absolute inset-0" style={{ backgroundColor: "currentColor", ...HEADPHONES }} />
-          </div>
-          <div className="flex w-[calc(88vw-2.75rem)] flex-col gap-6 sm:w-[400px]">
+          <div className="flex w-[calc(88vw-2.75rem)] shrink-0 flex-col gap-6 sm:w-[400px]">
             <h2 className="metro-header text-5xl sm:text-6xl">join the mix</h2>
             <p className="max-w-sm text-muted-foreground">
               Make an account, connect a music service, and your profile starts sounding like you in a couple of minutes.
@@ -249,6 +241,14 @@ export function Panorama() {
               <Link href="/terms" className="hover:text-foreground">terms</Link>
               <span>&copy; {new Date().getFullYear()} re:mixd</span>
             </nav>
+          </div>
+          {/* the headphones portrait, last in the panorama: the accent print set
+              slightly off register behind a figure in the text colour. Its top
+              lines up with the tiles and its cropped bottom edge runs off the
+              bottom of the page; it's its own stop when swiping. */}
+          <div aria-hidden className="relative -mb-10 aspect-[2132/3000] h-[calc(var(--pano-avail)-1rem)] flex-none snap-end">
+            <div className="absolute inset-0 translate-x-[6px] translate-y-[4px]" style={{ backgroundColor: "var(--metro-accent)", ...HEADPHONES }} />
+            <div className="absolute inset-0" style={{ backgroundColor: "currentColor", ...HEADPHONES }} />
           </div>
         </motion.section>
       </div>
