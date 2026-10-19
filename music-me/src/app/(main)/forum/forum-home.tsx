@@ -11,7 +11,6 @@ import {
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
 import { LiveTile, type TileFace } from "@/components/metro/live-tile";
-import { PunchedCornerText } from "@/components/metro/punched-fill";
 
 interface LatestThread {
   id: string;
@@ -121,10 +120,12 @@ function useRoamingOutlines(ids: string[]) {
   return outlined;
 }
 
-// every back is solid accent: colour means "something new here"
-// painted by PunchedCornerText, so "browse →" can be cut out of the corner
-const BACK_CLASS = "isolate text-white";
-const BACK_FILL = "var(--metro-accent)";
+// The back is solid accent when a tile flips on its own (colour means
+// "something new here"). Hovered, it turns into one smooth accent outline
+// with nothing inside. The border is always there (transparent) so the
+// content doesn't shift.
+const BACK_CLASS =
+  "bg-primary text-white border-2 border-transparent transition-colors duration-200 group-hover:bg-transparent group-hover:border-primary group-hover:text-foreground";
 
 // an icon per sub-forum (by slug), from Phosphor's solid set
 const ICONS: Record<string, PhosphorIcon> = {
@@ -169,19 +170,17 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
   const reply = thread?.replies[0];
   const count = `${sub._count.threads} ${sub._count.threads === 1 ? "thread" : "threads"}`;
 
-  // Top row of the back: what this is on the left; on the right, a reserved
-  // slot where "browse →" is punched out of the tile on hover (bold, its
-  // letters touching the top edge), so it never sits over text.
+  // Top row of the back: what this is on the left; "browse →" on the right in
+  // its own slot (shown on hover), so it never sits over text.
   const topRow = (kicker: string) => (
     <div className="flex items-start gap-2">
-      <PunchedCornerText
-        text="browse"
-        fill={BACK_FILL}
-        frameOnHover
-        textClassName="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
-      />
       <p className="min-w-0 flex-1 text-[0.7rem] uppercase leading-tight tracking-wider opacity-80">{kicker}</p>
-      <span aria-hidden className="w-[5.75rem] shrink-0" />
+      <span
+        aria-hidden
+        className="shrink-0 text-xs lowercase leading-tight opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+      >
+        browse →
+      </span>
     </div>
   );
 
