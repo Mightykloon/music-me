@@ -461,7 +461,7 @@ export function ThreadView({
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-lg font-bold font-[family-name:var(--font-space-grotesk)] flex items-center gap-2">
+            <h1 className="text-3xl font-light tracking-tight leading-tight flex items-center gap-2">
               {thread.isPinned && <Pin className="w-4 h-4 text-primary" />}
               {thread.isLocked && <Lock className="w-4 h-4 text-muted-foreground" />}
               {thread.title}
@@ -532,7 +532,7 @@ export function ThreadView({
             <button
               onClick={handleReply}
               disabled={!replyContent.trim() || submitting}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              className="metro-button metro-button-accent min-h-[38px] px-4 text-sm disabled:opacity-50"
             >
               {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Post Reply

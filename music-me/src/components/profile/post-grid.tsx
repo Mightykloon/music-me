@@ -40,21 +40,21 @@ export function PostGrid({ posts, className }: PostGridProps) {
     return (
       <div className={`text-center py-12 text-muted-foreground ${className ?? ""}`}>
         <Music className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">No posts yet</p>
+        <p className="text-sm lowercase">no posts yet</p>
       </div>
     );
   }
 
   return (
     <div className={className}>
-      <h2 className="text-lg font-semibold font-[family-name:var(--profile-heading-font)] mb-3">
-        Posts
+      <h2 className="metro-header text-3xl font-[family-name:var(--profile-heading-font)] mb-3">
+        posts
       </h2>
       <div className="flex flex-col gap-4">
         {posts.map((post) => (
           <article
             key={post.id}
-            className="p-4 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm hover:bg-white/5 transition-colors"
+            className="p-4 bg-black/70 hover:bg-black/85 transition-colors"
           >
             {/* Author row */}
             <div className="flex items-center gap-2 mb-2">

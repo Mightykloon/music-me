@@ -7,6 +7,7 @@ interface AvatarProps {
   src: string | null | undefined;
   alt: string;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  /** Metro people tiles are square; "circle" is kept for the odd exception */
   shape?: "circle" | "rounded";
   className?: string;
 }
@@ -31,7 +32,7 @@ export function Avatar({
   src,
   alt,
   size = "md",
-  shape = "circle",
+  shape = "rounded",
   className,
 }: AvatarProps) {
   const initials = alt
@@ -46,7 +47,7 @@ export function Avatar({
       className={cn(
         sizeMap[size],
         "relative overflow-hidden flex-shrink-0",
-        shape === "circle" ? "rounded-full" : "rounded-xl",
+        shape === "circle" ? "rounded-full" : "",
         className
       )}
     >
@@ -64,7 +65,7 @@ export function Avatar({
           />
         )
       ) : (
-        <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+        <div className="w-full h-full bg-primary flex items-center justify-center text-white font-light text-sm lowercase">
           {initials}
         </div>
       )}

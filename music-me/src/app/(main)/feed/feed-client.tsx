@@ -13,7 +13,8 @@ interface FeedPageClientProps {
 
 export function FeedPageClient({ user }: FeedPageClientProps) {
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto min-h-[calc(100dvh-4rem)] bg-background">
+      {/* a solid column, so posts read cleanly over the halftone backdrop */}
       {user && <PostComposer user={user} />}
       <FeedContainer />
     </div>

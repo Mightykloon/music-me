@@ -1,27 +1,27 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { Open_Sans } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { SiteBackdrop } from "@/components/site-backdrop";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Metro's typeface is Segoe, which can't be served on the web. Open Sans was
+// drawn by the same designer (Steve Matteson) and is the closest free match;
+// Windows visitors still get real Segoe UI first (see --metro-font).
+const openSans = Open_Sans({
+  variable: "--font-open-sans",
   subsets: ["latin"],
-  display: "swap",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
+  weight: ["300", "400", "600", "700"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "remixd — your sound. your identity.",
+    default: "remixd | your sound. your identity.",
     template: "%s | remixd",
   },
   description:
-    "A music-based social platform with customizable profiles, playlist imports, live lyrics, and an anti-doomscroll feed.",
+    "A social platform built around music, with customizable profiles, playlist imports, live lyrics, and a feed made to stop doomscrolling.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
   ),
@@ -41,9 +41,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${spaceGrotesk.variable} dark h-full antialiased`}
+      data-theme="dark"
+      data-accent="violet"
+      className={`${openSans.variable} dark h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* apply the visitor's saved theme + accent before first paint */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <SiteBackdrop />
         <Providers>{children}</Providers>
       </body>
     </html>

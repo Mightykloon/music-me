@@ -138,8 +138,8 @@ export default function ConnectionsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)] mb-2">
-        Music Connections
+      <h1 className="metro-header text-5xl mb-2">
+        music connections
       </h1>
       <p className="text-muted-foreground text-sm mb-8">
         Connect your music services to import playlists, show what you're
@@ -168,7 +168,7 @@ export default function ConnectionsPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium">{info.name}</h3>
                       {connection?.isPrimary && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        <span className="text-xs lowercase bg-primary text-white px-2 py-0.5">
                           Primary
                         </span>
                       )}
@@ -210,7 +210,7 @@ export default function ConnectionsPage() {
                           connection && handleSync(connection.id)
                         }
                         disabled={syncing === connection?.id}
-                        title="Re-sync playlists"
+                        title="Sync playlists again"
                       >
                         <RefreshCw
                           className={`w-4 h-4 ${syncing === connection?.id ? "animate-spin" : ""}`}

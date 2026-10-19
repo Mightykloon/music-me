@@ -115,7 +115,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
     const total = data.tracks?.total ?? 0;
     if (items.length === 0) return 0;
 
-    // Don't follow pagination — uses /tracks endpoint which is 403 in Dev Mode
+    // Don't follow pagination: uses /tracks endpoint which is 403 in Dev Mode
     const tracks = items
       .filter((item) => {
         const t = item.track as Record<string, unknown> | null;
@@ -236,9 +236,9 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
       }
 
       if (completed > 0) {
-        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} rate-limited — retry later)` : ""}`, { id: "sync-all", duration: 6000 });
+        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} hit Spotify's rate limit, try again later)` : ""}`, { id: "sync-all", duration: 6000 });
       } else if (failed > 0) {
-        toast.error(`Spotify rate-limited all ${failed} playlists. Wait a minute and try again.`, { id: "sync-all", duration: 6000 });
+        toast.error(`All ${failed} playlists hit Spotify's rate limit. Wait a minute and try again.`, { id: "sync-all", duration: 6000 });
       }
       router.refresh();
     } catch (err) {
@@ -331,8 +331,8 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Library className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)]">
-            My Music
+          <h1 className="metro-header text-5xl">
+            my music
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -364,7 +364,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
           </p>
           <Link
             href="/settings/connections"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+            className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
           >
             <Plus className="w-4 h-4" />
             Connect a Service
@@ -524,7 +524,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
                 value={syncGroupName}
                 onChange={(e) => setSyncGroupName(e.target.value)}
                 placeholder="Sync group name (e.g. 'My Favorites')"
-                className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm mb-4 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full px-3 py-2 bg-background border-2 border-border text-sm mb-4 focus:outline-none focus:border-primary"
               />
 
               <p className="text-xs text-muted-foreground mb-3">
@@ -599,7 +599,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
               <button
                 onClick={handleCreateSyncGroup}
                 disabled={selectedIds.size < 2 || !parityId || !syncGroupName.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                className="metro-button metro-button-accent min-h-[38px] px-4 text-sm disabled:opacity-50"
               >
                 <Link2 className="w-4 h-4" />
                 Create Sync Group
@@ -677,7 +677,7 @@ export function MyMusicClient({ playlists, connections, syncGroups }: MyMusicCli
           <button
             onClick={handleSyncAll}
             disabled={syncing}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+            className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
           >
             {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Sync Playlists

@@ -17,23 +17,28 @@ const layouts: Record<string, React.ComponentType<ProfileLayoutProps>> = {
   MYSPACE: MyspaceLayout,
 };
 
+// Values the database fills in when someone hasn't customised their profile.
+// Those profiles get the site's Metro look: its font, and the halftone
+// backdrop showing through instead of a flat colour.
+const DEFAULT_BG = "#0a0a0a";
+const DEFAULT_FONTS = new Set(["Inter", "Space Grotesk"]);
+const fontVar = (name: string | null | undefined) =>
+  name && !DEFAULT_FONTS.has(name) ? `"${name}", var(--metro-font)` : "var(--metro-font)";
+
 export function ProfileCanvas({ user, posts, isOwn }: Props) {
   const profile = user.profile;
   const layoutStyle = profile?.layoutStyle ?? "CLASSIC";
   const LayoutComponent = layouts[layoutStyle] ?? ClassicLayout;
+  const background = profile?.backgroundColor ?? DEFAULT_BG;
 
   // CSS custom properties for theming
   const themeVars: React.CSSProperties & Record<string, string> = {
-    "--profile-bg": profile?.backgroundColor ?? "#0a0a0a",
+    "--profile-bg": background,
     "--profile-primary": profile?.primaryColor ?? "#8b5cf6",
     "--profile-secondary": profile?.secondaryColor ?? "#6d28d9",
     "--profile-accent": profile?.accentColor ?? "#a78bfa",
-    "--profile-font": profile?.fontFamily
-      ? `"${profile.fontFamily}", sans-serif`
-      : '"Inter", sans-serif',
-    "--profile-heading-font": profile?.headingFont
-      ? `"${profile.headingFont}", sans-serif`
-      : '"Space Grotesk", sans-serif',
+    "--profile-font": fontVar(profile?.fontFamily),
+    "--profile-heading-font": fontVar(profile?.headingFont),
   };
 
   return (
@@ -46,11 +51,11 @@ export function ProfileCanvas({ user, posts, isOwn }: Props) {
     >
       {/* Background layer */}
       <div className="fixed inset-0 -z-10">
-        {/* Base color — always rendered underneath */}
-        <div
-          className="absolute inset-0"
-          style={{ backgroundColor: profile?.backgroundColor ?? "#0a0a0a" }}
-        />
+        {/* Base color, unless it's the untouched default: then the site's
+            halftone backdrop (rendered further back) shows through */}
+        {background.toLowerCase() !== DEFAULT_BG && (
+          <div className="absolute inset-0" style={{ backgroundColor: background }} />
+        )}
         {/* Image / video on top, opacity controlled by user slider */}
         {profile?.backgroundImageUrl ? (
           <div

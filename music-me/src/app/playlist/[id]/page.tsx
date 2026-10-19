@@ -15,7 +15,7 @@ export async function generateMetadata({
   });
   if (!playlist) return { title: "Playlist not found" };
   return {
-    title: `${playlist.name} by @${playlist.user.username} — remixd`,
+    title: `${playlist.name} by @${playlist.user.username}`,
     description: playlist.description ?? `Listen to ${playlist.name} on remixd`,
   };
 }

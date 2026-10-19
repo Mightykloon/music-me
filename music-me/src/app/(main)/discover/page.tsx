@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { DiscoverClient } from "./discover-client";
 
 export const metadata = {
-  title: "Discover — remixd",
+  title: "Discover",
 };
 
 export default async function DiscoverPage() {

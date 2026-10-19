@@ -30,7 +30,7 @@ export default function TermsOfServicePage() {
             </Link>
             <Link
               href="/register"
-              className="text-sm px-4 py-2 rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+              className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
             >
               Sign up
             </Link>
@@ -56,7 +56,7 @@ export default function TermsOfServicePage() {
               &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;)
               governing your use of our website, applications, and related
               services (collectively, the &ldquo;Service&rdquo;). Remixd is a
-              music and file-sharing community platform where you can build a
+              community platform for sharing music and files where you can build a
               customizable profile, import playlists, share posts and audio,
               and participate in community forums.
             </p>
@@ -100,7 +100,7 @@ export default function TermsOfServicePage() {
           <Section title="4. Your Content">
             <p>
               &ldquo;Content&rdquo; means anything you post, upload, share, or
-              store on the Service — including text, images, audio files,
+              store on the Service, including text, images, audio files,
               playlists, lyric cards, polls, forum posts, messages, and profile
               customizations.
             </p>
@@ -137,7 +137,7 @@ export default function TermsOfServicePage() {
           <Section title="5. Copyright & DMCA Policy">
             <p>
               Remixd is a community for sharing music you have the right to
-              share — your own work, remixes you are licensed to distribute, and
+              share: your own work, remixes you are licensed to distribute, and
               content in the public domain or under permissive licenses.
               Uploading or distributing copyrighted works without authorization
               is prohibited.
@@ -189,11 +189,11 @@ export default function TermsOfServicePage() {
                 the Service;
               </li>
               <li>
-                Scrape, harvest, or bulk-collect user data without our written
+                Scrape, harvest, or collect user data in bulk without our written
                 permission;
               </li>
               <li>
-                Use the Service to violate the terms of a connected third-party
+                Use the Service to violate the terms of a connected
                 service (e.g., Spotify, Apple Music, SoundCloud); or
               </li>
               <li>
@@ -207,12 +207,12 @@ export default function TermsOfServicePage() {
             </p>
           </Section>
 
-          <Section title="7. Connected Third-Party Services">
+          <Section title="7. Connected Services">
             <p>
-              The Service lets you connect third-party music and login providers
+              The Service lets you connect music and login providers
               (Google, Spotify, Apple Music, YouTube Music, Last.fm, Deezer,
               SoundCloud). Your use of those services is governed by their own
-              terms and policies. We are not responsible for third-party
+              terms and policies. We are not responsible for those
               services, and features that depend on them may change or stop
               working if the provider changes or revokes access.
             </p>
@@ -220,12 +220,12 @@ export default function TermsOfServicePage() {
 
           <Section title="8. Remixd's Intellectual Property">
             <p>
-              The Service itself — including its software, design, wordmark, and
-              branding — is owned by Remixd or its licensors and is protected by
-              intellectual-property laws. Except for the rights expressly
+              The Service itself, including its software, design, wordmark, and
+              branding, is owned by Remixd or its licensors and is protected by
+              intellectual property laws. Except for the rights expressly
               granted to you in these Terms, we reserve all rights. You may not
               copy, modify, or create derivative works of the Service, or
-              reverse-engineer it except where the law permits.
+              reverse engineer it except where the law permits.
             </p>
           </Section>
 
@@ -246,7 +246,7 @@ export default function TermsOfServicePage() {
               AVAILABLE&rdquo; WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS
               OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
               PARTICULAR PURPOSE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT
-              THE SERVICE WILL BE UNINTERRUPTED, SECURE, OR ERROR-FREE, OR THAT
+              THE SERVICE WILL BE UNINTERRUPTED, SECURE, OR FREE OF ERRORS, OR THAT
               CONTENT POSTED BY USERS IS ACCURATE OR LAWFUL.
             </p>
           </Section>
