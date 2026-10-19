@@ -137,12 +137,11 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
     <div className="flex items-start gap-2">
       <PunchedCornerText
         text="browse"
-        arrow
         fill={BACK_FILL}
         textClassName="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
       />
       <p className="min-w-0 flex-1 text-[0.7rem] uppercase leading-tight tracking-wider opacity-80">{kicker}</p>
-      <span aria-hidden className="w-[4.75rem] shrink-0" />
+      <span aria-hidden className="w-[5.75rem] shrink-0" />
     </div>
   );
 
