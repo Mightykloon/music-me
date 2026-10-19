@@ -48,11 +48,13 @@ export function PunchedCornerText({
   fill,
   size = 17,
   textClassName,
+  frameOnHover = false,
 }: {
   text: string;
   fill: string;
   size?: number; // font size in px
   textClassName?: string;
+  frameOnHover?: boolean;
 }) {
   const id = `punch-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
   return (
@@ -81,7 +83,27 @@ export function PunchedCornerText({
           </text>
         </mask>
       </defs>
-      <rect width="100%" height="100%" fill={fill} mask={`url(#${id})`} />
+      <g mask={`url(#${id})`}>
+        {/* the fill; with `frameOnHover` it pulls in on hover, leaving a gap
+            inside a thin frame in the same colour. The text is cut through
+            both, so the frame looks punched too. (Needs a `group` ancestor.) */}
+        <rect
+          fill={fill}
+          className={
+            frameOnHover
+              ? "[height:100%] [width:100%] [x:0px] [y:0px] transition-all duration-200 group-hover:[height:calc(100%_-_12px)] group-hover:[width:calc(100%_-_12px)] group-hover:[x:6px] group-hover:[y:6px] group-focus-visible:[height:calc(100%_-_12px)] group-focus-visible:[width:calc(100%_-_12px)] group-focus-visible:[x:6px] group-focus-visible:[y:6px]"
+              : "[height:100%] [width:100%]"
+          }
+        />
+        {frameOnHover && (
+          <rect
+            fill="none"
+            stroke={fill}
+            strokeWidth={2}
+            className="[height:calc(100%_-_2px)] [width:calc(100%_-_2px)] [x:1px] [y:1px] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+          />
+        )}
+      </g>
     </svg>
   );
 }

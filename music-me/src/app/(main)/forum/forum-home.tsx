@@ -177,6 +177,7 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
       <PunchedCornerText
         text="browse"
         fill={BACK_FILL}
+        frameOnHover
         textClassName="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
       />
       <p className="min-w-0 flex-1 text-[0.7rem] uppercase leading-tight tracking-wider opacity-80">{kicker}</p>
@@ -272,7 +273,7 @@ export function ForumHome({ categories }: { categories: Category[] }) {
                     key={sub.id}
                     href={`/forum/${sub.slug}`}
                     aria-label={`${sub.name}${sub.description ? `: ${sub.description}` : ""}`}
-                    className={`group outline-none focus-visible:ring-2 focus-visible:ring-primary ${SIZE_CLASS[size].cell}`}
+                    className={`group outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${SIZE_CLASS[size].cell}`}
                   >
                     <LiveTile
                       faces={faces(sub, outlined.has(sub.id) ? "outline" : "solid", size)}
