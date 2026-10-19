@@ -55,10 +55,18 @@ export default async function ForumPage() {
   }
 
   // dates as strings for the client component
+  // replies per sub-forum, so tiles can be sized by total activity
+  const replyCounts = await db.$queryRaw<{ categoryId: string; replies: bigint }[]>`
+    SELECT t."categoryId", COUNT(r.id) AS replies
+    FROM "ForumReply" r JOIN "ForumThread" t ON t.id = r."threadId"
+    GROUP BY t."categoryId"`;
+  const repliesBy = new Map(replyCounts.map((r) => [r.categoryId, Number(r.replies)]));
+
   const data = categories.map((c) => ({
     ...c,
     children: c.children.map((sub) => ({
       ...sub,
+      activity: sub._count.threads + (repliesBy.get(sub.id) ?? 0),
       threads: sub.threads.map((t) => ({
         ...t,
         createdAt: t.createdAt.toISOString(),
