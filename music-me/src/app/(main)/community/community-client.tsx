@@ -111,7 +111,7 @@ export function CommunityClient({
         <div className="px-4 pt-4 pb-0">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="metro-header text-5xl">community</h1>
+              <h1 className="metro-header text-4xl sm:text-5xl">community</h1>
               <p className="text-sm text-muted-foreground mt-2">
                 Connect, discuss, and vibe with other music lovers
               </p>
@@ -125,13 +125,13 @@ export function CommunityClient({
             </button>
           </div>
 
-          <div className="flex items-baseline gap-5 overflow-x-auto pb-2 [scrollbar-width:none]">
+          <div className="flex items-baseline gap-4 sm:gap-5 overflow-x-auto pb-2 [scrollbar-width:none]">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
                 className={cn(
-                  "relative flex shrink-0 items-baseline gap-2 text-3xl font-light lowercase leading-none tracking-tight transition-colors",
+                  "relative flex shrink-0 items-baseline gap-2 text-2xl sm:text-3xl font-light lowercase leading-none tracking-tight transition-colors",
                   activeTab === tab.id
                     ? "text-foreground"
                     : "text-muted-foreground/50 hover:text-muted-foreground"

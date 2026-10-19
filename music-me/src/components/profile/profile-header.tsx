@@ -115,12 +115,12 @@ export function ProfileHeader({
 
   return (
     <div className={className}>
-      <div className="flex items-start gap-5">
+      <div className="flex items-start gap-4 sm:gap-5">
         <Avatar
           src={user.profile?.profilePictureUrl}
           alt={user.displayName ?? user.username}
           size="2xl"
-          className=""
+          className="h-24 w-24 sm:h-32 sm:w-32"
         />
         <div className="flex-1 min-w-0 pt-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -168,7 +168,7 @@ export function ProfileHeader({
               })}
             </div>
           )}
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             {isOwn ? (
               <Link href="/settings/profile" className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors">Edit profile</Link>
             ) : (

@@ -14,7 +14,7 @@ interface FeedPageClientProps {
 
 export function FeedPageClient({ user }: FeedPageClientProps) {
   return (
-    <div className="max-w-6xl mx-auto flex gap-6 px-4">
+    <div className="max-w-6xl mx-auto flex gap-6 sm:px-4">
       {/* Main feed: a solid column, so posts read cleanly over the halftone backdrop */}
       <div className="flex-1 max-w-2xl mx-auto min-w-0 min-h-[calc(100dvh-4rem)] bg-background">
         {user && <PostComposer user={user} />}

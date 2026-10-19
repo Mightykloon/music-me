@@ -104,8 +104,8 @@ export function FeedContainer() {
       <div className="sticky top-0 sm:top-16 z-20 bg-background">
         {/* Source tabs: a Metro pivot. Big light lowercase headers, the
             current one white and the rest dimmed. */}
-        <div className="flex items-end">
-          <div className="flex min-w-0 flex-1 items-baseline gap-4 sm:gap-5 overflow-x-auto px-4 pb-2 pt-3 [scrollbar-width:none]">
+        <div className="flex flex-wrap items-end">
+          <div className="flex min-w-0 basis-full items-baseline gap-4 overflow-x-auto px-4 pb-2 pt-3 [scrollbar-width:none] sm:flex-1 sm:basis-auto sm:gap-5">
             {FEED_SOURCES.map((source) => (
               <button
                 key={source.value}
@@ -123,7 +123,7 @@ export function FeedContainer() {
           </div>
 
           {/* Display mode toggle */}
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 pr-2 sm:px-3 pb-2">
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1 px-3 pb-2">
             {DISPLAY_MODES.map(({ value, icon: Icon, label }) => (
               <button
                 key={value}
