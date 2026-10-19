@@ -2,7 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
 import { LiveTile, type TileFace } from "@/components/metro/live-tile";
+
+interface LatestThread {
+  id: string;
+  title: string;
+  createdAt: string;
+  author: { username: string };
+  replies: { content: string; createdAt: string; author: { username: string } }[];
+}
 
 interface SubCategory {
   id: string;
@@ -11,6 +20,7 @@ interface SubCategory {
   icon: string | null;
   description: string | null;
   _count: { threads: number };
+  threads: LatestThread[];
 }
 
 interface Category {
@@ -25,26 +35,67 @@ interface Category {
 }
 
 // Tile rhythm within a group, like the Xbox 360 / Windows Phone start screen:
-// the first tile is wide, and every few tiles one goes dark so the accent
-// doesn't turn into a single slab.
+// the first tile is wide; the rest mix solid accent, accent outline and
+// solid dark fronts so a group never turns into one slab of colour.
+type Front = "solid" | "outline" | "dark";
+const FRONTS: Front[] = ["solid", "outline", "dark", "outline", "solid", "dark", "solid", "outline"];
 const isWide = (i: number) => i === 0;
-const isDark = (i: number) => i % 4 === 2;
+const frontOf = (i: number): Front => (isWide(i) ? "solid" : FRONTS[(i * 3) % FRONTS.length]);
 
-function faces(sub: SubCategory): TileFace[] {
+const FRONT_CLASS: Record<Front, string> = {
+  solid: "bg-primary text-white",
+  outline: "border-2 border-primary text-foreground",
+  dark: "bg-muted text-foreground",
+};
+// every back is solid accent, whatever the front
+const BACK_CLASS = "bg-primary text-white";
+
+const ago = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true });
+
+function faces(sub: SubCategory, front: Front, wide: boolean): TileFace[] {
   const label = sub.name.toLowerCase();
-  const list: TileFace[] = [
-    { body: <span className="text-4xl leading-none">{sub.icon}</span>, label },
-  ];
-  if (sub.description) {
-    list.push({ body: <p className="text-base leading-snug">{sub.description.toLowerCase()}</p>, label });
-  }
-  if (sub._count.threads > 0) {
-    list.push({
-      body: <span className="text-5xl font-light leading-none">{sub._count.threads}</span>,
-      label: sub._count.threads === 1 ? "thread" : "threads",
-    });
-  }
-  return list;
+
+  const frontFace: TileFace = {
+    className: FRONT_CLASS[front],
+    label,
+    body: (
+      <div className="flex h-full flex-col justify-between">
+        <span className="text-4xl leading-none">{sub.icon}</span>
+        {wide && sub.description && <p className="text-sm leading-snug opacity-90">{sub.description.toLowerCase()}</p>}
+      </div>
+    ),
+  };
+
+  // the back: the newest activity in this sub-forum
+  const thread = sub.threads[0];
+  const reply = thread?.replies[0];
+  const count = `${sub._count.threads} ${sub._count.threads === 1 ? "thread" : "threads"}`;
+
+  const backFace: TileFace = thread
+    ? {
+        className: BACK_CLASS,
+        label: reply ? `@${reply.author.username} replied ${ago(reply.createdAt)}` : `@${thread.author.username} · ${ago(thread.createdAt)}`,
+        body: (
+          <div className="flex h-full flex-col gap-1 overflow-hidden">
+            <p className="text-[0.7rem] uppercase tracking-wider opacity-80">{reply ? "latest reply" : "latest thread"} · {count}</p>
+            {reply ? (
+              <>
+                <p className={`leading-snug ${wide ? "line-clamp-3 text-base" : "line-clamp-2 text-sm"}`}>{reply.content}</p>
+                <p className="mt-auto truncate text-xs opacity-80">in {thread.title}</p>
+              </>
+            ) : (
+              <p className={`font-light leading-tight ${wide ? "line-clamp-3 text-xl" : "line-clamp-3 text-base"}`}>{thread.title}</p>
+            )}
+          </div>
+        ),
+      }
+    : {
+        className: BACK_CLASS,
+        label,
+        body: <p className="text-base font-light leading-snug">no threads yet. start the first one.</p>,
+      };
+
+  return [frontFace, backFace];
 }
 
 export function ForumHome({ categories }: { categories: Category[] }) {
@@ -95,21 +146,20 @@ export function ForumHome({ categories }: { categories: Category[] }) {
             <div className="grid grid-cols-2 gap-2 sm:grid-flow-col-dense sm:grid-rows-3 sm:auto-cols-[clamp(8.5rem,calc((100dvh-19rem)/3),11.5rem)] sm:grid-cols-none">
               {category.children.map((sub, i) => {
                 const offset = (tileIndex++ * 733) % 4000;
+                const wide = isWide(i);
                 return (
                   <Link
                     key={sub.id}
                     href={`/forum/${sub.slug}`}
                     aria-label={`${sub.name}${sub.description ? `: ${sub.description}` : ""}`}
-                    className={isWide(i) ? "col-span-2" : undefined}
+                    className={wide ? "col-span-2" : undefined}
                   >
                     <LiveTile
-                      faces={faces(sub)}
+                      faces={faces(sub, frontOf(i), wide)}
                       offset={offset}
                       interval={5200}
-                      className={
-                        (isWide(i) ? "aspect-[2/1] " : "aspect-square ") +
-                        (isDark(i) ? "bg-muted text-foreground" : "")
-                      }
+                      // each face paints its own fill (outlined fronts flip to solid)
+                      className={(wide ? "aspect-[2/1]" : "aspect-square") + " bg-transparent text-foreground"}
                     />
                   </Link>
                 );

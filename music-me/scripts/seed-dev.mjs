@@ -99,27 +99,38 @@ async function main() {
     }
   }
 
-  if ((await db.forumCategory.count()) === 0) {
-    const cats = [
-      ["general", "General", "anything music", "#1ba1e2"],
-      ["production", "Production", "beats, mixing, gear", "#f0a30a"],
-      ["recommendations", "Recommendations", "find your next favourite", "#60a917"],
-    ];
-    for (const [i, [slug, name, description, color]] of cats.entries()) {
-      const cat = await db.forumCategory.create({ data: { slug, name, description, color, sortOrder: i } });
-      const author = Object.values(users)[i];
-      await db.forumThread.create({
-        data: {
-          categoryId: cat.id,
-          authorId: author.id,
-          title: ["what got you into music?", "favourite free compressor plugin?", "albums that are perfect front to back"][i],
-          content: ["first record you remember loving. go.", "looking for something gentle for vocals.", "no skips allowed. i'll start: Loveless."][i],
-        },
+  // Threads and replies in the forum's built-in sub-forums (created by the
+  // app on first visit to /forum). Skipped if the forum hasn't been set up yet
+  // or already has threads.
+  const FORUM = [
+    // [sub-forum slug, author, hours ago, title, body, replies: [author, hours ago, text]]
+    ["introductions", "ola", 30, "hey from lagos", "afrobeats evangelist, here to find new sounds.", [["kaito", 28, "welcome! drop your top three albums"], ["juniper", 6, "hi ola, love your playlists already"]]],
+    ["hot-takes", "noor", 20, "the best drums are the quiet ones", "you feel them more than you hear them. fight me.", [["mars", 2, "strong disagree, i want the kick in my chest"]]],
+    ["music-news", "kaito", 50, "city pop reissues keep coming", "three more pressings announced this month.", []],
+    ["hip-hop", "mars", 12, "best sample flips of the year so far?", "looking for things that surprised you.", [["noor", 3, "the soul chop on that one single is unreal"]]],
+    ["lofi-chill", "juniper", 9, "songs that sound like fog", "building a playlist. send suggestions.", [["kaito", 1, "anything off loveless, obviously"]]],
+    ["electronic", "mars", 40, "friday set notes", "two hours, house into garage. tracklist inside.", []],
+    ["production-tips", "noor", 15, "gentle compression on vocals", "what settings do you start from?", [["juniper", 4, "slow attack, fast release, barely any gain reduction"]]],
+    ["daw-talk", "noor", 70, "ableton or fl for chopping samples?", "switching soon and torn.", [["mars", 60, "fl for speed, ableton for everything after"]]],
+    ["original-songs", "juniper", 26, "first demo, be kind", "shoegaze thing recorded in my closet.", [["ola", 8, "the reverb tail at the end is gorgeous"]]],
+    ["vinyl", "kaito", 5, "best record store finds this month", "share your hauls.", [["ola", 0.5, "found an original pressing for $8 today"]]],
+    ["concerts-festivals", "ola", 48, "who's going to the summer festivals?", "making a list of sets to catch.", []],
+  ];
+  if ((await db.forumThread.count()) === 0) {
+    for (const [slug, who, ago, title, content, replies] of FORUM) {
+      const category = await db.forumCategory.findUnique({ where: { slug } });
+      if (!category) continue;
+      const last = replies.length ? Math.min(...replies.map((r) => r[1])) : ago;
+      const thread = await db.forumThread.create({
+        data: { categoryId: category.id, authorId: users[who].id, title, content, createdAt: hours(ago), lastReplyAt: hours(last) },
       });
+      for (const [rWho, rAgo, text] of replies) {
+        await db.forumReply.create({ data: { threadId: thread.id, authorId: users[rWho].id, content: text, createdAt: hours(rAgo) } });
+      }
     }
   }
 
-  console.log(`seeded ${USERS.length} users, ${TRACKS.length} tracks, ${POSTS.length} posts, 3 forum categories`);
+  console.log(`seeded ${USERS.length} users, ${TRACKS.length} tracks, ${POSTS.length} posts, ${FORUM.length} forum threads`);
 }
 
 main()

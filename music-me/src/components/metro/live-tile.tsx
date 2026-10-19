@@ -10,6 +10,9 @@ export type TileFace = {
   body: React.ReactNode;
   // the small lowercase label in the bottom-left corner
   label?: string;
+  // this face's own fill, e.g. an outlined front that flips to solid accent
+  // (the tile itself is accent unless given another background)
+  className?: string;
 };
 
 // A Windows Phone live tile: a flat square of colour with a label in the
@@ -53,7 +56,7 @@ export function LiveTile({
         <AnimatePresence initial={false} mode="popLayout">
           <motion.div
             key={i}
-            className="absolute inset-0 p-3 flex flex-col"
+            className={cn("absolute inset-0 p-3 flex flex-col", face.className)}
             initial={reduced ? { opacity: 0 } : { rotateX: -90, opacity: 0 }}
             animate={reduced ? { opacity: 1 } : { rotateX: 0, opacity: 1 }}
             exit={reduced ? { opacity: 0 } : { rotateX: 90, opacity: 0 }}

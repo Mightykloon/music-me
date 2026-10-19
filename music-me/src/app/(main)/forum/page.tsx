@@ -5,19 +5,40 @@ export const metadata = {
   title: "Forum",
 };
 
+// each sub-forum's most recently active thread, with its newest reply,
+// for the back of its tile
+const latestThread = {
+  orderBy: { lastReplyAt: "desc" as const },
+  take: 1,
+  select: {
+    id: true,
+    title: true,
+    createdAt: true,
+    author: { select: { username: true } },
+    replies: {
+      orderBy: { createdAt: "desc" as const },
+      take: 1,
+      select: { content: true, createdAt: true, author: { select: { username: true } } },
+    },
+  },
+};
+
+const include = {
+  children: {
+    orderBy: { sortOrder: "asc" as const },
+    include: {
+      _count: { select: { threads: true } },
+      threads: latestThread,
+    },
+  },
+  _count: { select: { threads: true } },
+};
+
 export default async function ForumPage() {
   let categories = await db.forumCategory.findMany({
     where: { parentId: null },
     orderBy: { sortOrder: "asc" },
-    include: {
-      children: {
-        orderBy: { sortOrder: "asc" },
-        include: {
-          _count: { select: { threads: true } },
-        },
-      },
-      _count: { select: { threads: true } },
-    },
+    include,
   });
 
   // Auto-seed if empty
@@ -29,17 +50,22 @@ export default async function ForumPage() {
     categories = await db.forumCategory.findMany({
       where: { parentId: null },
       orderBy: { sortOrder: "asc" },
-      include: {
-        children: {
-          orderBy: { sortOrder: "asc" },
-          include: {
-            _count: { select: { threads: true } },
-          },
-        },
-        _count: { select: { threads: true } },
-      },
+      include,
     });
   }
 
-  return <ForumHome categories={categories as never} />;
+  // dates as strings for the client component
+  const data = categories.map((c) => ({
+    ...c,
+    children: c.children.map((sub) => ({
+      ...sub,
+      threads: sub.threads.map((t) => ({
+        ...t,
+        createdAt: t.createdAt.toISOString(),
+        replies: t.replies.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+      })),
+    })),
+  }));
+
+  return <ForumHome categories={data} />;
 }
