@@ -99,9 +99,25 @@ export function Panorama() {
         <MetroBackdrop className="relative h-full w-full" />
       </div>
 
-      {/* top bar: app title + sign-in, always visible */}
+      {/* top bar: app title + sign-in, always visible.
+          "log in" sits over the giant wordmark, so it's drawn to contrast with
+          whatever is behind it, pixel by pixel: two copies of the same bar
+          layout, each blending on its own layer. The first inverts what's
+          behind the text (white over dark, black over the white letters); the
+          second takes the colour back out, so where it crosses the accent dots
+          it reads grey instead of an inverted green. Only the overlapping part
+          of a letter changes. Placeholders keep all three bars aligned. */}
+      <div aria-hidden className="pointer-events-none absolute right-0 top-0 z-20 flex items-center gap-4 p-4 mix-blend-difference sm:p-6">
+        <span className="text-sm lowercase text-white">log in</span>
+        <span className="metro-button invisible min-h-[38px] px-4 text-sm">sign up</span>
+      </div>
+      <div aria-hidden className="pointer-events-none absolute right-0 top-0 z-20 flex items-center gap-4 p-4 mix-blend-saturation sm:p-6">
+        <span className="text-sm lowercase text-[#808080]">log in</span>
+        <span className="metro-button invisible min-h-[38px] px-4 text-sm">sign up</span>
+      </div>
       <header className="absolute right-0 top-0 z-20 flex items-center gap-4 p-4 sm:p-6">
-        <Link href="/login" className="text-sm lowercase text-muted-foreground hover:text-foreground">
+        {/* the real link: transparent text over the blended copies above */}
+        <Link href="/login" className="text-sm lowercase text-transparent">
           log in
         </Link>
         <Link href="/register" className="metro-button metro-button-accent min-h-[38px] px-4 text-sm">
