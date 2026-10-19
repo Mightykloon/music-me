@@ -136,7 +136,8 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
   const topRow = (kicker: string) => (
     <div className="flex items-start gap-2">
       <PunchedCornerText
-        text="browse →"
+        text="browse"
+        arrow
         fill={BACK_FILL}
         textClassName="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
       />
