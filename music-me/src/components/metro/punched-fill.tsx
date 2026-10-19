@@ -36,7 +36,7 @@ export function PunchedFill({
 
 // how far the punched corner text runs past the tile's edges, in em
 const BLEED_TOP = 0.08;
-const BLEED_RIGHT = 0.22;
+const BLEED_RIGHT = 0.1;
 
 // A tile's fill with bold capitals hole-punched out of its top-right corner,
 // bleeding off it: the tops of the letters run past the top edge and the last

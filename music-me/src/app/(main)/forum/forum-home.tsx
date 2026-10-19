@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -59,16 +60,13 @@ const SIZE_CLASS: Record<Size, { cell: string; tile: string }> = {
   small: { cell: "", tile: "aspect-square" },
 };
 
-// Idle fronts are quiet: solid dark grey or a grey outline, never the accent.
-// Colour only appears when a tile flips to show new activity. Big and wide
-// tiles are always solid.
+// Idle fronts are quiet: solid near-black or a grey outline, never the accent.
+// Colour only appears when a tile flips to show new activity. Which tiles are
+// outlined wanders over time (see useRoamingOutlines).
 type Front = "solid" | "outline";
-const FRONTS: Front[] = ["solid", "outline", "solid", "solid", "outline", "solid", "outline", "solid"];
 // busiest first; ties keep the forum's own order
 const byActivity = (subs: SubCategory[]) =>
   subs.map((s, order) => ({ s, order })).sort((a, b) => b.s.activity - a.s.activity || a.order - b.order).map(({ s }) => s);
-
-const frontOf = (i: number, size: Size): Front => (size === "small" ? FRONTS[(i * 3) % FRONTS.length] : "solid");
 
 // Solid fronts are painted by PunchedFill so the icon can be cut out of them;
 // outlined fronts have no fill to punch, so their icon is drawn in grey.
@@ -76,7 +74,54 @@ const FRONT_CLASS: Record<Front, string> = {
   solid: "isolate text-foreground",
   outline: "border-2 border-border text-foreground",
 };
-const FRONT_FILL = "var(--muted)";
+const FRONT_FILL = "var(--metro-tile)";
+
+// Like the reactor tiles on damian.digital: every so often one random tile
+// gains or loses its outline, stuttering on the way like a flickering light,
+// keeping roughly a quarter to a half of the tiles outlined. Starts from a
+// fixed pattern so the server and client render the same thing.
+function useRoamingOutlines(ids: string[]) {
+  const [outlined, setOutlined] = useState(() => new Set(ids.filter((_, i) => i % 3 === 1)));
+  const current = useRef(outlined);
+  const reduced = useReducedMotion();
+  const key = ids.join(",");
+
+  useEffect(() => {
+    if (reduced || ids.length < 3) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const set = (id: string, on: boolean) => {
+      const next = new Set(current.current);
+      if (on) next.add(id);
+      else next.delete(id);
+      current.current = next;
+      setOutlined(next);
+    };
+    const cycle = () => {
+      if (!document.hidden) {
+        const on = ids.filter((id) => current.current.has(id));
+        const off = ids.filter((id) => !current.current.has(id));
+        const min = Math.ceil(ids.length * 0.25);
+        const max = Math.floor(ids.length * 0.45);
+        const insert = on.length < min || (on.length < max && Math.random() < 0.55);
+        const pool = insert ? off : on;
+        const id = pool[Math.floor(Math.random() * pool.length)];
+        if (id) {
+          // stutter: flick a few times before settling
+          [insert, !insert, insert, !insert, insert].forEach((state, n) =>
+            timers.push(setTimeout(() => set(id, state), [0, 90, 170, 290, 430][n]))
+          );
+        }
+      }
+      timers.push(setTimeout(cycle, 900 + Math.random() * 1300));
+    };
+    timers.push(setTimeout(cycle, 1500));
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ids are keyed by `key`
+  }, [key, reduced]);
+
+  return outlined;
+}
+
 // every back is solid accent: colour means "something new here"
 // painted by PunchedCornerText, so "browse →" can be cut out of the corner
 const BACK_CLASS = "isolate text-white";
@@ -179,6 +224,7 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
 
 export function ForumHome({ categories }: { categories: Category[] }) {
   const strip = useRef<HTMLDivElement>(null);
+  const outlined = useRoamingOutlines(categories.flatMap((c) => c.children.map((s) => s.id)));
 
   // on wide screens the groups run sideways: a vertical mouse wheel scrolls
   // the strip horizontally, the same as the landing panorama
@@ -235,7 +281,7 @@ export function ForumHome({ categories }: { categories: Category[] }) {
                     className={`group outline-none focus-visible:ring-2 focus-visible:ring-primary ${SIZE_CLASS[size].cell}`}
                   >
                     <LiveTile
-                      faces={faces(sub, frontOf(i, size), size)}
+                      faces={faces(sub, outlined.has(sub.id) ? "outline" : "solid", size)}
                       offset={offset}
                       interval={14000}
                       hoverFace={1}

@@ -19,6 +19,7 @@
   --muted: #1f1f1f;             /* WP "chrome" */
   --muted-foreground: #a6a6a6;  /* WP subtle text */
   --border: #333333;
+  --metro-tile: #121212;        /* idle tile fill: just off the black, so tiles sit quietly */
   --ring: var(--metro-accent);
   --primary: var(--metro-accent);
   --primary-foreground: #ffffff;
@@ -43,6 +44,7 @@
   --muted: #dddddd;
   --muted-foreground: #666666;
   --border: #cccccc;
+  --metro-tile: #ededed;
   color-scheme: light;
 }
 
