@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CommunityClient } from "./community-client";
+import { loadForumCategories } from "../forum/load-forum";
 
 export const metadata = {
-  title: "Community — remixd",
+  title: "Community",
 };
 
 export default async function CommunityPage() {
@@ -11,41 +12,8 @@ export default async function CommunityPage() {
   const userId = session?.user?.id;
   if (!userId) return null;
 
-  // Fetch forum categories
-  let categories = await db.forumCategory.findMany({
-    where: { parentId: null },
-    orderBy: { sortOrder: "asc" },
-    include: {
-      children: {
-        orderBy: { sortOrder: "asc" },
-        include: {
-          _count: { select: { threads: true } },
-        },
-      },
-      _count: { select: { threads: true } },
-    },
-  });
-
-  // Auto-seed if empty
-  if (categories.length === 0) {
-    await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/forum/seed`,
-      { method: "POST" }
-    ).catch(() => {});
-    categories = await db.forumCategory.findMany({
-      where: { parentId: null },
-      orderBy: { sortOrder: "asc" },
-      include: {
-        children: {
-          orderBy: { sortOrder: "asc" },
-          include: {
-            _count: { select: { threads: true } },
-          },
-        },
-        _count: { select: { threads: true } },
-      },
-    });
-  }
+  // Forum categories for the tile dashboard (with newest activity per sub-forum)
+  const categories = await loadForumCategories();
 
   // Fetch conversations
   const conversations = await db.conversation.findMany({
@@ -114,7 +82,7 @@ export default async function CommunityPage() {
 
   return (
     <CommunityClient
-      categories={categories as never}
+      categories={categories}
       conversations={conversationItems}
       currentUserId={userId}
       onlineUsers={recentUsers}

@@ -8,38 +8,17 @@ import {
   MessageSquare,
   MessageCircle,
   Radio,
-  ChevronRight,
   ArrowLeft,
   Send,
   Loader2,
   Users,
   Search,
-  Hash,
   Smile,
   Plus,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-
-interface SubCategory {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string | null;
-  description: string | null;
-  _count: { threads: number };
-}
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string | null;
-  color: string | null;
-  description: string | null;
-  children: SubCategory[];
-  _count: { threads: number };
-}
+import { ForumHome, type ForumCategoryData } from "../forum/forum-home";
 
 interface ConversationItem {
   id: string;
@@ -88,7 +67,7 @@ interface LiveMessage {
 }
 
 interface CommunityClientProps {
-  categories: Category[];
+  categories: ForumCategoryData[];
   conversations: ConversationItem[];
   currentUserId: string;
   onlineUsers: OnlineUser[];
@@ -114,16 +93,16 @@ export function CommunityClient({
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
-    { id: "forum", label: "Forum", icon: <MessageSquare className="w-4 h-4" /> },
+    { id: "forum", label: "forum", icon: <MessageSquare className="w-4 h-4" /> },
     {
       id: "messages",
-      label: "Messages",
+      label: "messages",
       icon: <MessageCircle className="w-4 h-4" />,
       count: conversations.filter(
         (c) => c.lastMessage && !c.lastMessage.read && c.lastMessage.senderId !== currentUserId
       ).length,
     },
-    { id: "live", label: "Live Chat", icon: <Radio className="w-4 h-4" /> },
+    { id: "live", label: "live chat", icon: <Radio className="w-4 h-4" /> },
   ];
 
   return (
@@ -132,10 +111,8 @@ export function CommunityClient({
         <div className="px-4 pt-4 pb-0">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold font-[family-name:var(--font-space-grotesk)]">
-                Community
-              </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <h1 className="metro-header text-5xl">community</h1>
+              <p className="text-sm text-muted-foreground mt-2">
                 Connect, discuss, and vibe with other music lovers
               </p>
             </div>
@@ -148,35 +125,31 @@ export function CommunityClient({
             </button>
           </div>
 
-          <div className="flex gap-1 border-b border-border/50">
+          <div className="flex items-baseline gap-5 overflow-x-auto pb-2 [scrollbar-width:none]">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors relative",
+                  "relative flex shrink-0 items-baseline gap-2 text-3xl font-light lowercase leading-none tracking-tight transition-colors",
                   activeTab === tab.id
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-foreground"
+                    : "text-muted-foreground/50 hover:text-muted-foreground"
                 )}
               >
-                {tab.icon}
                 {tab.label}
                 {tab.count && tab.count > 0 ? (
-                  <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                  <span className="self-start px-1.5 py-0.5 text-[10px] font-bold tracking-normal bg-primary text-white">
                     {tab.count}
                   </span>
                 ) : null}
-                {activeTab === tab.id && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
-                )}
               </button>
             ))}
           </div>
         </div>
 
         <div className="p-4">
-          {activeTab === "forum" && <ForumTab categories={categories} />}
+          {activeTab === "forum" && <ForumHome categories={categories} embedded />}
           {activeTab === "messages" && (
             <MessagesTab conversations={conversations} currentUserId={currentUserId} onlineUsers={onlineUsers} />
           )}
@@ -237,55 +210,6 @@ function OnlineSidebar({ users }: { users: OnlineUser[] }) {
           <p className="text-xs text-muted-foreground px-2 py-4">No one else online right now</p>
         )}
       </div>
-    </div>
-  );
-}
-
-function ForumTab({ categories }: { categories: Category[] }) {
-  return (
-    <div className="space-y-2">
-      {categories.map((category) => (
-        <div key={category.id}>
-          <div className="flex items-center gap-2 px-2 py-2">
-            <span className="text-lg">{category.icon}</span>
-            <h2
-              className="text-xs font-bold uppercase tracking-wider"
-              style={{ color: category.color ?? "#8b5cf6" }}
-            >
-              {category.name}
-            </h2>
-            {category.description && (
-              <span className="text-xs text-muted-foreground ml-1 hidden sm:inline">
-                &mdash; {category.description}
-              </span>
-            )}
-          </div>
-          <div className="space-y-0.5">
-            {category.children.map((sub) => (
-              <Link
-                key={sub.id}
-                href={`/forum/${sub.slug}`}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/30 transition-colors group"
-              >
-                <span className="text-lg w-7 text-center flex-shrink-0">{sub.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm group-hover:text-primary transition-colors">{sub.name}</p>
-                  {sub.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{sub.description}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <div className="flex items-center gap-1 text-xs">
-                    <Hash className="w-3 h-3" />
-                    <span>{sub._count.threads}</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

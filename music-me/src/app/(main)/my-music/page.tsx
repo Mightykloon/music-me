@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { MyMusicClient } from "./my-music-client";
 
-export const metadata = { title: "Library — remixd" };
+export const metadata = { title: "Library" };
 
 export default async function MyMusicPage() {
   const session = await auth();

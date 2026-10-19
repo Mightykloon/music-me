@@ -311,7 +311,7 @@ function MusicEmbedCard({ embed }: { embed: MusicEmbed }) {
           />
           <button
             onClick={toggle}
-            className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/80 transition-colors flex-shrink-0"
+            className="w-9 h-9 bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/80 transition-colors flex-shrink-0"
           >
             {playing ? (
               <Pause className="w-3.5 h-3.5" />

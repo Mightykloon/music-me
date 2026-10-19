@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { FeedPageClient } from "./feed-client";
 
 export const metadata = {
-  title: "Feed — remixd",
+  title: "Feed",
   description: "Your personalized music feed",
 };
 

@@ -40,30 +40,31 @@ export function EmbedPlayer({
   if (compact) {
     return (
       <div
-        className={`flex items-center gap-2 p-2 rounded-lg bg-black/20 border border-white/10 ${className ?? ""}`}
+        className={`flex items-center gap-3 pr-2 bg-muted ${className ?? ""}`}
       >
         {track.albumArtUrl ? (
           <Image
             src={track.albumArtUrl}
             alt=""
-            width={36}
-            height={36}
-            className="rounded"
+            width={48}
+            height={48}
+            className="h-12 w-12 object-cover"
           />
         ) : (
-          <div className="w-9 h-9 rounded bg-muted flex items-center justify-center">
-            <Music className="w-4 h-4 text-muted-foreground" />
+          <div className="w-12 h-12 bg-primary flex items-center justify-center">
+            <Music className="w-5 h-5 text-white" strokeWidth={1.75} />
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium truncate">{track.title}</p>
+          <p className="text-sm truncate">{track.title}</p>
           <p className="text-xs text-muted-foreground truncate">
             {track.artist}
           </p>
         </div>
         <button
           onClick={handlePlay}
-          className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+          aria-label="play"
+          className="metro-appbar-icon h-8 w-8 transition-colors hover:border-primary hover:bg-primary hover:text-white"
         >
           {isThisPlaying ? (
             <Pause className="w-3.5 h-3.5" />
@@ -76,7 +77,8 @@ export function EmbedPlayer({
             href={track.externalUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 rounded-full hover:bg-white/10 transition-colors text-muted-foreground"
+            aria-label="open in music app"
+            className="p-1.5 transition-colors text-muted-foreground hover:text-foreground"
           >
             <ExternalLink className="w-3 h-3" />
           </a>
@@ -88,7 +90,7 @@ export function EmbedPlayer({
   // Expanded mode
   return (
     <div
-      className={`rounded-xl overflow-hidden border border-white/10 bg-black/20 ${className ?? ""}`}
+      className={`overflow-hidden bg-muted ${className ?? ""}`}
     >
       <div className="flex items-center gap-4 p-4">
         {track.albumArtUrl ? (

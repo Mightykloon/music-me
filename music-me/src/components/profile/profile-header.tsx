@@ -116,11 +116,18 @@ export function ProfileHeader({
   return (
     <div className={className}>
       <div className="flex items-start gap-5">
-        <Avatar src={user.profile?.profilePictureUrl} alt={user.displayName ?? user.username} size="2xl" className="ring-4 ring-[var(--profile-primary)]/20" />
+        <Avatar
+          src={user.profile?.profilePictureUrl}
+          alt={user.displayName ?? user.username}
+          size="2xl"
+          className=""
+        />
         <div className="flex-1 min-w-0 pt-2">
           <div className="flex items-center gap-2 flex-wrap">
             <h1
-              className={`text-2xl sm:text-3xl font-bold font-[family-name:var(--profile-heading-font)] truncate ${textEffect ? `text-effect-${textEffect}` : ""}`}
+              className={`text-4xl sm:text-5xl font-light lowercase tracking-tight leading-none font-[family-name:var(--profile-heading-font)] truncate ${
+                textEffect ? `text-effect-${textEffect}` : ""
+              }`}
               style={teStyle}
               {...(textEffect === "glitch" ? { "data-text": displayName } : {})}
             >
@@ -187,9 +194,9 @@ export function ProfileHeader({
         )}
       </div>
       <div className="mt-4 flex items-center gap-6 text-sm">
-        <button className="hover:underline" onClick={() => setFollowModal("followers")}><span className="font-semibold">{formatCount(user._count.followers)}</span>{" "}<span className="text-muted-foreground">Followers</span></button>
-        <button className="hover:underline" onClick={() => setFollowModal("following")}><span className="font-semibold">{formatCount(user._count.following)}</span>{" "}<span className="text-muted-foreground">Following</span></button>
-        <span><span className="font-semibold">{formatCount(user._count.posts)}</span>{" "}<span className="text-muted-foreground">Posts</span></span>
+        <button className="hover:underline" onClick={() => setFollowModal("followers")}><span className="font-semibold">{formatCount(user._count.followers)}</span>{" "}<span className="text-muted-foreground">followers</span></button>
+        <button className="hover:underline" onClick={() => setFollowModal("following")}><span className="font-semibold">{formatCount(user._count.following)}</span>{" "}<span className="text-muted-foreground">following</span></button>
+        <span><span className="font-semibold">{formatCount(user._count.posts)}</span>{" "}<span className="text-muted-foreground">posts</span></span>
       </div>
       {followModal && (
         <FollowListModal

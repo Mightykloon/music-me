@@ -4,8 +4,8 @@ export default function NotificationSettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-bold font-[family-name:var(--font-space-grotesk)]">
-          Notification Preferences
+        <h1 className="metro-header text-5xl">
+          notification preferences
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Choose what notifications you receive.
