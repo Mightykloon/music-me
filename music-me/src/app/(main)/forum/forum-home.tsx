@@ -71,7 +71,7 @@ const byActivity = (subs: SubCategory[]) =>
 // a border in the text colour (white on dark); both get a solid icon.
 const FRONT_CLASS: Record<Front, string> = {
   solid: "bg-[var(--metro-tile)] text-foreground",
-  outline: "border-2 border-foreground text-foreground",
+  outline: "bg-transparent border-2 border-foreground text-foreground",
 };
 
 // Like the reactor tiles on damian.digital: every so often one random tile

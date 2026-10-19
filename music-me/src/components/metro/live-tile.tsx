@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useAnimate, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Tilt } from "./tilt";
 
@@ -10,14 +10,27 @@ export type TileFace = {
   body: React.ReactNode;
   // the small lowercase label in the bottom-left corner
   label?: string;
-  // this face's own fill, e.g. an outlined front that flips to solid accent
-  // (the tile itself is accent unless given another background)
+  // this face's own fill and text colour (accent with white text by default),
+  // e.g. an outlined front that flips to solid accent
   className?: string;
 };
 
+// The card: two sides back to back. Each flip turns it half a turn on its
+// horizontal axis, and the side coming round is filled with the next face
+// while it's still facing away.
+type Card = { turns: number; sides: [number, number] };
+const flipTo = (card: Card, face: number): Card => {
+  if (card.sides[card.turns % 2] === face) return card;
+  const sides: [number, number] = [...card.sides];
+  sides[(card.turns + 1) % 2] = face;
+  return { turns: card.turns + 1, sides };
+};
+
+const FLIP = { duration: 0.75, ease: [0.45, 0.05, 0.2, 1] as const };
+
 // A Windows Phone live tile: a flat square of colour with a label in the
-// bottom-left corner that periodically flips (rotating on its horizontal axis)
-// to show its next face.
+// bottom-left corner that periodically flips over, like a card, to show its
+// next face.
 export function LiveTile({
   faces,
   className,
@@ -33,19 +46,22 @@ export function LiveTile({
   // stagger so a grid of tiles doesn't flip in unison
   offset?: number;
   // flip straight to this face while the pointer is over the tile (the
-  // timer pauses meanwhile)
+  // timer pauses meanwhile, and it flips back on leaving)
   hoverFace?: number;
 }) {
-  const [i, setI] = useState(0);
-  const [hovered, setHovered] = useState(false);
+  const [card, setCard] = useState<Card>({ turns: 0, sides: [0, faces.length > 1 ? 1 : 0] });
   const hoveredRef = useRef(false);
+  const beforeHover = useRef(0);
   const reduced = useReducedMotion();
+  const [scope, animate] = useAnimate();
+  const showing = card.sides[card.turns % 2];
 
   useEffect(() => {
     if (faces.length < 2 || reduced) return;
     let timer: ReturnType<typeof setInterval>;
+    const next = () =>
+      setCard((c) => (hoveredRef.current ? c : flipTo(c, (c.sides[c.turns % 2] + 1) % faces.length)));
     const start = setTimeout(() => {
-      const next = () => setI((n) => (hoveredRef.current ? n : (n + 1) % faces.length));
       next();
       timer = setInterval(next, interval);
     }, interval + offset);
@@ -55,35 +71,70 @@ export function LiveTile({
     };
   }, [faces.length, interval, offset, reduced]);
 
-  const shown = hovered && hoverFace != null && hoverFace < faces.length ? hoverFace : i;
-  const face = faces[shown];
-  const hover = (on: boolean) => () => {
-    hoveredRef.current = on;
-    setHovered(on);
+  // While it turns, the card blurs a touch, darkens as it goes edge-on (the
+  // way light catches a turning card) and dips slightly, all peaking mid-flip.
+  useEffect(() => {
+    if (card.turns === 0 || reduced || !scope.current) return;
+    animate(
+      scope.current,
+      {
+        filter: ["blur(0px) brightness(1)", "blur(1.6px) brightness(0.7)", "blur(0px) brightness(1)"],
+        scale: [1, 0.96, 1],
+      },
+      FLIP
+    );
+  }, [card.turns, reduced, animate, scope]);
+
+  const onEnter = () => {
+    if (hoverFace == null || hoverFace >= faces.length) return;
+    hoveredRef.current = true;
+    beforeHover.current = showing;
+    setCard((c) => flipTo(c, hoverFace));
+  };
+  const onLeave = () => {
+    if (hoverFace == null || !hoveredRef.current) return;
+    hoveredRef.current = false;
+    setCard((c) => flipTo(c, beforeHover.current));
+  };
+
+  const side = (slot: 0 | 1) => {
+    const face = faces[card.sides[slot]];
+    return (
+      <div
+        aria-hidden={card.turns % 2 !== slot}
+        className={cn("absolute inset-0 flex flex-col p-3 bg-primary text-white", face.className)}
+        style={{ backfaceVisibility: "hidden", transform: slot ? "rotateX(180deg)" : undefined }}
+      >
+        <div className="flex-1 min-h-0">{face.body}</div>
+        {face.label && <p className="text-sm lowercase leading-none">{face.label}</p>}
+      </div>
+    );
   };
 
   return (
-    <Tilt className={cn("relative overflow-hidden bg-primary text-white", className)}>
+    <Tilt className={cn("relative", className)}>
       <div
-        style={{ perspective: 800, ...style }}
+        ref={scope}
+        style={{ perspective: 900, ...style }}
         className="absolute inset-0"
-        onPointerEnter={hoverFace != null ? hover(true) : undefined}
-        onPointerLeave={hoverFace != null ? hover(false) : undefined}
+        onPointerEnter={onEnter}
+        onPointerLeave={onLeave}
       >
-        <AnimatePresence initial={false} mode="popLayout">
+        {reduced ? (
+          // no turning: just show the current face
+          <div className="absolute inset-0">{side((card.turns % 2) as 0 | 1)}</div>
+        ) : (
           <motion.div
-            key={shown}
-            className={cn("absolute inset-0 p-3 flex flex-col", face.className)}
-            initial={reduced ? { opacity: 0 } : { rotateX: -90, opacity: 0 }}
-            animate={reduced ? { opacity: 1 } : { rotateX: 0, opacity: 1 }}
-            exit={reduced ? { opacity: 0 } : { rotateX: 90, opacity: 0 }}
-            transition={{ duration: 0.45, ease: [0.2, 0.7, 0.3, 1] }}
-            style={{ transformOrigin: "50% 50%", backfaceVisibility: "hidden" }}
+            className="absolute inset-0"
+            style={{ transformStyle: "preserve-3d" }}
+            initial={false}
+            animate={{ rotateX: -card.turns * 180 }}
+            transition={FLIP}
           >
-            <div className="flex-1 min-h-0">{face.body}</div>
-            {face.label && <p className="text-sm lowercase leading-none">{face.label}</p>}
+            {side(0)}
+            {side(1)}
           </motion.div>
-        </AnimatePresence>
+        )}
       </div>
     </Tilt>
   );
