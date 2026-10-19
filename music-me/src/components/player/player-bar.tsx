@@ -22,8 +22,7 @@ function formatTime(s: number) {
 
 export function PlayerBar() {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [deezer, setDeezer] = useState<{ trackId: string; url: string | null } | null>(null);
 
   const {
     currentTrack,
@@ -44,30 +43,33 @@ export function PlayerBar() {
     clearPlayer,
   } = usePlayerStore();
 
-  // Fetch Deezer preview URL when track changes
+  // The track's own preview URL if it has one; otherwise one found on Deezer
+  // (stored with the id of the track it was looked up for, so a stale result
+  // never plays for the next track)
+  const needsLookup = !!currentTrack && !currentTrack.previewUrl;
+  const previewUrl = !currentTrack
+    ? null
+    : currentTrack.previewUrl ?? (deezer?.trackId === currentTrack.id ? deezer.url : null);
+  const loading = needsLookup && deezer?.trackId !== currentTrack?.id;
+
+  // Search Deezer for a preview when the track doesn't come with one
   useEffect(() => {
-    if (!currentTrack) {
-      setPreviewUrl(null);
-      return;
-    }
-
-    // If track already has a preview URL, use it
-    if (currentTrack.previewUrl) {
-      setPreviewUrl(currentTrack.previewUrl);
-      return;
-    }
-
-    // Otherwise search Deezer for a preview
-    setLoading(true);
+    if (!currentTrack || currentTrack.previewUrl) return;
+    const trackId = currentTrack.id;
     const query = `${currentTrack.artist} ${currentTrack.title}`;
+    let cancelled = false;
     fetch(`/api/music/deezer-search?q=${encodeURIComponent(query)}&limit=5`)
       .then((r) => r.json())
       .then((data) => {
         const hit = data.data?.find((d: { preview: string }) => d.preview);
-        setPreviewUrl(hit?.preview ?? null);
+        if (!cancelled) setDeezer({ trackId, url: hit?.preview ?? null });
       })
-      .catch(() => setPreviewUrl(null))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!cancelled) setDeezer({ trackId, url: null });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [currentTrack]);
 
   // Control audio element when play state or preview URL changes

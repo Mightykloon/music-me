@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { Palette, ListMusic, Mic2, LayoutGrid, Users, Headphones, Disc3, Radio, ArrowRight } from "lucide-react";
-import { LiveTile } from "@/components/metro/live-tile";
+import { HOVER_OUTLINE, LiveTile } from "@/components/metro/live-tile";
 import { Tilt } from "@/components/metro/tilt";
 import { RemixdWordmark } from "@/components/remixd-wordmark";
 import { MetroArt } from "./metro-art";
@@ -175,34 +175,38 @@ export function Panorama() {
           {/* three tile rows = 1.5× the grid width, so size it from the height left */}
           <div className="grid grid-cols-4 gap-2" style={{ width: "min(88vw - 1.5rem, 520px, (var(--pano-avail) - 4rem) / 1.5)" }}>
             <LiveTile
-              className="col-span-2 aspect-square"
+              className="group col-span-2 aspect-square"
+              hoverFace={1}
               faces={[
                 { body: <Palette className="h-12 w-12" strokeWidth={1.5} />, label: "custom profiles" },
-                { body: <p className="text-lg leading-snug">colors, fonts, layouts, vibes. make it yours.</p>, label: "custom profiles" },
+                { body: <p className="text-lg leading-snug">colors, fonts, layouts, vibes. make it yours.</p>, label: "custom profiles", className: `bg-primary text-white ${HOVER_OUTLINE}` },
               ]}
             />
             <LiveTile
-              className="col-span-2 aspect-square"
+              className="group col-span-2 aspect-square"
+              hoverFace={1}
               offset={900}
               faces={[
                 { body: <ListMusic className="h-12 w-12" strokeWidth={1.5} />, label: "playlist imports" },
-                { body: <p className="text-lg leading-snug">spotify, apple music, soundcloud, and more.</p>, label: "playlist imports" },
+                { body: <p className="text-lg leading-snug">spotify, apple music, soundcloud, and more.</p>, label: "playlist imports", className: `bg-primary text-white ${HOVER_OUTLINE}` },
               ]}
             />
             <LiveTile
-              className="col-span-4 aspect-[2/1]"
+              className="group col-span-4 aspect-[2/1]"
+              hoverFace={1}
               offset={1800}
               faces={[
                 { body: <Mic2 className="h-12 w-12" strokeWidth={1.5} />, label: "live lyrics" },
-                { body: <p className="text-xl font-light leading-tight">synced lyrics and shareable lyric cards.</p>, label: "live lyrics" },
+                { body: <p className="text-xl font-light leading-tight">synced lyrics and shareable lyric cards.</p>, label: "live lyrics", className: `bg-primary text-white ${HOVER_OUTLINE}` },
               ]}
             />
             <LiveTile
-              className="col-span-2 aspect-square"
+              className="group col-span-2 aspect-square"
+              hoverFace={1}
               offset={2700}
               faces={[
                 { body: <LayoutGrid className="h-12 w-12" strokeWidth={1.5} />, label: "no doomscrolling" },
-                { body: <p className="text-lg leading-snug">stream, grid, radio, or magazine. you choose.</p>, label: "no doomscrolling" },
+                { body: <p className="text-lg leading-snug">stream, grid, radio, or magazine. you choose.</p>, label: "no doomscrolling", className: `bg-primary text-white ${HOVER_OUTLINE}` },
               ]}
             />
             <div className="col-span-2 grid grid-cols-2 gap-2">
