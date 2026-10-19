@@ -134,7 +134,7 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
         label: reply ? `@${reply.author.username} replied ${ago(reply.createdAt)}` : `@${thread.author.username} · ${ago(thread.createdAt)}`,
         body: (
           <div className="flex h-full flex-col gap-1 overflow-hidden">
-            <p className="text-[0.7rem] uppercase tracking-wider opacity-80">{reply ? "latest reply" : "latest thread"} · {count}</p>
+            <p className="pr-14 text-[0.7rem] uppercase tracking-wider opacity-80">{reply ? "latest reply" : "latest thread"} · {count}</p>
             {reply ? (
               <>
                 <p className={`leading-snug ${wide ? "line-clamp-3 text-base" : "line-clamp-2 text-sm"}`}>{reply.content}</p>
@@ -152,7 +152,17 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
         body: <p className="text-base font-light leading-snug">no threads yet. start the first one.</p>,
       };
 
-  return [frontFace, backFace];
+  // hovering a tile flips it to this side; "browse →" says it's a way in
+  const browse = (
+    <span
+      aria-hidden
+      className="absolute right-3 top-3 text-xs lowercase opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+    >
+      browse →
+    </span>
+  );
+
+  return [frontFace, { ...backFace, body: <>{browse}{backFace.body}</> }];
 }
 
 export function ForumHome({ categories }: { categories: Category[] }) {
@@ -210,12 +220,13 @@ export function ForumHome({ categories }: { categories: Category[] }) {
                     key={sub.id}
                     href={`/forum/${sub.slug}`}
                     aria-label={`${sub.name}${sub.description ? `: ${sub.description}` : ""}`}
-                    className={SIZE_CLASS[size].cell || undefined}
+                    className={`group outline-none focus-visible:ring-2 focus-visible:ring-primary ${SIZE_CLASS[size].cell}`}
                   >
                     <LiveTile
                       faces={faces(sub, frontOf(i, size), size)}
                       offset={offset}
                       interval={14000}
+                      hoverFace={1}
                       // each face paints its own fill (outlined fronts flip to solid)
                       className={`${SIZE_CLASS[size].tile} bg-transparent text-foreground`}
                     />

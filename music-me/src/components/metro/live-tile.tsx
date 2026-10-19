@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Tilt } from "./tilt";
@@ -24,6 +24,7 @@ export function LiveTile({
   style,
   interval = 4200,
   offset = 0,
+  hoverFace,
 }: {
   faces: TileFace[];
   className?: string;
@@ -31,16 +32,22 @@ export function LiveTile({
   interval?: number;
   // stagger so a grid of tiles doesn't flip in unison
   offset?: number;
+  // flip straight to this face while the pointer is over the tile (the
+  // timer pauses meanwhile)
+  hoverFace?: number;
 }) {
   const [i, setI] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const hoveredRef = useRef(false);
   const reduced = useReducedMotion();
 
   useEffect(() => {
     if (faces.length < 2 || reduced) return;
     let timer: ReturnType<typeof setInterval>;
     const start = setTimeout(() => {
-      setI((n) => (n + 1) % faces.length);
-      timer = setInterval(() => setI((n) => (n + 1) % faces.length), interval);
+      const next = () => setI((n) => (hoveredRef.current ? n : (n + 1) % faces.length));
+      next();
+      timer = setInterval(next, interval);
     }, interval + offset);
     return () => {
       clearTimeout(start);
@@ -48,14 +55,24 @@ export function LiveTile({
     };
   }, [faces.length, interval, offset, reduced]);
 
-  const face = faces[i];
+  const shown = hovered && hoverFace != null && hoverFace < faces.length ? hoverFace : i;
+  const face = faces[shown];
+  const hover = (on: boolean) => () => {
+    hoveredRef.current = on;
+    setHovered(on);
+  };
 
   return (
     <Tilt className={cn("relative overflow-hidden bg-primary text-white", className)}>
-      <div style={{ perspective: 800, ...style }} className="absolute inset-0">
+      <div
+        style={{ perspective: 800, ...style }}
+        className="absolute inset-0"
+        onPointerEnter={hoverFace != null ? hover(true) : undefined}
+        onPointerLeave={hoverFace != null ? hover(false) : undefined}
+      >
         <AnimatePresence initial={false} mode="popLayout">
           <motion.div
-            key={i}
+            key={shown}
             className={cn("absolute inset-0 p-3 flex flex-col", face.className)}
             initial={reduced ? { opacity: 0 } : { rotateX: -90, opacity: 0 }}
             animate={reduced ? { opacity: 1 } : { rotateX: 0, opacity: 1 }}
