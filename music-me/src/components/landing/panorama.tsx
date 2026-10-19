@@ -167,13 +167,16 @@ export function Panorama() {
           {...panel(1)}
           className="flex shrink-0 snap-start items-end pb-10 pl-3 pr-3 pt-[clamp(8rem,30vh,17rem)]"
         >
-          {/* sized to the tile grid on the next panel (1.5x its width plus a gap),
-              so their tops and bottoms line up; the visualiser still dissolves
-              into the page over the last stretch */}
+          {/* exactly as tall as the tile grid on the next panel (1.5x its width
+              plus a gap), so their tops and bottoms line up: square when
+              there's room, a tall rectangle on phones. The visualiser still
+              dissolves into the page over the last stretch. */}
           <div
-            className="relative aspect-square overflow-hidden"
+            className="relative overflow-hidden"
             style={{
-              width: "min(88vw - 1.5rem, 788px, var(--pano-avail) - 3.5rem)",
+              ["--hero-h" as string]: "min(1.5 * (88vw - 1.5rem) + 8px, 788px, var(--pano-avail) - 3.5rem)",
+              height: "var(--hero-h)",
+              width: "min(88vw - 1.5rem, var(--hero-h))",
               maskImage: "linear-gradient(to bottom, #000 86%, transparent 100%)",
               WebkitMaskImage: "linear-gradient(to bottom, #000 86%, transparent 100%)",
             }}
