@@ -133,7 +133,7 @@ interface YtItem {
 }
 
 /** Matches made before this were scored more loosely (and picked e.g. fan-uploaded acoustic versions); they're re-checked once. */
-const MATCHER_SINCE = new Date("2026-10-21T07:00:00Z");
+const MATCHER_SINCE = new Date("2026-10-21T04:45:00Z"); // when the stricter matcher went live
 
 // words that mean "a different version of the song" unless the song's own title has them
 const OTHER_VERSIONS = [
