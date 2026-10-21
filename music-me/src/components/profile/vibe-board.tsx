@@ -25,9 +25,9 @@ export function VibeBoard({ items, className }: VibeBoardProps) {
     <div className={className}>
       <div className="flex items-center gap-2 mb-4">
         <Sparkles className="w-4 h-4 text-[var(--profile-primary)]" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Vibe Board</h2>
+        <h2 className="profile-section-title text-sm font-semibold uppercase tracking-wider opacity-70">Vibe Board</h2>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 @2xl:grid-cols-3 @5xl:grid-cols-4 gap-2.5">
         {items.map((item, i) => (
           <div
             key={i}

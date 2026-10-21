@@ -26,9 +26,9 @@ export function PlaylistDisplay({ playlists, className }: PlaylistDisplayProps) 
     <div className={className}>
       <div className="flex items-center gap-2 mb-4">
         <Disc3 className="w-4 h-4 text-[var(--profile-primary)]" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Playlists</h2>
+        <h2 className="profile-section-title text-sm font-semibold uppercase tracking-wider opacity-70">Playlists</h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-3">
         {playlists.map((pl) => (
           <Link href={`/playlist/${pl.id}`} key={pl.id} className="group relative rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden hover:bg-white/[0.05] hover:border-[var(--profile-primary)]/20 transition-all duration-300 block">
             <div className="flex items-center gap-3 p-3">

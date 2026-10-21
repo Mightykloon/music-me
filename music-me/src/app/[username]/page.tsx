@@ -7,6 +7,7 @@ import { MainNav } from "@/components/layout/main-nav";
 import { GuestNotice } from "@/components/auth/guest-notice";
 import { isGuest } from "@/lib/guest";
 import type { ProfileLayoutProps } from "@/components/profile/layouts/types";
+import { readCustomization } from "@/lib/profile/customization";
 
 export async function generateMetadata({
   params,
@@ -115,7 +116,51 @@ export default async function ProfilePage({
   });
 
   const session = await auth();
-  const isOwn = session?.user?.id === user.id;
+  const viewerId = session?.user?.id ?? null;
+  const isOwn = viewerId === user.id;
+  const custom = readCustomization(user.profile?.customization);
+
+  // Top 8, the first page of the comment wall, and whether the visitor follows them
+  const [top8, wallRows, viewerFollow] = await Promise.all([
+    custom.showTop8
+      ? db.bestFriend.findMany({
+          where: { userId: user.id },
+          orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+          take: 8,
+          select: {
+            friend: {
+              select: { id: true, username: true, displayName: true, profile: { select: { profilePictureUrl: true } } },
+            },
+          },
+        })
+      : [],
+    custom.showWall
+      ? db.wallComment.findMany({
+          where: { profileUserId: user.id },
+          orderBy: { createdAt: "desc" },
+          take: 21,
+          include: {
+            author: {
+              select: { id: true, username: true, displayName: true, profile: { select: { profilePictureUrl: true } } },
+            },
+          },
+        })
+      : [],
+    viewerId && !isOwn
+      ? db.follow.findUnique({
+          where: { followerId_followingId: { followerId: viewerId, followingId: user.id } },
+          select: { createdAt: true },
+        })
+      : null,
+  ]);
+  const wall = {
+    comments: wallRows.slice(0, 20).map((c) => ({
+      ...c,
+      createdAt: c.createdAt.toISOString(),
+      author: { ...c.author, profile: c.author.profile && { profilePictureUrl: fixS3Url(c.author.profile.profilePictureUrl) } },
+    })),
+    nextCursor: wallRows.length > 20 ? wallRows[19].id : null,
+  };
 
   // Fix any broken S3 URLs from old "auto" region config
   if (user.profile) {
@@ -128,6 +173,13 @@ export default async function ProfilePage({
   // Build the data object for the client component
   const profileData = {
     ...user,
+    isFollowedByViewer: !!viewerFollow,
+    top8: top8.map(({ friend }) => ({
+      id: friend.id,
+      username: friend.username,
+      displayName: friend.displayName,
+      profilePictureUrl: fixS3Url(friend.profile?.profilePictureUrl ?? null),
+    })),
     profileSong: profileSong
       ? {
           id: profileSong.id,
@@ -178,6 +230,9 @@ export default async function ProfilePage({
           user={profileData as unknown as ProfileLayoutProps["user"]}
           posts={postsData as unknown as ProfileLayoutProps["posts"]}
           isOwn={isOwn}
+          viewerId={viewerId}
+          custom={custom}
+          wall={wall}
           genres={topArtistGenres}
         />
       </div>

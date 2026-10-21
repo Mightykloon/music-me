@@ -10,19 +10,10 @@ import { Avatar } from "@/components/ui/avatar";
 import { ImageCropEditor } from "@/components/ui/image-crop-editor";
 import { useUpload } from "@/hooks/use-upload";
 import { containsProfanity } from "@/lib/utils/profanity";
-
-const FONT_OPTIONS = [
-  "Inter",
-  "Space Grotesk",
-  "JetBrains Mono",
-  "Playfair Display",
-  "Outfit",
-  "Syne",
-  "DM Sans",
-  "Instrument Serif",
-  "Bebas Neue",
-  "system-ui",
-];
+import { DEFAULT_CUSTOMIZATION, readCustomization, type Customization, type ThemePreset } from "@/lib/profile/customization";
+import { CssEditor, ExtrasPanel, FontPicker, LivePreview, ProfileSongPicker, StylePanel, ThemePresets, Top8Picker } from "@/components/profile/editor/customize-panels";
+import type { ProfileLayoutProps, Top8Friend } from "@/components/profile/layouts/types";
+import type { TrackInfo } from "@/types";
 
 const LAYOUT_OPTIONS = [
   { value: "CLASSIC", label: "Classic", desc: "Traditional, top to bottom" },
@@ -85,6 +76,14 @@ interface LinkFormItem {
   isNew?: boolean;
 }
 
+const FONT_WEIGHTS = [
+  { value: "300", label: "Light" },
+  { value: "400", label: "Regular" },
+  { value: "500", label: "Medium" },
+  { value: "600", label: "Semibold" },
+  { value: "700", label: "Bold" },
+];
+
 const BIO_SIZES = [
   { value: "sm", label: "Small" },
   { value: "base", label: "Normal" },
@@ -108,7 +107,10 @@ interface ProfileFormData {
   accentColor: string;
   fontFamily: string;
   headingFont: string;
+  fontWeight: string;
   bioFontSize: string;
+  customCSS: string;
+  customization: Customization;
   textEffects: {
     type: string;
     color?: string;
@@ -128,6 +130,9 @@ interface ProfileFormData {
   };
 }
 
+// the preview doesn't load real wall comments
+const EMPTY_WALL = { comments: [], nextCursor: null };
+
 const defaultForm: ProfileFormData = {
   displayName: "",
   bio: "",
@@ -144,7 +149,10 @@ const defaultForm: ProfileFormData = {
   accentColor: "#a78bfa",
   fontFamily: "Inter",
   headingFont: "Space Grotesk",
+  fontWeight: "400",
   bioFontSize: "base",
+  customCSS: "",
+  customization: DEFAULT_CUSTOMIZATION,
   textEffects: { type: "", color: "#8b5cf6", color2: "#ec4899", color3: "#f59e0b", speed: 4, brightness: 1, displayEmoji: "" },
   layoutStyle: "CLASSIC",
   autoplayProfileSong: false,
@@ -161,6 +169,10 @@ export default function ProfileEditorPage() {
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [bgCropImage, setBgCropImage] = useState<string | null>(null);
   const [links, setLinks] = useState<LinkFormItem[]>([]);
+  const [loadedUser, setLoadedUser] = useState<ProfileLayoutProps["user"] | null>(null);
+  const [profileSong, setProfileSong] = useState<TrackInfo | null>(null);
+  const [top8, setTop8] = useState<Top8Friend[]>([]);
+  const [mobilePreview, setMobilePreview] = useState(false);
 
   // Load current profile data
   useEffect(() => {
@@ -187,7 +199,10 @@ export default function ProfileEditorPage() {
           accentColor: user.profile?.accentColor ?? "#a78bfa",
           fontFamily: user.profile?.fontFamily ?? "Inter",
           headingFont: user.profile?.headingFont ?? "Space Grotesk",
+          fontWeight: user.profile?.fontWeight ?? "400",
           bioFontSize: user.profile?.bioFontSize ?? "base",
+          customCSS: user.profile?.customCSS ?? "",
+          customization: readCustomization(user.profile?.customization),
           textEffects: {
             type: "",
             color: "#8b5cf6",
@@ -206,6 +221,8 @@ export default function ProfileEditorPage() {
             interests: (user.profile?.favorites as Record<string, string[]>)?.interests ?? [],
           },
         });
+        setLoadedUser(user);
+        setProfileSong(user.profile?.profileSong ?? null);
         setLoaded(true);
       });
 
@@ -230,6 +247,19 @@ export default function ProfileEditorPage() {
     },
     []
   );
+
+  const applyPreset = (p: ThemePreset) => {
+    setForm((prev) => ({
+      ...prev,
+      ...p.colors,
+      fontFamily: p.fontFamily,
+      headingFont: p.headingFont,
+      layoutStyle: p.layoutStyle,
+      textEffects: { ...prev.textEffects, type: p.textEffect },
+      customization: { ...prev.customization, ...p.customization },
+    }));
+    toast.success(`"${p.name}" applied. Save to keep it.`);
+  };
 
   const fileToDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -325,6 +355,9 @@ export default function ProfileEditorPage() {
       ...form.favorites.hobbies,
       ...form.favorites.books,
       ...form.favorites.games,
+      form.customization.marquee,
+      form.customization.moodText,
+      form.customization.top8Title,
     ].join(" ");
     if (containsProfanity(allText)) {
       toast.error("Please remove inappropriate language before saving");
@@ -384,6 +417,45 @@ export default function ProfileEditorPage() {
     }
   };
 
+  const previewUser: ProfileLayoutProps["user"] | null = loadedUser && {
+    ...loadedUser,
+    displayName: form.displayName || null,
+    bio: form.bio || null,
+    pronouns: form.pronouns || null,
+    location: form.location || null,
+    website: /^https?:\/\/./.test(form.website) ? form.website : null,
+    links: links
+      .filter((l) => l.title.trim() && /^https?:\/\//.test(l.url))
+      .map((l, i) => ({ id: l.id ?? `new-${i}`, title: l.title, url: l.url, iconType: l.iconType, clickCount: 0 })),
+    playlists: loadedUser.playlists ?? [],
+    nowPlaying: null,
+    profileSong,
+    top8,
+    profile: {
+      ...(loadedUser.profile ?? ({} as NonNullable<ProfileLayoutProps["user"]["profile"]>)),
+      profilePictureUrl: form.profilePictureUrl || null,
+      bannerUrl: form.bannerUrl || null,
+      backgroundColor: form.backgroundColor,
+      backgroundImageUrl: form.backgroundImageUrl || null,
+      backgroundOpacity: form.backgroundOpacity,
+      primaryColor: form.primaryColor,
+      secondaryColor: form.secondaryColor,
+      accentColor: form.accentColor,
+      fontFamily: form.fontFamily,
+      headingFont: form.headingFont,
+      fontWeight: form.fontWeight,
+      bioFontSize: form.bioFontSize,
+      textEffects: form.textEffects,
+      layoutStyle: form.layoutStyle,
+      autoplayProfileSong: false,
+      customCSS: form.customCSS,
+      customization: form.customization,
+      favorites: form.favorites,
+      profileViews: loadedUser.profile?.profileViews ?? 0,
+      vibeBoard: loadedUser.profile?.vibeBoard ?? [],
+    },
+  };
+
   if (!loaded) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -394,11 +466,15 @@ export default function ProfileEditorPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="py-2">
         <div className="flex items-center justify-between mb-8">
           <h1 className="metro-header text-5xl">
             edit profile
           </h1>
+          <div className="flex items-center gap-2">
+          <Button variant="outline" className="xl:hidden" onClick={() => setMobilePreview(true)}>
+            Preview
+          </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -407,11 +483,17 @@ export default function ProfileEditorPage() {
             )}
             Save
           </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-8">
           {/* Editor panel */}
           <div className="space-y-8">
+            <Section title="Themes">
+              <p className="text-sm text-muted-foreground -mt-2">One click starting points. They set colours, fonts, layout and style; tweak anything after.</p>
+              <ThemePresets onApply={applyPreset} />
+            </Section>
+
             {/* Basic Info */}
             <Section title="Basic Info">
               <div className="flex items-center gap-4 mb-4">
@@ -636,34 +718,26 @@ export default function ProfileEditorPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Body Font">
-                  <select
-                    value={form.fontFamily}
-                    onChange={(e) => update("fontFamily", e.target.value)}
-                    className="input-field"
-                  >
-                    {FONT_OPTIONS.map((f) => (
-                      <option key={f} value={f}>
-                        {f}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Heading Font">
-                  <select
-                    value={form.headingFont}
-                    onChange={(e) => update("headingFont", e.target.value)}
-                    className="input-field"
-                  >
-                    {FONT_OPTIONS.map((f) => (
-                      <option key={f} value={f}>
-                        {f}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FontPicker title="Body Font" value={form.fontFamily} onChange={(v) => update("fontFamily", v)} />
+                <FontPicker title="Heading Font" value={form.headingFont} onChange={(v) => update("headingFont", v)} />
               </div>
+
+              <Field label="Body Weight">
+                <div className="flex flex-wrap gap-2">
+                  {FONT_WEIGHTS.map((w) => (
+                    <button
+                      key={w.value}
+                      type="button"
+                      onClick={() => update("fontWeight", w.value)}
+                      className={`border-2 px-3 py-1.5 text-sm transition-colors ${form.fontWeight === w.value ? "border-primary bg-primary/15" : "border-border hover:border-muted-foreground"}`}
+                      style={{ fontWeight: Number(w.value) }}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
 
               <Field label="Display Name Effect">
                 <select
@@ -924,6 +998,40 @@ export default function ProfileEditorPage() {
               </div>
             </Section>
 
+            <Section title="Style">
+              <StylePanel value={form.customization} onChange={(v) => update("customization", v)} />
+            </Section>
+
+            <Section title="Profile Song">
+              <ProfileSongPicker
+                song={profileSong}
+                onChange={setProfileSong}
+                skin={form.customization.songSkin}
+                onSkin={(v) => update("customization", { ...form.customization, songSkin: v })}
+              />
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.autoplayProfileSong}
+                  onChange={(e) => update("autoplayProfileSong", e.target.checked)}
+                  className="h-4 w-4"
+                />
+                start playing when someone first clicks on my profile
+              </label>
+            </Section>
+
+            <Section title="Mood & Extras">
+              <ExtrasPanel value={form.customization} onChange={(v) => update("customization", v)} />
+            </Section>
+
+            <Section title="Top 8">
+              <Top8Picker username={(session?.user as { username?: string })?.username ?? ""} onChange={setTop8} />
+            </Section>
+
+            <Section title="Custom CSS">
+              <CssEditor value={form.customCSS} onChange={(v) => update("customCSS", v)} />
+            </Section>
+
             {/* Favorites & Interests */}
             <Section title="Favorites & Interests">
               <TagInput
@@ -1036,124 +1144,25 @@ export default function ProfileEditorPage() {
             </Section>
           </div>
 
-          {/* Live preview panel */}
-          <div className="hidden lg:block">
+          {/* Live preview: the real profile, rendered from the unsaved form */}
+          <div className="hidden xl:block">
             <div className="sticky top-24">
-              <h2 className="metro-header text-2xl text-muted-foreground mb-4">
-                Live Preview
-              </h2>
-              <div
-                className="rounded-2xl border border-border overflow-hidden"
-                style={{
-                  ["--profile-bg" as string]:
-                    form.backgroundColor,
-                  ["--profile-primary" as string]:
-                    form.primaryColor,
-                  ["--profile-secondary" as string]:
-                    form.secondaryColor,
-                  ["--profile-accent" as string]:
-                    form.accentColor,
-                  ["--profile-font" as string]: `"${form.fontFamily}", sans-serif`,
-                  ["--profile-heading-font" as string]: `"${form.headingFont}", sans-serif`,
-                  backgroundColor: form.backgroundColor,
-                  fontFamily: `"${form.fontFamily}", sans-serif`,
-                }}
-              >
-                <div className="p-6 min-h-[500px]">
-                  {/* Preview banner */}
-                  {form.bannerUrl && (
-                    <div className="relative h-32 rounded-xl overflow-hidden mb-4 -mx-2 -mt-2">
-                      <img
-                        src={form.bannerUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-
-                  {/* Preview header */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <Avatar
-                      src={form.profilePictureUrl || null}
-                      alt={form.displayName || "Preview"}
-                      size="lg"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`font-bold text-lg ${
-                          form.textEffects.type
-                            ? `text-effect-${form.textEffects.type}`
-                            : ""
-                        }`}
-                        style={{
-                          fontFamily: `"${form.headingFont}", sans-serif`,
-                          ["--te-color" as string]: form.textEffects.color ?? "#8b5cf6",
-                          ["--te-color2" as string]: form.textEffects.color2 ?? "#ec4899",
-                          ["--te-color3" as string]: form.textEffects.color3 ?? "#f59e0b",
-                          ["--te-speed" as string]: `${form.textEffects.speed ?? 4}s`,
-                          ["--te-brightness" as string]: `${form.textEffects.brightness ?? 1}`,
-                        }}
-                        {...(form.textEffects.type === "glitch" ? { "data-text": form.displayName || "Your Name" } : {})}
-                      >
-                        {form.textEffects.type === "wave"
-                          ? (form.displayName || "Your Name").split("").map((ch, i) => (
-                              <span key={i} className="text-effect-wave-char" style={{ ["--char-index" as string]: i }}>
-                                {ch === " " ? "\u00A0" : ch}
-                              </span>
-                            ))
-                          : (form.displayName || "Your Name")}
-                        {form.textEffects.displayEmoji && (
-                          <span className="ml-1">{form.textEffects.displayEmoji}</span>
-                        )}
-                      </p>
-                      <p className="text-xs opacity-60">
-                        @
-                        {(session?.user as { username?: string })?.username ??
-                          "username"}
-                        {form.pronouns && ` · ${form.pronouns}`}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Preview bio */}
-                  {form.bio && (
-                    <p
-                      className={`mt-2 opacity-80 ${
-                        {
-                          sm: "text-xs",
-                          base: "text-sm",
-                          lg: "text-base",
-                          xl: "text-lg",
-                        }[form.bioFontSize] ?? "text-sm"
-                      }`}
-                    >
-                      {form.bio}
-                    </p>
-                  )}
-
-                  {/* Preview meta */}
-                  <div className="mt-3 flex gap-3 text-xs opacity-50">
-                    {form.location && <span>{form.location}</span>}
-                    {form.website && (
-                      <span style={{ color: form.primaryColor }}>
-                        {form.website.replace(/https?:\/\//, "")}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Preview layout label */}
-                  <div
-                    className="mt-6 p-3 rounded-lg text-center text-xs opacity-40 border border-dashed"
-                    style={{ borderColor: form.primaryColor }}
-                  >
-                    {form.layoutStyle} layout
-                  </div>
-                </div>
-              </div>
+              <h2 className="metro-header text-2xl text-muted-foreground mb-4">live preview</h2>
+              {previewUser && <LivePreview user={previewUser} customization={form.customization} genres={[]} wall={EMPTY_WALL} viewerId={loadedUser?.id} />}
             </div>
           </div>
         </div>
       </div>
+
+      {mobilePreview && previewUser && (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-background p-2 xl:hidden">
+          <div className="flex items-center justify-between px-2 pb-2">
+            <span className="metro-header text-2xl">preview</span>
+            <Button variant="outline" onClick={() => setMobilePreview(false)}>Close</Button>
+          </div>
+          <LivePreview user={previewUser} customization={form.customization} genres={[]} wall={EMPTY_WALL} viewerId={loadedUser?.id} />
+        </div>
+      )}
 
       {/* Avatar crop editor modal */}
       {cropImage && (

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FONT_NAME, MAX_CSS_LENGTH, customizationSchema } from "@/lib/profile/customization";
 
 export const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -42,9 +43,11 @@ export const profileUpdateSchema = z.object({
   primaryColor: z.string().max(20).optional(),
   secondaryColor: z.string().max(20).optional(),
   accentColor: z.string().max(20).optional(),
-  fontFamily: z.string().max(50).optional(),
-  fontWeight: z.string().max(10).optional(),
-  headingFont: z.string().max(50).optional(),
+  fontFamily: z.string().regex(FONT_NAME, "Font names can only use letters, numbers and spaces").optional(),
+  fontWeight: z.enum(["300", "400", "500", "600", "700"]).optional(),
+  customCSS: z.string().max(MAX_CSS_LENGTH, "Custom CSS is too long").optional(),
+  customization: customizationSchema.optional(),
+  headingFont: z.string().regex(FONT_NAME, "Font names can only use letters, numbers and spaces").optional(),
   bioFontSize: z.enum(["sm", "base", "lg", "xl"]).optional(),
   textEffects: z.record(z.string(), z.unknown()).optional(),
   layoutStyle: z.enum(["CLASSIC", "BENTO", "MINIMAL", "MAGAZINE", "MYSPACE"]).optional(),

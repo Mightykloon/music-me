@@ -9,6 +9,8 @@ import {
   Repeat2,
   AtSign,
   ListMusic,
+  Users,
+  PenLine,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 
@@ -65,6 +67,16 @@ const NOTIFICATION_CONFIG: Record<
     color: "text-pink-400",
     getMessage: (a) => `${a} dropped a new playlist`,
   },
+  BEST_FRIEND_ADD: {
+    icon: Users,
+    color: "text-yellow-400",
+    getMessage: (a) => `${a} put you in their Top 8`,
+  },
+  WALL_COMMENT: {
+    icon: PenLine,
+    color: "text-pink-400",
+    getMessage: (a) => `${a} wrote on your wall`,
+  },
 };
 
 export function NotificationsClient({
@@ -100,6 +112,8 @@ export function NotificationsClient({
                 ? `/${notif.actor.username}`
                 : notif.referenceId && notif.referenceType === "post"
                   ? `/post/${notif.referenceId}`
+                  : notif.referenceId && notif.referenceType === "wall"
+                    ? `/${notif.referenceId}#wall`
                   : `/${notif.actor.username}`;
 
             return (

@@ -30,6 +30,9 @@ export async function PATCH(request: Request) {
       ...(result.data.favorites?.hobbies ?? []),
       ...(result.data.favorites?.books ?? []),
       ...(result.data.favorites?.games ?? []),
+      result.data.customization?.marquee,
+      result.data.customization?.moodText,
+      result.data.customization?.top8Title,
     ].filter(Boolean).join(" ");
 
     if (containsProfanity(textToCheck)) {

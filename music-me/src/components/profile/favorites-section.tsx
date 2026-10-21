@@ -30,9 +30,9 @@ export function FavoritesSection({ favorites, className }: FavoritesSectionProps
     <div className={className}>
       <div className="flex items-center gap-2 mb-4">
         <Tag className="w-4 h-4 text-[var(--profile-primary)]" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">About Me</h2>
+        <h2 className="profile-section-title text-sm font-semibold uppercase tracking-wider opacity-70">About Me</h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-3">
         {sections.map((section) => {
           const items = favorites[section.key];
           if (!items?.length) return null;

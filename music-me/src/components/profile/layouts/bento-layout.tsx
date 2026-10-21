@@ -9,9 +9,13 @@ import { PostGrid } from "@/components/profile/post-grid";
 import { NowPlayingBadge } from "@/components/profile/now-playing-badge";
 import { FavoritesSection } from "@/components/profile/favorites-section";
 import { GenreWidget } from "@/components/profile/genre-widget";
+import { Card, Mood, Top8, Wall } from "@/components/profile/profile-extras";
+import { favoritesOf, hasFavorites, vibeItemsOf } from "./shared";
 import type { ProfileLayoutProps } from "./types";
 
-export function BentoLayout({ user, posts, isOwn, genres }: ProfileLayoutProps) {
+export function BentoLayout({ user, posts, isOwn, genres, custom, wall, viewerId }: ProfileLayoutProps) {
+  const hasGenres = (genres?.length ?? 0) > 0;
+  const showWall = custom.showWall && !!wall;
   return (
     <div className="max-w-4xl mx-auto w-full">
       {user.nowPlaying?.track && (
@@ -20,64 +24,61 @@ export function BentoLayout({ user, posts, isOwn, genres }: ProfileLayoutProps) 
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Main header - spans 2 cols */}
-        <div className="md:col-span-2 p-6 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
+      <div className="grid grid-cols-1 @3xl:grid-cols-3 gap-4">
+        <Card className="@3xl:col-span-2">
           <ProfileHeader user={user} isOwn={isOwn} />
-        </div>
+          <div className="mt-3"><Mood custom={custom} /></div>
+        </Card>
 
-        {/* Profile song - 1 col */}
-        <div className="p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm flex flex-col justify-center">
+        <div className="flex flex-col justify-center">
           {user.profileSong ? (
-            <ProfileSong
-              track={user.profileSong}
-              autoplay={user.profile?.autoplayProfileSong}
-              className="!bg-transparent !border-0 !p-0"
-            />
+            <ProfileSong track={user.profileSong} autoplay={user.profile?.autoplayProfileSong} skin={custom.songSkin} />
           ) : (
-            <div className="text-center text-muted-foreground text-sm">
-              No profile song set
-            </div>
+            <Card className="text-center text-sm opacity-60">No profile song set</Card>
           )}
         </div>
 
-        {/* Genre widget - 1 col */}
-        {(genres?.length ?? 0) > 0 && (
-          <div className="p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
-            <GenreWidget genres={genres ?? []} />
-          </div>
-        )}
+        {hasGenres && <Card><GenreWidget genres={genres ?? []} /></Card>}
 
-        {/* Links - 1 col or 2 cols depending on genre */}
         {(user.links?.length ?? 0) > 0 && (
-          <div className={`p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm ${(genres?.length ?? 0) > 0 ? "md:col-span-2" : ""}`}>
-            <LinkSection links={user.links ?? []} />
+          <Card className={hasGenres ? "@3xl:col-span-2" : "@3xl:col-span-3"}>
+            <LinkSection links={user.links} />
+          </Card>
+        )}
+
+        {custom.showTop8 && (
+          <div className="@3xl:col-span-2">
+            <Top8 friends={user.top8 ?? []} title={custom.top8Title} isOwn={isOwn} />
           </div>
         )}
 
-        {/* Playlists - 2 cols */}
         {(user.playlists?.length ?? 0) > 0 && (
-          <div className="md:col-span-2 p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
-            <PlaylistDisplay playlists={user.playlists ?? []} />
-          </div>
+          <Card className={custom.showTop8 ? "" : "@3xl:col-span-3"}>
+            <PlaylistDisplay playlists={user.playlists} />
+          </Card>
         )}
 
-        {/* Favorites */}
-        <div className="md:col-span-3 p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
-          <FavoritesSection favorites={(user.profile?.favorites as { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[] }) ?? null} />
-        </div>
-
-        {/* Vibe board - full width */}
-        {((user.profile?.vibeBoard as unknown[]) ?? []).length > 0 && (
-          <div className="md:col-span-3 p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
-            <VibeBoard items={(user.profile?.vibeBoard as never[]) ?? []} />
-          </div>
+        {hasFavorites(user) && (
+          <Card className="@3xl:col-span-3">
+            <FavoritesSection favorites={favoritesOf(user)} />
+          </Card>
         )}
 
-        {/* Posts - full width */}
-        <div className="md:col-span-3 p-4 rounded-2xl border border-white/10 bg-black/20 backdrop-blur-sm">
+        {vibeItemsOf(user).length > 0 && (
+          <Card className="@3xl:col-span-3">
+            <VibeBoard items={vibeItemsOf(user)} />
+          </Card>
+        )}
+
+        <Card className={showWall ? "@3xl:col-span-2" : "@3xl:col-span-3"}>
           <PostGrid posts={posts} />
-        </div>
+        </Card>
+
+        {showWall && wall && (
+          <div>
+            <Wall username={user.username} initial={wall} viewerId={viewerId} isOwn={isOwn} />
+          </div>
+        )}
       </div>
     </div>
   );

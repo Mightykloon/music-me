@@ -26,7 +26,8 @@ export default function SettingsLayout({
   const nav = guest ? settingsNav.filter((item) => item.href === "/settings/appearance") : settingsNav;
 
   return (
-    <div className="max-w-4xl mx-auto flex gap-6 px-4 py-6">
+    // the profile editor sits beside a live preview, so it gets the full width
+    <div className={cn("mx-auto flex gap-6 px-4 py-6", pathname === "/settings/profile" ? "max-w-[100rem]" : "max-w-4xl")}>
       {/* Sidebar */}
       <aside className="hidden md:block w-56 shrink-0">
         <h2 className="metro-header text-3xl mb-4">

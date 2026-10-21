@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 
-type NotificationType = "FOLLOW" | "REACTION" | "COMMENT" | "REPOST" | "MENTION" | "PLAYLIST_DROP";
+type NotificationType = "FOLLOW" | "REACTION" | "COMMENT" | "REPOST" | "MENTION" | "PLAYLIST_DROP" | "BEST_FRIEND_ADD" | "WALL_COMMENT";
 
 /**
  * Create a notification for a user.

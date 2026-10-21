@@ -33,7 +33,7 @@ export function GenreWidget({ genres, className }: GenreWidgetProps) {
     <div className={className}>
       <div className="flex items-center gap-2 mb-4">
         <BarChart3 className="w-4 h-4 text-[var(--profile-primary)]" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground font-[family-name:var(--profile-heading-font,var(--font-space-grotesk))]">
+        <h2 className="profile-section-title text-sm font-semibold uppercase tracking-wider opacity-70 font-[family-name:var(--profile-heading-font,var(--font-space-grotesk))]">
           Top Genres
         </h2>
       </div>

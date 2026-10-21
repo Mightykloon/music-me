@@ -1,4 +1,24 @@
 import type { TrackInfo } from "@/types";
+import type { Customization } from "@/lib/profile/customization";
+
+export interface Top8Friend {
+  id: string;
+  username: string;
+  displayName: string | null;
+  profilePictureUrl: string | null;
+}
+
+export interface WallCommentInfo {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    profile: { profilePictureUrl: string | null } | null;
+  };
+}
 
 export interface ProfileLayoutProps {
   user: {
@@ -22,6 +42,10 @@ export interface ProfileLayoutProps {
       secondaryColor: string | null;
       accentColor: string | null;
       fontFamily: string | null;
+      fontWeight: string | null;
+      customCSS: string | null;
+      customization: unknown;
+      profileViews: number;
       headingFont: string | null;
       bioFontSize: string | null;
       textEffects: Record<string, unknown> | null;
@@ -50,6 +74,9 @@ export interface ProfileLayoutProps {
       track: TrackInfo;
     } | null;
     profileSong: TrackInfo | null;
+    /** whether the signed-in visitor follows this person */
+    isFollowedByViewer?: boolean;
+    top8?: Top8Friend[];
     _count: {
       followers: number;
       following: number;
@@ -81,5 +108,9 @@ export interface ProfileLayoutProps {
     };
   }[];
   isOwn: boolean;
+  /** signed-in visitor's id, if any (for the wall) */
+  viewerId?: string | null;
+  custom: Customization;
+  wall?: { comments: WallCommentInfo[]; nextCursor: string | null };
   genres?: { genre: string; count: number }[];
 }

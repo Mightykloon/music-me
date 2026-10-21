@@ -47,6 +47,7 @@ interface ProfileHeaderProps {
     location: string | null;
     website: string | null;
     isVerified: boolean;
+    isFollowedByViewer?: boolean;
     profile: {
       profilePictureUrl: string | null;
       textEffects: Record<string, unknown> | null;
@@ -81,6 +82,26 @@ export function ProfileHeader({
   const router = useRouter();
   const [sendingMessage, setSendingMessage] = useState(false);
   const [followModal, setFollowModal] = useState<"followers" | "following" | null>(null);
+  // Follow state lives here unless a parent manages it
+  const [following, setFollowing] = useState(!!user.isFollowedByViewer);
+  const [followers, setFollowers] = useState(user._count.followers);
+  const [followBusy, setFollowBusy] = useState(false);
+  const isFollowingNow = isFollowing ?? following;
+  const toggleFollow = async () => {
+    if (onFollow) return onFollow();
+    setFollowBusy(true);
+    try {
+      const res = await fetch(`/api/users/${user.username}/follow`, { method: "POST" });
+      if (res.status === 401) return router.push("/login");
+      if (!res.ok) return;
+      const data = await res.json();
+      const now = data.action === "followed";
+      setFollowing(now);
+      setFollowers((n) => n + (now ? 1 : -1));
+    } finally {
+      setFollowBusy(false);
+    }
+  };
   const te = (user.profile?.textEffects as { type?: string; color?: string; color2?: string; color3?: string; speed?: number; brightness?: number; displayEmoji?: string }) ?? {};
   const textEffect = te.type;
   const bioSize = user.profile?.bioFontSize ?? "base";
@@ -115,17 +136,17 @@ export function ProfileHeader({
 
   return (
     <div className={className}>
-      <div className="flex items-start gap-4 sm:gap-5">
+      <div className="flex items-start gap-4 @2xl:gap-5">
         <Avatar
           src={user.profile?.profilePictureUrl}
           alt={user.displayName ?? user.username}
           size="2xl"
-          className="h-24 w-24 sm:h-32 sm:w-32"
+          className="profile-avatar h-24 w-24 @2xl:h-32 @2xl:w-32"
         />
         <div className="flex-1 min-w-0 pt-2">
           <div className="flex items-center gap-2 flex-wrap">
             <h1
-              className={`text-4xl sm:text-5xl font-light lowercase tracking-tight leading-none font-[family-name:var(--profile-heading-font)] truncate ${
+              className={`profile-name min-w-0 max-w-full text-3xl @md:text-4xl @2xl:text-5xl font-light lowercase tracking-tight leading-none font-[family-name:var(--profile-heading-font)] [overflow-wrap:anywhere] ${
                 textEffect ? `text-effect-${textEffect}` : ""
               }`}
               style={teStyle}
@@ -142,7 +163,7 @@ export function ProfileHeader({
             {te.displayEmoji && <span className="flex-shrink-0">{te.displayEmoji}</span>}
             {user.isVerified && <BadgeCheck className="w-5 h-5 text-[var(--profile-primary)] flex-shrink-0" />}
           </div>
-          <div className="flex items-center gap-2 mt-1 text-muted-foreground text-sm">
+          <div className="flex items-center gap-2 mt-1 opacity-70 text-sm">
             <span>@{user.username}</span>
             {user.pronouns && (<><span className="text-border">&middot;</span><span>{user.pronouns}</span></>)}
           </div>
@@ -173,8 +194,8 @@ export function ProfileHeader({
               <Link href="/settings/profile" className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors">Edit profile</Link>
             ) : (
               <>
-                <Button variant={isFollowing ? "outline" : "primary"} size="sm" onClick={onFollow}>
-                  {isFollowing ? (<><UserCheck className="w-4 h-4 mr-1.5" />Following</>) : (<><UserPlus className="w-4 h-4 mr-1.5" />Follow</>)}
+                <Button variant={isFollowingNow ? "outline" : "primary"} size="sm" onClick={toggleFollow} disabled={followBusy}>
+                  {isFollowingNow ? (<><UserCheck className="w-4 h-4 mr-1.5" />Following</>) : (<><UserPlus className="w-4 h-4 mr-1.5" />Follow</>)}
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleMessage} disabled={sendingMessage}>
                   {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <><MessageCircle className="w-4 h-4 mr-1.5" />Message</>}
@@ -184,8 +205,8 @@ export function ProfileHeader({
           </div>
         </div>
       </div>
-      {user.bio && <p className={`mt-4 ${bioSizeClass} whitespace-pre-wrap break-words`}>{user.bio}</p>}
-      <div className="mt-3 flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+      {user.bio && <p className={`profile-bio mt-4 ${bioSizeClass} whitespace-pre-wrap break-words`}>{user.bio}</p>}
+      <div className="mt-3 flex items-center gap-4 text-sm opacity-70 flex-wrap">
         {user.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{user.location}</span>}
         {user.website && (
           <a href={user.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[var(--profile-primary)] hover:underline">
@@ -194,9 +215,9 @@ export function ProfileHeader({
         )}
       </div>
       <div className="mt-4 flex items-center gap-6 text-sm">
-        <button className="hover:underline" onClick={() => setFollowModal("followers")}><span className="font-semibold">{formatCount(user._count.followers)}</span>{" "}<span className="text-muted-foreground">followers</span></button>
-        <button className="hover:underline" onClick={() => setFollowModal("following")}><span className="font-semibold">{formatCount(user._count.following)}</span>{" "}<span className="text-muted-foreground">following</span></button>
-        <span><span className="font-semibold">{formatCount(user._count.posts)}</span>{" "}<span className="text-muted-foreground">posts</span></span>
+        <button className="hover:underline" onClick={() => setFollowModal("followers")}><span className="font-semibold">{formatCount(followers)}</span>{" "}<span className="opacity-70">followers</span></button>
+        <button className="hover:underline" onClick={() => setFollowModal("following")}><span className="font-semibold">{formatCount(user._count.following)}</span>{" "}<span className="opacity-70">following</span></button>
+        <span><span className="font-semibold">{formatCount(user._count.posts)}</span>{" "}<span className="opacity-70">posts</span></span>
       </div>
       {followModal && (
         <FollowListModal
