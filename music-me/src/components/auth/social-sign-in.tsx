@@ -1,17 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getProviders, signIn } from "next-auth/react";
+import { getProviders, signIn, signOut, useSession } from "next-auth/react";
 
 // "or continue with" plus a button per social provider that is actually
 // configured on the server, so a missing key never shows a dead button.
 export function SocialSignIn() {
   const [google, setGoogle] = useState(false);
+  const [notice, setNotice] = useState("");
+  const { status } = useSession();
 
   useEffect(() => {
     let alive = true;
     getProviders()
-      .then((p) => alive && setGoogle(!!p?.google))
+      .then((p) => {
+        if (!alive) return;
+        setGoogle(!!p?.google);
+        // the server refused to attach a Google account to a different, logged-in account
+        if (new URLSearchParams(location.search).get("error") === "SignedInAsSomeoneElse") {
+          setNotice("That Google account has a different email than the account that was logged in. Try again: you'll be logged out first.");
+        }
+      })
       .catch(() => {});
     return () => {
       alive = false;
@@ -22,6 +31,7 @@ export function SocialSignIn() {
 
   return (
     <>
+      {notice && <p className="text-sm text-destructive">{notice}</p>}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border" />
@@ -33,7 +43,12 @@ export function SocialSignIn() {
 
       <button
         type="button"
-        onClick={() => signIn("google", { callbackUrl: "/feed" })}
+        onClick={async () => {
+          // signing in while logged in would attach Google to the current
+          // account; log out first so this is always a fresh sign-in
+          if (status === "authenticated") await signOut({ redirect: false });
+          signIn("google", { callbackUrl: "/feed" });
+        }}
         className="metro-button w-full text-sm"
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden>
