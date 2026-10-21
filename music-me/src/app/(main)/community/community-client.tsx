@@ -107,13 +107,13 @@ export function CommunityClient({
   ];
 
   // The forum runs edge to edge (its strip scrolls sideways and fades out
-  // before the online list); the heading stays where the other tabs put it.
+  // before the online list), heading and tiles starting just in from the left edge.
   const forumWide = activeTab === "forum";
 
   return (
     <div
       className={cn("mx-auto flex", forumWide ? "max-w-none" : "max-w-6xl")}
-      style={{ ["--edge" as string]: "max(1rem, calc((100vw - 72rem) / 2 + 1rem))" }}
+      style={{ ["--edge" as string]: "2.5rem" }}
     >
       <div className="flex-1 min-w-0">
         <div className={cn("px-4 pt-4 pb-0", forumWide && "lg:pl-[var(--edge)]")}>
