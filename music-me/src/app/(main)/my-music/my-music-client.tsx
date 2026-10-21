@@ -305,12 +305,13 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
     <div className="max-w-4xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Library className="w-6 h-6 text-primary" />
-          <h1 className="metro-header text-5xl">
-            my music
-          </h1>
-        </div>
+        {/* Sized in em so the icon's bars stand exactly as tall as the l and b
+            (0.75em) and rest on the baseline, at any text size. Lucide draws
+            inside a padded 24-unit box, hence the oversize box and nudge. */}
+        <h1 className="metro-header flex items-baseline gap-[0.18em] text-5xl">
+          <Library className="h-[1.03em] w-[1.03em] shrink-0 translate-y-[0.14em] text-primary" strokeWidth={1.5} aria-hidden />
+          library
+        </h1>
         <div className="flex items-center gap-2">
           <button
             onClick={handleSyncAll}
