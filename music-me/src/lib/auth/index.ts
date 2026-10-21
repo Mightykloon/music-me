@@ -129,6 +129,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   callbacks: {
+    // Auth.js attaches a sign-in to whoever is already logged in on that
+    // browser. Without this check, signing in with someone else's Google
+    // account on a logged-in browser linked it to the wrong account (and that
+    // Google account kept opening it). Only the same email may be attached.
+    async signIn({ account, profile }) {
+      if (account?.type !== "oidc" && account?.type !== "oauth") return true;
+      const current = await auth();
+      const signedInAs = current?.user?.email?.toLowerCase();
+      const incoming = profile?.email?.toLowerCase();
+      if (signedInAs && incoming && signedInAs !== incoming) {
+        return "/login?error=SignedInAsSomeoneElse";
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         const dbUser = await db.user.findUnique({
