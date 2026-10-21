@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, X, ExternalLink, Music } from "lucide-react";
+import { SpotifyLogo } from "@phosphor-icons/react";
 import { usePlayerStore, type PlayerTrack } from "@/lib/player-store";
-import { loadSpotifyApi, loadYouTubeApi, YT_STATE, type SpotifyController, type YTPlayer } from "@/lib/music/embed-apis";
+import { loadYouTubeApi, YT_STATE, type YTPlayer } from "@/lib/music/embed-apis";
 
 function formatTime(s: number) {
   const m = Math.floor(s / 60);
@@ -13,11 +14,10 @@ function formatTime(s: number) {
 
 // Where the sound comes from:
 //   youtube - the full song, in YouTube's player (kept visible, per YouTube's rules)
-//   spotify - the full song for people logged into Spotify, 30s for everyone else
 //   audio   - the 30 second preview, in a plain <audio> element
-type Engine = "youtube" | "spotify" | "audio";
+type Engine = "youtube" | "audio";
 /** what the listener picked; "full" means YouTube when there's a match */
-type Preference = "full" | "spotify" | "preview";
+type Preference = "full" | "preview";
 
 interface Sources {
   trackId: string;
@@ -32,7 +32,7 @@ const PREF_KEY = "remixd-player-source";
 function readPref(): Preference {
   try {
     const v = localStorage.getItem(PREF_KEY);
-    return v === "spotify" || v === "preview" ? v : "full";
+    return v === "preview" ? "preview" : "full";
   } catch {
     return "full";
   }
@@ -63,11 +63,7 @@ export function PlayerBar() {
   const ytHost = useRef<HTMLDivElement>(null);
   const ytPlayer = useRef<YTPlayer | null>(null);
   const ytVideo = useRef<string | null>(null);
-  const spHost = useRef<HTMLDivElement>(null);
-  const spController = useRef<SpotifyController | null>(null);
-  const spUri = useRef<string | null>(null);
-  // play() straight after loadUri() is ignored until the new song has loaded, so keep asking
-  const spWantsPlay = useRef(false);
+
 
   const [sources, setSources] = useState<Sources | null>(null);
   // the bar only renders once something plays, so reading storage here can't mismatch the server render
@@ -119,8 +115,7 @@ export function PlayerBar() {
 
   let engine: Engine | null = null;
   if (current) {
-    if (pref === "spotify" && current.spotifyId && !broken.includes("spotify")) engine = "spotify";
-    else if (pref !== "preview" && current.youtubeId && !broken.includes("youtube")) engine = "youtube";
+    if (pref !== "preview" && current.youtubeId && !broken.includes("youtube")) engine = "youtube";
     else if (current.previewUrl) engine = "audio";
   }
   const markFailed = useCallback(
@@ -219,59 +214,6 @@ export function PlayerBar() {
     return () => clearInterval(t);
   }, [youtubeId, setProgress, setDuration]);
 
-  // ---------------------------------------------------------------- spotify engine
-  const spotifyId = engine === "spotify" ? current?.spotifyId ?? null : null;
-  useEffect(() => {
-    if (!spotifyId) {
-      spController.current?.pause();
-      return;
-    }
-    const uri = `spotify:track:${spotifyId}`;
-    let cancelled = false;
-    loadSpotifyApi().then((api) => {
-      if (cancelled || !spHost.current) return;
-      if (!spController.current) {
-        spUri.current = uri;
-        const el = document.createElement("div");
-        spHost.current.appendChild(el);
-        api.createController(el, { uri, width: "100%", height: 80 }, (c) => {
-          spController.current = c;
-          c.addListener("ready", () => {
-            if (usePlayerStore.getState().isPlaying) c.play();
-          });
-          c.addListener("playback_update", (e) => {
-            const { isPaused, position, duration: d } = e.data;
-            setProgress(position / 1000);
-            if (d) setDuration(d / 1000);
-            const s = usePlayerStore.getState();
-            if (!isPaused) spWantsPlay.current = false;
-            if (isPaused && spWantsPlay.current && s.isPlaying) c.play();
-            else if (isPaused && d > 0 && position >= d - 400) s.next();
-            else if (!isPaused && !s.isPlaying) s.resume();
-          });
-        });
-      } else if (spUri.current !== uri) {
-        spUri.current = uri;
-        const c = spController.current;
-        spWantsPlay.current = usePlayerStore.getState().isPlaying;
-        c.loadUri(uri);
-        c.play();
-        // and once more in case no update arrives while it loads
-        setTimeout(() => spWantsPlay.current && c.play(), 900);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [spotifyId, setProgress, setDuration]);
-
-  useEffect(() => {
-    const c = spController.current;
-    if (!spotifyId || !c) return;
-    if (isPlaying) c.resume();
-    else c.pause();
-  }, [isPlaying, spotifyId]);
-
   // ---------------------------------------------------------------- shared controls
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
@@ -284,7 +226,6 @@ export function PlayerBar() {
       const rect = e.currentTarget.getBoundingClientRect();
       const time = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * duration;
       if (engine === "youtube") ytPlayer.current?.seekTo(time, true);
-      else if (engine === "spotify") spController.current?.seek(time);
       else if (audioRef.current) audioRef.current.currentTime = time;
       seek(time);
     },
@@ -303,7 +244,6 @@ export function PlayerBar() {
 
   const close = () => {
     ytPlayer.current?.pauseVideo();
-    spController.current?.pause();
     audioRef.current?.pause();
     clearPlayer();
   };
@@ -313,7 +253,6 @@ export function PlayerBar() {
   const progressPct = duration > 0 ? (progress / duration) * 100 : 0;
   const art = currentTrack?.albumArtUrl ?? current?.albumArtUrl ?? null;
   const showVideo = !!currentTrack && engine === "youtube";
-  const showSpotify = !!currentTrack && engine === "spotify";
 
   const chip = (p: Preference, label: string, available: boolean) =>
     available && (
@@ -323,7 +262,7 @@ export function PlayerBar() {
         aria-pressed={pref === p}
         className={`px-2 py-0.5 text-[11px] lowercase transition-colors ${pref === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
         title={
-          p === "full" ? "Full song via YouTube" : p === "spotify" ? "Full song if you're logged into Spotify" : "30 second preview"
+          p === "full" ? "Full song via YouTube" : "30 second preview"
         }
       >
         {label}
@@ -349,9 +288,6 @@ export function PlayerBar() {
         <div className="aspect-video min-h-[200px] w-full">
           <div ref={ytHost} className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
         </div>
-      </div>
-      <div className={`fixed right-3 bottom-[76px] z-50 w-[min(356px,calc(100vw-24px))] ${showSpotify ? "" : "hidden"}`}>
-        <div ref={spHost} />
       </div>
 
       {currentTrack && (
@@ -412,10 +348,9 @@ export function PlayerBar() {
               </span>
 
               {/* source picker */}
-              {current && (current.youtubeId || current.spotifyId) && (
+              {current?.youtubeId && (
                 <div className="hidden md:flex border border-border" role="group" aria-label="Play from">
                   {chip("full", "full", !!current.youtubeId)}
-                  {chip("spotify", "spotify", !!current.spotifyId)}
                   {chip("preview", "30s", !!current.previewUrl)}
                 </div>
               )}
@@ -438,7 +373,19 @@ export function PlayerBar() {
                 >
                   <div className="h-full rounded-full bg-muted-foreground/50" style={{ width: `${volume * 100}%` }} />
                 </div>
-                {currentTrack.externalUrl && (
+                {current?.spotifyId && (
+                  <a
+                    href={`https://open.spotify.com/track/${current.spotifyId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded-full hover:bg-muted transition-colors"
+                    title="Open the full song in Spotify"
+                    aria-label="Open in Spotify"
+                  >
+                    <SpotifyLogo className="w-4 h-4 text-muted-foreground" weight="fill" />
+                  </a>
+                )}
+                {currentTrack.externalUrl && !(current?.spotifyId && currentTrack.externalUrl.includes("open.spotify.com")) && (
                   <a
                     href={currentTrack.externalUrl}
                     target="_blank"
