@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { NotificationsClient } from "./notifications-client";
+import { JoinPrompt } from "@/components/auth/join-prompt";
 
 export const metadata = {
   title: "Notifications",
@@ -9,7 +10,7 @@ export const metadata = {
 export default async function NotificationsPage() {
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) return null;
+  if (!userId) return <JoinPrompt what="get notified when people follow you, reply or react" />;
 
   const notifications = await db.notification.findMany({
     where: { userId },

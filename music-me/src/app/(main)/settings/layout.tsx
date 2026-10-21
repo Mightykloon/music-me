@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { JoinPrompt } from "@/components/auth/join-prompt";
 import { User, Link2, Shield, Bell, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +21,9 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  // guests can pick a theme (it's saved in the browser); everything else needs an account
+  const guest = useSession().status === "unauthenticated";
+  const nav = guest ? settingsNav.filter((item) => item.href === "/settings/appearance") : settingsNav;
 
   return (
     <div className="max-w-4xl mx-auto flex gap-6 px-4 py-6">
@@ -28,7 +33,7 @@ export default function SettingsLayout({
           settings
         </h2>
         <nav className="space-y-1">
-          {settingsNav.map((item) => {
+          {nav.map((item) => {
             const active = pathname === item.href;
             return (
               <Link
@@ -50,7 +55,9 @@ export default function SettingsLayout({
       </aside>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">{children}</div>
+      <div className="flex-1 min-w-0">
+        {guest && pathname !== "/settings/appearance" ? <JoinPrompt what="set up a profile and account" /> : children}
+      </div>
     </div>
   );
 }

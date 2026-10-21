@@ -7,6 +7,7 @@ import { Palette, ListMusic, Mic2, LayoutGrid, Users, Headphones, Disc3, Radio, 
 import { HOVER_OUTLINE, LiveTile } from "@/components/metro/live-tile";
 import { Tilt } from "@/components/metro/tilt";
 import { RemixdWordmark } from "@/components/remixd-wordmark";
+import { ContinueAsGuest } from "@/components/auth/continue-as-guest";
 import { MetroArt } from "./metro-art";
 import { MetroBackdrop } from "./metro-backdrop";
 
@@ -157,6 +158,7 @@ export function Panorama() {
               </Link>
             </Tilt>
           </div>
+          <ContinueAsGuest className="self-start" />
           <p className="metro-app-title flex items-center gap-2 text-muted-foreground">
             swipe <ArrowRight className="h-3.5 w-3.5" />
           </p>
@@ -255,6 +257,7 @@ export function Panorama() {
                 <Link href="/login" className="metro-button text-base">log in</Link>
               </Tilt>
             </div>
+            <ContinueAsGuest className="self-start" />
             <nav className="flex gap-5 pt-4 text-sm lowercase text-muted-foreground">
               <Link href="/privacy" className="hover:text-foreground">privacy</Link>
               <Link href="/terms" className="hover:text-foreground">terms</Link>

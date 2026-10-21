@@ -19,6 +19,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { ForumHome, type ForumCategoryData } from "../forum/forum-home";
+import { JoinPrompt } from "@/components/auth/join-prompt";
 
 interface ConversationItem {
   id: string;
@@ -150,9 +151,12 @@ export function CommunityClient({
 
         <div className="p-4">
           {activeTab === "forum" && <ForumHome categories={categories} embedded />}
-          {activeTab === "messages" && (
-            <MessagesTab conversations={conversations} currentUserId={currentUserId} onlineUsers={onlineUsers} />
-          )}
+          {activeTab === "messages" &&
+            (currentUserId ? (
+              <MessagesTab conversations={conversations} currentUserId={currentUserId} onlineUsers={onlineUsers} />
+            ) : (
+              <JoinPrompt what="send and receive messages" />
+            ))}
           {activeTab === "live" && (
             <LiveChatTab currentUserId={currentUserId} onlineUsers={onlineUsers} />
           )}
@@ -516,12 +520,18 @@ function LiveChatTab({ currentUserId, onlineUsers }: { currentUserId: string; on
         ))}
         <div ref={messagesEndRef} />
       </div>
+      {!currentUserId ? (
+        <div className="pt-3 mt-auto pb-safe">
+          <JoinPrompt what="chat" compact />
+        </div>
+      ) : (
       <div className="pt-3 mt-auto flex items-center gap-2 pb-safe">
         <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Say something..." className="flex-1 bg-muted/30 rounded-xl px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50" />
         <button onClick={handleSend} disabled={!input.trim() || sending} className="p-2.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50 hover:bg-primary/90 transition-colors">
           {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </button>
       </div>
+      )}
     </div>
   );
 }

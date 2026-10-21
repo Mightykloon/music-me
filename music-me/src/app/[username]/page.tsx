@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { fixS3Url } from "@/lib/storage";
 import { ProfileCanvas } from "./profile-canvas";
 import { MainNav } from "@/components/layout/main-nav";
+import { GuestNotice } from "@/components/auth/guest-notice";
+import { isGuest } from "@/lib/guest";
 import type { ProfileLayoutProps } from "@/components/profile/layouts/types";
 
 export async function generateMetadata({
@@ -158,6 +160,10 @@ export default async function ProfilePage({
       : null,
   };
 
+  // signed-in visitors and guests keep the site nav; strangers from a shared link see just the profile
+  const guest = !session?.user && (await isGuest());
+  const withNav = !!session?.user || guest;
+
   const postsData = posts.map((p: (typeof posts)[number]) => ({
     ...p,
     createdAt: p.createdAt.toISOString(),
@@ -165,9 +171,9 @@ export default async function ProfilePage({
 
   return (
     <>
-      {/* signed-in visitors keep the site nav, so a profile isn't a dead end */}
-      {session?.user && <MainNav user={session.user} />}
-      <div className={session?.user ? "pb-16 sm:pb-0 sm:pt-16" : undefined}>
+      {withNav && <MainNav user={session?.user ?? null} />}
+      {guest && <GuestNotice />}
+      <div className={withNav ? "pb-16 sm:pb-0 sm:pt-16" : undefined}>
         <ProfileCanvas
           user={profileData as unknown as ProfileLayoutProps["user"]}
           posts={postsData as unknown as ProfileLayoutProps["posts"]}

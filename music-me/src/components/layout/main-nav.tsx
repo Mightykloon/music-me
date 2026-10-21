@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, PlusCircle, Bell, User, Library, Users } from "lucide-react";
+import { Home, Compass, PlusCircle, Bell, User, Library, Users, Palette, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RemixdWordmark } from "@/components/remixd-wordmark";
 
 interface MainNavProps {
+  /** null for a guest (browsing without an account) */
   user: {
     id?: string;
     name?: string | null;
     email?: string | null;
     image?: string | null;
-  };
+  } | null;
   className?: string;
 }
 
@@ -22,8 +23,8 @@ const navItems = [
   { href: "/feed", icon: Home, label: "home" },
   { href: "/discover", icon: Compass, label: "discover" },
   { href: "/community", icon: Users, label: "community", also: ["/forum", "/messages"] },
-  { href: "/notifications", icon: Bell, label: "notifications" },
-  { href: "/my-music", icon: Library, label: "library" },
+  { href: "/notifications", icon: Bell, label: "notifications", account: true },
+  { href: "/my-music", icon: Library, label: "library", account: true },
 ];
 
 const isActive = (pathname: string, href: string, also: string[] = []) =>
@@ -34,7 +35,8 @@ const appBarButton = "metro-appbar-icon transition-colors hover:border-primary h
 
 export function MainNav({ user, className }: MainNavProps) {
   const pathname = usePathname();
-  const username = (user as { username?: string }).username;
+  const guest = !user;
+  const username = (user as { username?: string } | null)?.username;
   const profileHref = username ? `/${username}` : "/settings/profile";
 
   return (
@@ -48,7 +50,7 @@ export function MainNav({ user, className }: MainNavProps) {
           </Link>
 
           <div className="flex h-full items-stretch gap-1">
-            {navItems.map((item) => {
+            {navItems.filter((item) => !(guest && item.account)).map((item) => {
               const active = isActive(pathname, item.href, item.also);
               return (
                 <Link
@@ -67,6 +69,19 @@ export function MainNav({ user, className }: MainNavProps) {
             })}
           </div>
 
+          {guest ? (
+            <div className="flex items-center gap-4">
+              <Link href="/settings/appearance" aria-label="theme" className={appBarButton}>
+                <Palette className="w-5 h-5" strokeWidth={1.75} />
+              </Link>
+              <Link href="/login" className="text-[0.95rem] lowercase text-muted-foreground hover:text-foreground">
+                log in
+              </Link>
+              <Link href="/register" className="metro-button metro-button-accent min-h-[36px] px-4 text-sm lowercase">
+                sign up
+              </Link>
+            </div>
+          ) : (
           <div className="flex items-center gap-3">
             <Link href="/feed" aria-label="new post" className={appBarButton}>
               <PlusCircle className="w-5 h-5" strokeWidth={1.75} />
@@ -75,6 +90,7 @@ export function MainNav({ user, className }: MainNavProps) {
               <User className="w-5 h-5" strokeWidth={1.75} />
             </Link>
           </div>
+          )}
         </nav>
       </header>
 
@@ -91,12 +107,25 @@ export function MainNav({ user, className }: MainNavProps) {
           <Link href="/feed" aria-label="home" className="metro-appbar-icon border-primary bg-primary text-white">
             <Home className="w-5 h-5" strokeWidth={1.75} />
           </Link>
-          <Link href="/my-music" aria-label="library" className={mobileNavClass(pathname, "/my-music")}>
-            <Library className="w-5 h-5" strokeWidth={1.75} />
-          </Link>
-          <Link href={profileHref} aria-label="your profile" className={mobileNavClass(pathname, `/${username}`)}>
-            <User className="w-5 h-5" strokeWidth={1.75} />
-          </Link>
+          {guest ? (
+            <>
+              <Link href="/settings/appearance" aria-label="theme" className={mobileNavClass(pathname, "/settings/appearance")}>
+                <Palette className="w-5 h-5" strokeWidth={1.75} />
+              </Link>
+              <Link href="/register" aria-label="sign up" className={mobileNavClass(pathname, "/register")}>
+                <UserPlus className="w-5 h-5" strokeWidth={1.75} />
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/my-music" aria-label="library" className={mobileNavClass(pathname, "/my-music")}>
+                <Library className="w-5 h-5" strokeWidth={1.75} />
+              </Link>
+              <Link href={profileHref} aria-label="your profile" className={mobileNavClass(pathname, `/${username}`)}>
+                <User className="w-5 h-5" strokeWidth={1.75} />
+              </Link>
+            </>
+          )}
         </div>
       </nav>
     </>
