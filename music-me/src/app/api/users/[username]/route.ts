@@ -22,7 +22,7 @@ export async function GET(
         isVerified: true,
         role: true,
         createdAt: true,
-        profile: true,
+        profile: { include: { profileSong: true } },
         links: {
           where: { isActive: true },
           orderBy: { displayOrder: "asc" },

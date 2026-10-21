@@ -68,6 +68,7 @@ enum NotificationType {
   MUSIC_REQUEST
   SHARED_PLAYLIST_INVITE
   BEST_FRIEND_ADD
+  WALL_COMMENT
 }
 
 // ─── Users ───────────────────────────────────────────────────────
@@ -114,6 +115,8 @@ model User {
   playlistSyncGroups PlaylistSyncGroup[]
   bestFriends        BestFriend[]       @relation("BestFriendOwner")
   bestFriendOf       BestFriend[]       @relation("BestFriendTarget")
+  wallComments       WallComment[]      @relation("WallOwner")
+  wallCommentsLeft   WallComment[]      @relation("WallAuthor")
 
   @@index([username])
   @@index([email])
@@ -183,6 +186,9 @@ model UserProfile {
   customCSS         String?     @db.Text
   vibeBoard         Json?       @default("[]")
   favorites         Json?       @default("{}")
+  // cursor, overlay, card style, song skin, mood, marquee, top 8 / wall / counter toggles (see lib/profile/customization.ts)
+  customization     Json?       @default("{}")
+  profileViews      Int         @default(0)
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   profileSong MusicTrack? @relation(fields: [profileSongId], references: [id])
@@ -426,6 +432,7 @@ model BestFriend {
   id        String   @id @default(cuid())
   userId    String
   friendId  String
+  position  Int      @default(0)
   createdAt DateTime @default(now())
 
   user   User @relation("BestFriendOwner", fields: [userId], references: [id], onDelete: Cascade)
@@ -620,4 +627,19 @@ model ForumReaction {
   @@unique([userId, replyId, emoji])
   @@index([threadId])
   @@index([replyId])
+}
+
+// MySpace-style comments left on someone's profile
+model WallComment {
+  id            String   @id @default(cuid())
+  profileUserId String
+  authorId      String
+  content       String   @db.VarChar(500)
+  createdAt     DateTime @default(now())
+
+  profileUser User @relation("WallOwner", fields: [profileUserId], references: [id], onDelete: Cascade)
+  author      User @relation("WallAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([profileUserId, createdAt])
+  @@index([authorId])
 }

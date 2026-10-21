@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./profile.css";
 
 /* Mobile safe area and fixed nav utilities */
 .safe-bottom {

@@ -18,7 +18,7 @@ export function LinkSection({ links, className }: LinkSectionProps) {
     <div className={className}>
       <div className="flex items-center gap-2 mb-4">
         <Link2 className="w-4 h-4 text-[var(--profile-primary)]" />
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Links</h2>
+        <h2 className="profile-section-title text-sm font-semibold uppercase tracking-wider opacity-70">Links</h2>
       </div>
       <div className="flex flex-col gap-2">
         {links.map((link) => {

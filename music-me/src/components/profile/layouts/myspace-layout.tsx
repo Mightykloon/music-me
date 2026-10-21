@@ -4,85 +4,66 @@ import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileSong } from "@/components/profile/profile-song";
 import { PlaylistDisplay } from "@/components/profile/playlist-display";
 import { LinkSection } from "@/components/profile/link-section";
+import { VibeBoard } from "@/components/profile/vibe-board";
 import { PostGrid } from "@/components/profile/post-grid";
 import { NowPlayingBadge } from "@/components/profile/now-playing-badge";
 import { FavoritesSection } from "@/components/profile/favorites-section";
 import { GenreWidget } from "@/components/profile/genre-widget";
+import { Card, Mood, SectionTitle, Top8, Wall } from "@/components/profile/profile-extras";
+import { favoritesOf, hasFavorites, vibeItemsOf } from "./shared";
 import type { ProfileLayoutProps } from "./types";
 
-export function MyspaceLayout({ user, posts, isOwn, genres }: ProfileLayoutProps) {
+// The 2007 arrangement: you, your song and your links on the left; blurbs,
+// Friend Space and the comment wall on the right.
+export function MyspaceLayout({ user, posts, isOwn, genres, custom, wall, viewerId }: ProfileLayoutProps) {
+  const name = user.displayName ?? user.username;
   return (
-    <div className="max-w-4xl mx-auto w-full">
-      {/* Classic bordered header */}
-      <div className="border-2 border-[var(--profile-primary)]/40 rounded-lg p-6 mb-4 bg-black/30">
-        {user.nowPlaying?.track && (
-          <div className="mb-4">
-            <NowPlayingBadge track={user.nowPlaying.track} />
-          </div>
-        )}
-
-        <ProfileHeader user={user} isOwn={isOwn} />
-
-        {user.profileSong && (
-          <div className="mt-4">
-            <ProfileSong
-              track={user.profileSong}
-              autoplay={user.profile?.autoplayProfileSong}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Favorites */}
-      <div className="border-2 border-[var(--profile-primary)]/40 rounded-lg p-4 mb-4 bg-black/30">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--profile-primary)] border-b border-[var(--profile-primary)]/30 pb-2 mb-3">About Me</h3>
-        <FavoritesSection favorites={(user.profile?.favorites as { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[] }) ?? null} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="max-w-5xl mx-auto w-full">
+      <div className="grid grid-cols-1 @3xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-4">
         {/* Left column */}
         <div className="space-y-4">
-          {/* Genre stats */}
-          {(genres?.length ?? 0) > 0 && (
-            <div className="border-2 border-[var(--profile-primary)]/40 rounded-lg p-4 bg-black/30">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--profile-primary)] border-b border-[var(--profile-primary)]/30 pb-2 mb-3">
-                Top Artists
-              </h3>
-              <GenreWidget genres={genres ?? []} />
-            </div>
+          <Card>
+            {user.nowPlaying?.track && (
+              <div className="mb-4">
+                <NowPlayingBadge track={user.nowPlaying.track} />
+              </div>
+            )}
+            <ProfileHeader user={user} isOwn={isOwn} />
+            <div className="mt-3"><Mood custom={custom} /></div>
+          </Card>
+
+          {user.profileSong && (
+            <ProfileSong track={user.profileSong} autoplay={user.profile?.autoplayProfileSong} skin={custom.songSkin} />
           )}
 
-          <div className="border-2 border-[var(--profile-primary)]/40 rounded-lg p-4 bg-black/30">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--profile-primary)] border-b border-[var(--profile-primary)]/30 pb-2 mb-3">
-              Top 8 Tracks
-            </h3>
-            <PlaylistDisplay playlists={user.playlists ?? []} />
-            {(user.playlists?.length ?? 0) === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No playlists pinned yet
-              </p>
-            )}
-          </div>
-
-          <div className="border-2 border-[var(--profile-primary)]/40 rounded-lg p-4 bg-black/30">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--profile-primary)] border-b border-[var(--profile-primary)]/30 pb-2 mb-3">
-              Links
-            </h3>
-            <LinkSection links={user.links ?? []} />
-            {(user.links?.length ?? 0) === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No links added yet
-              </p>
-            )}
-          </div>
+          {(user.links?.length ?? 0) > 0 && <Card><LinkSection links={user.links} /></Card>}
+          {(genres?.length ?? 0) > 0 && <Card><GenreWidget genres={genres ?? []} /></Card>}
+          {(user.playlists?.length ?? 0) > 0 && <Card><PlaylistDisplay playlists={user.playlists} /></Card>}
         </div>
 
-        {/* Right column - posts */}
-        <div className="border-2 border-[var(--profile-primary)]/40 rounded-lg p-4 bg-black/30">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--profile-primary)] border-b border-[var(--profile-primary)]/30 pb-2 mb-3">
-            Posts
-          </h3>
-          <PostGrid posts={posts} />
+        {/* Right column */}
+        <div className="space-y-4">
+          <Card>
+            <SectionTitle>{name}&apos;s blurbs</SectionTitle>
+            {hasFavorites(user) ? (
+              <FavoritesSection favorites={favoritesOf(user)} />
+            ) : (
+              <p className="text-sm opacity-60">{isOwn ? "Add interests, hobbies and favorites in edit profile." : "Nothing here yet."}</p>
+            )}
+          </Card>
+
+          {custom.showTop8 && (
+            <Top8 friends={user.top8 ?? []} title={custom.top8Title === "Top 8" ? `${name}'s Friend Space` : custom.top8Title} isOwn={isOwn} />
+          )}
+
+          {vibeItemsOf(user).length > 0 && <Card><VibeBoard items={vibeItemsOf(user)} /></Card>}
+
+          <Card>
+            <SectionTitle>posts</SectionTitle>
+            <PostGrid posts={posts} />
+          </Card>
+
+          {custom.showWall && wall && <Wall username={user.username} initial={wall} viewerId={viewerId} isOwn={isOwn} />}
         </div>
       </div>
     </div>

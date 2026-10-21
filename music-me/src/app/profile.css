@@ -1,0 +1,383 @@
+/* =====================================================================
+   Profile customization: card styles, texture overlays, cursor trail,
+   marquee, visitor counter and profile song skins.
+   Everything hangs off .profile-root and its data-card attribute, set by
+   ProfileCanvas from the user's settings.
+   ===================================================================== */
+
+.profile-root {
+  --profile-radius: 12px;
+  --card-border: color-mix(in srgb, var(--profile-primary) 28%, transparent);
+}
+
+/* ---------------------------------------------------------------- cards */
+
+.profile-card {
+  position: relative;
+  border-radius: var(--profile-radius);
+  border: 1px solid var(--card-border);
+  background: rgb(0 0 0 / 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.profile-banner { border-radius: var(--profile-radius); }
+
+[data-card="solid"] .profile-card {
+  background: color-mix(in srgb, var(--profile-bg) 88%, var(--profile-primary) 12%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-card="outline"] .profile-card {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 2px solid var(--profile-primary);
+  box-shadow: 4px 4px 0 var(--profile-secondary);
+}
+
+/* ripped paper: jagged top and bottom edges */
+[data-card="torn"] .profile-card {
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--profile-bg) 80%, #fff 9%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding-top: 1.6rem;
+  padding-bottom: 1.6rem;
+  clip-path: polygon(
+    0% 2.5%, 4% 0.6%, 9% 2%, 14% 0%, 20% 1.8%, 26% 0.4%, 31% 2.2%, 37% 0.2%, 43% 1.6%, 49% 0%, 55% 2%, 61% 0.5%, 66% 2.4%, 72% 0.3%, 78% 1.7%, 84% 0%, 90% 2.1%, 95% 0.6%, 100% 2%,
+    100% 98%, 96% 99.6%, 91% 98.2%, 85% 100%, 79% 98.4%, 73% 99.8%, 67% 98%, 61% 99.5%, 55% 98.1%, 49% 100%, 43% 98.3%, 37% 99.7%, 31% 98%, 25% 99.6%, 19% 98.2%, 13% 100%, 8% 98.4%, 3% 99.7%, 0% 98%
+  );
+}
+
+/* masking tape at the top, cards knocked slightly off square */
+[data-card="tape"] .profile-card {
+  border: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--profile-bg) 75%, #fff 14%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 6px 14px -6px rgb(0 0 0 / 0.55);
+  rotate: -0.5deg;
+  margin-top: 0.6rem;
+}
+[data-card="tape"] .profile-card:nth-of-type(even) { rotate: 0.6deg; }
+[data-card="tape"] .profile-card::before {
+  content: "";
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  width: 6.5rem;
+  height: 1.4rem;
+  translate: -50% 0;
+  rotate: -3deg;
+  background: rgb(240 230 190 / 0.72);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  mix-blend-mode: multiply;
+}
+
+/* chunky stepped pixel border */
+[data-card="pixel"] .profile-card {
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--profile-bg) 85%, var(--profile-primary) 15%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    0 -4px 0 0 var(--profile-primary),
+    0 4px 0 0 var(--profile-secondary),
+    -4px 0 0 0 var(--profile-primary),
+    4px 0 0 0 var(--profile-secondary),
+    8px 8px 0 0 rgb(0 0 0 / 0.45);
+  margin: 4px;
+  image-rendering: pixelated;
+}
+
+/* thick white sticker border with a lifted shadow */
+[data-card="sticker"] .profile-card {
+  border: 5px solid #fff;
+  background: color-mix(in srgb, var(--profile-bg) 90%, var(--profile-primary) 10%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 10px 20px -8px rgb(0 0 0 / 0.6);
+  rotate: 0.4deg;
+}
+[data-card="sticker"] .profile-card:nth-of-type(odd) { rotate: -0.6deg; }
+
+/* ---------------------------------------------------------------- overlays */
+
+.profile-overlay { mix-blend-mode: overlay; }
+
+.profile-overlay-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain-shift 0.9s steps(4) infinite;
+}
+@keyframes grain-shift {
+  0% { background-position: 0 0; }
+  25% { background-position: -40px 30px; }
+  50% { background-position: 25px -45px; }
+  75% { background-position: -15px -20px; }
+}
+
+.profile-overlay-scanlines {
+  mix-blend-mode: multiply;
+  background: repeating-linear-gradient(to bottom, rgb(0 0 0 / 0) 0 2px, rgb(0 0 0 / 0.55) 2px 3px);
+}
+
+.profile-overlay-halftone {
+  mix-blend-mode: multiply;
+  background-image: radial-gradient(circle at center, rgb(0 0 0 / 0.75) 0 1.3px, transparent 1.6px);
+  background-size: 6px 6px;
+}
+
+/* photocopier: heavy contrast grain, burnt edges */
+.profile-overlay-xerox {
+  mix-blend-mode: multiply;
+  background-image:
+    radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.65) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='x'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.6 1.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23x)'/%3E%3C/svg%3E");
+}
+
+.profile-overlay-glitter {
+  mix-blend-mode: screen;
+  background-image:
+    radial-gradient(circle, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle, color-mix(in srgb, var(--profile-primary) 80%, #fff) 0 1px, transparent 1.6px),
+    radial-gradient(circle, color-mix(in srgb, var(--profile-accent) 80%, #fff) 0 0.8px, transparent 1.3px);
+  background-size: 37px 41px, 53px 47px, 29px 31px;
+  background-position: 0 0, 13px 19px, 7px 3px;
+  animation: glitter-twinkle 1.6s steps(3) infinite;
+}
+@keyframes glitter-twinkle {
+  0% { background-position: 0 0, 13px 19px, 7px 3px; filter: brightness(1); }
+  33% { background-position: 5px 9px, 2px 28px, 15px 11px; filter: brightness(1.6); }
+  66% { background-position: 11px 4px, 21px 6px, 1px 17px; filter: brightness(1.1); }
+}
+
+.profile-overlay-vhs {
+  mix-blend-mode: screen;
+  background:
+    repeating-linear-gradient(to bottom, rgb(255 255 255 / 0.07) 0 1px, transparent 1px 3px),
+    linear-gradient(to bottom, transparent 0 45%, rgb(255 255 255 / 0.12) 48%, transparent 52% 100%);
+  background-size: 100% 100%, 100% 260%;
+  animation: vhs-roll 6s linear infinite;
+}
+.profile-overlay-vhs::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 3px 0 0 rgb(255 0 80 / 0.35), inset -3px 0 0 rgb(0 200 255 / 0.35);
+}
+@keyframes vhs-roll {
+  from { background-position: 0 0, 0 -160%; }
+  to { background-position: 0 0, 0 100%; }
+}
+
+/* ---------------------------------------------------------------- trail */
+
+.profile-trail-dot {
+  position: absolute;
+  font-size: 14px;
+  line-height: 1;
+  translate: -50% -50%;
+  text-shadow: 0 0 6px currentColor;
+  animation: trail-fall 0.9s ease-out forwards;
+}
+@keyframes trail-fall {
+  from { opacity: 1; transform: translate(0, 0) scale(1); }
+  to { opacity: 0; transform: translate(var(--drift, 0), 26px) scale(0.4) rotate(90deg); }
+}
+
+/* ---------------------------------------------------------------- marquee */
+
+.profile-marquee-track { animation: marquee-scroll 22s linear infinite; }
+.profile-marquee:hover .profile-marquee-track { animation-play-state: paused; }
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* ---------------------------------------------------------------- counter */
+
+.profile-counter-odometer .profile-counter-digits span {
+  display: inline-block;
+  min-width: 1.15em;
+  padding: 0.1em 0.15em;
+  margin-left: 1px;
+  text-align: center;
+  font-family: "Courier New", monospace;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(#222 0 48%, #000 52% 100%);
+  border: 1px solid #555;
+}
+.profile-counter-pixel .profile-counter-digits {
+  font-family: "VT323", "Courier New", monospace;
+  font-size: 1.35em;
+  letter-spacing: 0.12em;
+  padding: 0 0.4em;
+  color: #39ff14;
+  background: #000;
+  border: 2px inset #444;
+  text-shadow: 0 0 4px #39ff14;
+}
+
+/* ---------------------------------------------------------------- song skins */
+
+/* winamp: grey bevelled window, green LCD, spectrum bars */
+.song-winamp {
+  font-family: "Courier New", monospace;
+  background: linear-gradient(#3b3b4f, #23232f);
+  border: 2px outset #6a6a80;
+  color: #00ff6a;
+  font-size: 12px;
+  user-select: none;
+}
+.song-winamp-title {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 6px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #d8d8e8;
+  background: linear-gradient(90deg, #1a2a6c, #4b5ba8);
+}
+.song-winamp-body { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 6px; align-items: center; }
+.song-winamp-lcd { grid-column: 1 / -1; background: #000; border: 2px inset #555; padding: 4px 6px; overflow: hidden; }
+.song-winamp-scroll { display: flex; width: max-content; white-space: nowrap; animation: marquee-scroll 12s linear infinite; }
+.song-winamp-bars { display: flex; gap: 2px; align-items: flex-end; height: 18px; margin-top: 4px; }
+.song-winamp-bars i { flex: 1; height: 15%; background: linear-gradient(to top, #00ff6a, #ffe600 70%, #ff3b3b); }
+.song-winamp[data-playing="true"] .song-winamp-bars i { animation: winamp-bar 0.9s ease-in-out infinite alternate; }
+@keyframes winamp-bar {
+  0% { height: 12%; }
+  50% { height: 85%; }
+  100% { height: 35%; }
+}
+.song-winamp-seek { height: 6px; background: #111; border: 1px inset #555; }
+.song-winamp-seek div { height: 100%; background: #00ff6a; }
+.song-winamp-btn { display: grid; place-items: center; width: 28px; height: 22px; color: #111; background: linear-gradient(#d8d8e0, #9a9aa8); border: 2px outset #eee; }
+.song-winamp-btn:active { border-style: inset; }
+
+/* cassette: label, tape window with turning reels */
+.song-cassette {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  margin-inline: auto;
+  aspect-ratio: 1.6;
+  padding: 7% 7% 6%;
+  text-align: left;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #2c2c2c, #151515);
+  box-shadow: inset 0 0 0 3px #3a3a3a, 0 8px 18px -8px rgb(0 0 0 / 0.7);
+}
+.song-cassette-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px 8px 34px;
+  position: relative;
+  background: repeating-linear-gradient(to bottom, #f3ecd8 0 13px, #e5dcc2 13px 14px);
+  color: #222;
+  font-family: "Permanent Marker", "Comic Neue", cursive;
+  font-size: 15px;
+  border-top: 6px solid var(--profile-primary);
+}
+.song-cassette-side { position: absolute; left: 8px; top: 6px; font-weight: 900; font-family: system-ui; color: var(--profile-primary); }
+.song-cassette-window {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8% 14% 0;
+  padding: 4% 6%;
+  border-radius: 30px;
+  background: #0b0b0b;
+  box-shadow: inset 0 0 0 2px #444;
+  position: relative;
+}
+.song-cassette-reel {
+  width: 26%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: conic-gradient(#ddd 0 10%, transparent 10% 33%, #ddd 33% 43%, transparent 43% 66%, #ddd 66% 76%, transparent 76%), radial-gradient(#fff 0 20%, #666 22% 100%);
+  border: 3px solid #bbb;
+}
+.song-cassette[data-playing="true"] .song-cassette-reel { animation: reel-spin 1.6s linear infinite; }
+@keyframes reel-spin { to { rotate: 360deg; } }
+.song-cassette-tape { flex: 1; height: 40%; margin: 0 4%; background: linear-gradient(90deg, #3a2212 var(--pct, 0%), #5b3a20 var(--pct, 0%)); border-radius: 2px; }
+.song-cassette-play { position: absolute; right: 7%; bottom: 7%; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: #111; background: var(--profile-primary); }
+
+/* ipod: screen plus click wheel */
+.song-ipod {
+  width: 100%;
+  max-width: 230px;
+  margin-inline: auto;
+  padding: 14px 14px 18px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #fafafa, #d6d6d6);
+  box-shadow: inset 0 0 0 1px #fff, 0 10px 22px -10px rgb(0 0 0 / 0.75);
+  color: #111;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+.song-ipod-screen { border-radius: 6px; overflow: hidden; background: linear-gradient(#e9f1f8, #c9d7e3); border: 2px solid #8a8a8a; font-size: 11px; }
+.song-ipod-bar { display: flex; justify-content: space-between; padding: 2px 6px; font-size: 9px; font-weight: 700; background: linear-gradient(#f8f8f8, #c8c8c8); border-bottom: 1px solid #999; }
+.song-ipod-track { display: flex; gap: 8px; align-items: center; padding: 8px 6px; }
+.song-ipod-art { width: 46px; height: 46px; object-fit: cover; box-shadow: 0 2px 4px rgb(0 0 0 / 0.35); }
+.song-ipod-progress { height: 6px; margin: 0 6px 8px; background: #fff; border: 1px solid #888; }
+.song-ipod-progress div { height: 100%; background: linear-gradient(#7fb2e6, #2b6cb0); }
+.song-ipod-wheel {
+  position: relative;
+  width: 132px;
+  aspect-ratio: 1;
+  margin: 16px auto 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, #fff 0 32%, #e8e8e8 33% 100%);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.25);
+}
+.song-ipod-menu { position: absolute; top: 10px; font-size: 10px; font-weight: 700; color: #999; letter-spacing: 0.05em; }
+.song-ipod-center { width: 44%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; color: #777; background: linear-gradient(#fdfdfd, #e2e2e2); box-shadow: 0 1px 2px rgb(0 0 0 / 0.3); }
+
+/* vinyl: spinning record with the cover as its label, a tonearm */
+.song-vinyl { position: relative; display: flex; align-items: center; gap: 16px; padding: 10px 6px; }
+.song-vinyl-record {
+  position: relative;
+  flex-shrink: 0;
+  width: 96px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, #111 0 2px, #1c1c1c 2px 3px), #111;
+  box-shadow: 0 6px 14px -6px rgb(0 0 0 / 0.8), inset 0 0 0 1px #333;
+  display: grid;
+  place-items: center;
+}
+.song-vinyl[data-playing="true"] .song-vinyl-record { animation: reel-spin 2.4s linear infinite; }
+.song-vinyl-label { width: 40%; aspect-ratio: 1; border-radius: 50%; background: var(--profile-primary) center / cover; box-shadow: 0 0 0 2px #000; }
+.song-vinyl-play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; opacity: 0; transition: opacity 0.15s; }
+.song-vinyl-record:hover .song-vinyl-play { opacity: 1; }
+.song-vinyl-arm {
+  position: absolute;
+  left: 86px;
+  top: 4px;
+  width: 6px;
+  height: 64px;
+  border-radius: 3px;
+  background: linear-gradient(#ccc, #888);
+  transform-origin: top center;
+  rotate: 28deg;
+  transition: rotate 0.4s;
+}
+.song-vinyl[data-playing="true"] .song-vinyl-arm { rotate: 12deg; }
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-overlay,
+  .profile-marquee-track,
+  .song-winamp-scroll,
+  .song-winamp-bars i,
+  .song-cassette-reel,
+  .song-vinyl-record { animation: none !important; }
+}
