@@ -1,13 +1,13 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { JoinPrompt } from "@/components/auth/join-prompt";
 import { MyMusicClient } from "./my-music-client";
 
 export const metadata = { title: "Library" };
 
 export default async function MyMusicPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/auth/signin");
+  if (!session?.user?.id) return <JoinPrompt what="build a library and import playlists" />;
 
   const [playlists, connections, syncGroups, recentTracks] = await Promise.all([
     db.playlist.findMany({

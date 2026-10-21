@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -53,6 +54,8 @@ interface CategoryViewProps {
 
 export function CategoryView({ category, threads }: CategoryViewProps) {
   const router = useRouter();
+  // guests can read but not start threads
+  const guest = useSession().status === "unauthenticated";
   const [showComposer, setShowComposer] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -127,7 +130,13 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
               {category.name}
             </h1>
           </div>
-          {!category.isLocked && (
+          {!category.isLocked && guest && (
+            <Link href="/register" className="metro-button metro-button-accent min-h-[38px] px-4 text-sm">
+              <Plus className="w-4 h-4" />
+              Sign up to post
+            </Link>
+          )}
+          {!category.isLocked && !guest && (
             <button
               onClick={() => setShowComposer(!showComposer)}
               className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"

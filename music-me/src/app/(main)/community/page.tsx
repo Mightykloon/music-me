@@ -9,14 +9,14 @@ export const metadata = {
 
 export default async function CommunityPage() {
   const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) return null;
+  // guests (no account) see the forum and live chat but have no conversations
+  const userId = session?.user?.id ?? null;
 
   // Forum categories for the tile dashboard (with newest activity per sub-forum)
   const categories = await loadForumCategories();
 
   // Fetch conversations
-  const conversations = await db.conversation.findMany({
+  const conversations = !userId ? [] : await db.conversation.findMany({
     where: {
       OR: [{ user1Id: userId }, { user2Id: userId }],
     },
@@ -71,7 +71,7 @@ export default async function CommunityPage() {
   const recentUsers = await db.user.findMany({
     take: 20,
     orderBy: { updatedAt: "desc" },
-    where: { id: { not: userId } },
+    where: userId ? { id: { not: userId } } : undefined,
     select: {
       id: true,
       username: true,
@@ -84,7 +84,7 @@ export default async function CommunityPage() {
     <CommunityClient
       categories={categories}
       conversations={conversationItems}
-      currentUserId={userId}
+      currentUserId={userId ?? ""}
       onlineUsers={recentUsers}
     />
   );

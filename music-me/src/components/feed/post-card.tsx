@@ -83,15 +83,20 @@ export function PostCard({ post, compact = false, className }: PostCardProps) {
     setLiked(!wasLiked);
     setLikeCount((c) => (wasLiked ? c - 1 : c + 1));
 
+    // revert if it didn't go through (offline, or signed out)
+    const revert = () => {
+      setLiked(wasLiked);
+      setLikeCount((c) => (wasLiked ? c + 1 : c - 1));
+    };
     fetch(`/api/posts/${post.id}/react`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "HEART" }),
-    }).catch(() => {
-      // Revert on failure
-      setLiked(wasLiked);
-      setLikeCount(post._count.reactions);
-    });
+    })
+      .then((res) => {
+        if (!res.ok) revert();
+      })
+      .catch(revert);
   };
 
   // Repost wrapper

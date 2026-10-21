@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { RemixdWordmark } from "@/components/remixd-wordmark";
 import { SocialSignIn } from "@/components/auth/social-sign-in";
+import { ContinueAsGuest } from "@/components/auth/continue-as-guest";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
@@ -144,6 +145,8 @@ export default function RegisterPage() {
             Log in
           </Link>
         </p>
+
+        <ContinueAsGuest />
       </div>
     </div>
   );
