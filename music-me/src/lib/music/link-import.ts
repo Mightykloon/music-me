@@ -1,5 +1,6 @@
 import type { MusicProviderType } from "@prisma/client";
 import { CACHE, cached } from "@/lib/api-guard";
+import { mapLimit, spotifyTrackArt } from "./sources";
 
 // Import a public playlist or album from a link, with no developer app,
 // account connection or API approval. Each service is read from something
@@ -136,6 +137,23 @@ async function readSpotify(link: PlaylistLink): Promise<ImportedPlaylist> {
   const cover: string | null =
     entity.coverArt?.sources?.[0]?.url ?? entity.visualIdentity?.image?.[0]?.url ?? null;
 
+  const tracks: ImportedTrack[] = (entity.trackList as SpotifyEmbedTrack[]).slice(0, MAX_IMPORT_TRACKS).map((t) => ({
+    sourceId: t.uri.split(":").pop() ?? t.uri,
+    title: t.title,
+    artist: t.subtitle,
+    album: link.kind === "album" ? entity.name ?? null : null,
+    albumArtUrl: link.kind === "album" ? cover : null,
+    previewUrl: t.audioPreview?.url ?? null,
+    duration: t.duration ?? null,
+    externalUrl: `https://open.spotify.com/track/${t.uri.split(":").pop()}`,
+  }));
+  // playlist rows carry no cover of their own; each one comes from Spotify's
+  // public oEmbed (cached for a month, so re-imports are free)
+  if (link.kind !== "album") {
+    const arts = await mapLimit(tracks, 8, (t) => spotifyTrackArt(t.sourceId));
+    tracks.forEach((t, i) => (t.albumArtUrl = arts[i]));
+  }
+
   return {
     provider: "SPOTIFY",
     sourceId: link.id,
@@ -143,16 +161,7 @@ async function readSpotify(link: PlaylistLink): Promise<ImportedPlaylist> {
     description: entity.subtitle ?? null,
     coverImageUrl: cover,
     url: link.url,
-    tracks: (entity.trackList as SpotifyEmbedTrack[]).map((t) => ({
-      sourceId: t.uri.split(":").pop() ?? t.uri,
-      title: t.title,
-      artist: t.subtitle,
-      album: link.kind === "album" ? entity.name ?? null : null,
-      albumArtUrl: link.kind === "album" ? cover : null,
-      previewUrl: t.audioPreview?.url ?? null,
-      duration: t.duration ?? null,
-      externalUrl: `https://open.spotify.com/track/${t.uri.split(":").pop()}`,
-    })),
+    tracks,
   };
 }
 

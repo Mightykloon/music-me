@@ -229,6 +229,10 @@ model MusicTrack {
   isrc            String?
   externalUrl     String?
   syncedLyricsData Json?
+  // full-length playback, matched once and reused (see lib/music/sources.ts)
+  youtubeVideoId    String?
+  youtubeSearchedAt DateTime?
+  spotifyTrackId    String?
   createdAt       DateTime @default(now())
 
   posts           Post[]
@@ -242,6 +246,7 @@ model MusicTrack {
   @@unique([provider, providerTrackId])
   @@index([isrc])
   @@index([title, artist])
+  @@index([youtubeSearchedAt])
 }
 
 model Playlist {

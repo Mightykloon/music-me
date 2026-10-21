@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { JoinPrompt } from "@/components/auth/join-prompt";
 import { MyMusicClient } from "./my-music-client";
+import { fillMissingArt } from "@/lib/music/sources";
 
 export const metadata = { title: "Library" };
 
@@ -48,7 +49,10 @@ export default async function MyMusicPage() {
       if (seenTrackIds.has(pt.track.id)) return false;
       seenTrackIds.add(pt.track.id);
       return true;
-    })
+    });
+  // older imports came without per-song covers; fetched once, then saved
+  await fillMissingArt(uniqueTracks.map((pt) => pt.track));
+  const libraryTracks = uniqueTracks
     .map((pt) => ({
       id: pt.track.id,
       title: pt.track.title,
@@ -83,7 +87,7 @@ export default async function MyMusicPage() {
       playlists={serializedPlaylists}
       connections={connections}
       syncGroups={serializedGroups}
-      recentTracks={uniqueTracks}
+      recentTracks={libraryTracks}
     />
   );
 }

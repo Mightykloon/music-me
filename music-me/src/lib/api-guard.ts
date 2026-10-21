@@ -44,6 +44,10 @@ export const CACHE = {
   lyrics: 60 * 60 * 24 * 7,
   /** a public playlist page: refreshed hourly at most */
   playlist: 60 * 60,
+  /** album art and song-to-video matches don't change */
+  art: 60 * 60 * 24 * 30,
+  /** Deezer's preview links are signed and expire, so only briefly */
+  preview: 60 * 30,
 } as const;
 
 /**

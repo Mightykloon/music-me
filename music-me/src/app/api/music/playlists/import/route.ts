@@ -48,9 +48,18 @@ export async function POST(request: Request) {
     });
     const rows = await db.musicTrack.findMany({
       where: { provider: playlist.provider, providerTrackId: { in: playlist.tracks.map((t) => t.sourceId) } },
-      select: { id: true, providerTrackId: true },
+      select: { id: true, providerTrackId: true, albumArtUrl: true },
     });
     const idFor = new Map(rows.map((r) => [r.providerTrackId, r.id]));
+
+    // songs saved before covers were fetched get theirs now
+    const artFor = new Map(playlist.tracks.map((t) => [t.sourceId, t.albumArtUrl]));
+    const missingArt = rows.filter((r) => !r.albumArtUrl && artFor.get(r.providerTrackId));
+    if (missingArt.length > 0) {
+      await db.$transaction(
+        missingArt.map((r) => db.musicTrack.update({ where: { id: r.id }, data: { albumArtUrl: artFor.get(r.providerTrackId) } }))
+      );
+    }
 
     // a song can appear twice in a source playlist; keep its first position
     const ordered: string[] = [];

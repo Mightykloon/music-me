@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { ImportByLink } from "@/components/music/import-by-link";
+import { usePlayerStore } from "@/lib/player-store";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 // Using native <img> for external CDN cover art (Spotify uses many subdomains)
@@ -142,59 +143,22 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(syncGroups.map(g => g.id)));
   const [deletingGroup, setDeletingGroup] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // songs play through the site-wide player (full song when one is found)
+  const { currentTrack, isPlaying: playerPlaying, playQueue, togglePlay } = usePlayerStore();
+  const playingId = playerPlaying ? currentTrack?.id ?? null : null;
 
-  useEffect(() => {
-    return () => { audioRef.current?.pause(); };
-  }, []);
-
-  /** Search Deezer for a playable 30s preview, trying multiple query strategies */
-  async function findDeezerPreview(artist: string, title: string): Promise<string | null> {
-    const mainArtist = artist.split(",")[0].trim();
-    const mainTitle = title.replace(/\s*\(.*?\)\s*/g, "").trim();
-    const queries = [
-      `${mainArtist} ${mainTitle}`,
-      `${mainTitle} ${mainArtist}`,
-      mainTitle,
-    ];
-    for (const q of queries) {
-      try {
-        const dRes = await fetch(`/api/music/deezer-search?q=${encodeURIComponent(q)}&limit=5`);
-        if (!dRes.ok) continue;
-        const dData = await dRes.json();
-        const hit = (dData.data ?? []).find((d: { preview?: string }) => d.preview && d.preview.length > 0);
-        if (hit?.preview) return hit.preview;
-      } catch { /* try next query */ }
-    }
-    return null;
-  }
-
-  const handlePlay = async (track: TrackItem) => {
-    if (playingId === track.id) {
-      audioRef.current?.pause();
-      setPlayingId(null);
-      return;
-    }
-    audioRef.current?.pause();
-
-    let previewUrl = track.previewUrl;
-
-    if (!previewUrl) {
-      previewUrl = await findDeezerPreview(track.artist, track.title);
-    }
-
-    if (!previewUrl) {
-      toast.error("No preview available for this track");
-      return;
-    }
-
-    const audio = new Audio(previewUrl);
-    audio.volume = 0.5;
-    audio.play();
-    audio.onended = () => setPlayingId(null);
-    audioRef.current = audio;
-    setPlayingId(track.id);
+  const handlePlay = (track: TrackItem) => {
+    if (currentTrack?.id === track.id) return togglePlay();
+    const queue = recentTracks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      artist: t.artist,
+      albumArtUrl: t.albumArtUrl,
+      previewUrl: t.previewUrl,
+      externalUrl: t.externalUrl,
+      provider: t.provider,
+    }));
+    playQueue(queue, Math.max(0, recentTracks.findIndex((t) => t.id === track.id)));
   };
 
   const sortedPlaylists = sortPlaylists(playlists, sortBy);
@@ -651,8 +615,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
               </div>
               {recentTracks.map((t, i) => {
                 const isPlaying = playingId === t.id;
-                const hasPreview = !!t.previewUrl;
-                return (
+                                return (
                   <div
                     key={t.id}
                     className={`group grid grid-cols-[2rem_1fr_3rem] sm:grid-cols-[2rem_1fr_1fr_4rem] gap-3 px-4 py-2.5 items-center hover:bg-muted/30 transition-colors ${isPlaying ? "bg-primary/5" : ""}`}
@@ -663,7 +626,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
                         {isPlaying ? (
                           <Pause className="w-3.5 h-3.5 text-primary hidden group-hover:block" />
                         ) : (
-                          <Play className={`w-3.5 h-3.5 hidden group-hover:block ${hasPreview ? "text-foreground" : "text-muted-foreground"}`} />
+                          <Play className="w-3.5 h-3.5 hidden group-hover:block text-foreground" />
                         )}
                       </button>
                     </div>
