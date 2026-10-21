@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/api-guard";
 import { auth } from "@/lib/auth";
 import { unifiedSearch } from "@/lib/music/search";
 import { freeSearch } from "@/lib/music/free-search";
 import { db } from "@/lib/db";
 
 export async function GET(request: Request) {
+  // outside API calls: rate limited and cached (see src/lib/api-guard.ts)
+  const blocked = await guard(request, "music-search", { limit: 30, windowSec: 60, requireAuth: true });
+  if (blocked) return blocked;
   try {
     const session = await auth();
     if (!session?.user?.id) {

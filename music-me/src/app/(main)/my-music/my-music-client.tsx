@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { ImportByLink } from "@/components/music/import-by-link";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 // Using native <img> for external CDN cover art (Spotify uses many subdomains)
@@ -478,23 +479,8 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
         </div>
       </div>
 
-      {/* No connections */}
-      {connections.length === 0 && (
-        <div className="text-center py-20">
-          <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-lg font-semibold mb-2">Connect your music services</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Link Spotify, Apple Music, or other services to see your playlists here.
-          </p>
-          <Link
-            href="/settings/connections"
-            className="metro-button metro-button-accent min-h-[38px] px-4 text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Connect a Service
-          </Link>
-        </div>
-      )}
+      {/* Import by link: works without connecting any service */}
+      <ImportByLink />
 
       {/* Connected services chips */}
       {connections.length > 0 && (
@@ -513,7 +499,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
       )}
 
       {/* Tabs */}
-      {connections.length > 0 && (
+      {(connections.length > 0 || playlists.length > 0) && (
         <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
           {tabs.map((tab) => (
             <button

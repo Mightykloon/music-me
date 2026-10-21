@@ -1,4 +1,5 @@
 import { redis } from "@/lib/redis";
+import { CACHE, cached } from "@/lib/api-guard";
 
 export interface SyncedLyricLine {
   time: number; // milliseconds
@@ -62,7 +63,8 @@ async function fetchMusixmatch(
   try {
     // Search for the track
     const searchRes = await fetch(
-      `https://api.musixmatch.com/ws/1.1/matcher.lyrics.get?q_track=${encodeURIComponent(title)}&q_artist=${encodeURIComponent(artist)}&apikey=${apiKey}`
+      `https://api.musixmatch.com/ws/1.1/matcher.lyrics.get?q_track=${encodeURIComponent(title)}&q_artist=${encodeURIComponent(artist)}&apikey=${apiKey}`,
+      cached(CACHE.lyrics)
     );
     const searchData = await searchRes.json();
 
@@ -73,7 +75,8 @@ async function fetchMusixmatch(
 
     // Try to get synced lyrics (subtitle)
     const subtitleRes = await fetch(
-      `https://api.musixmatch.com/ws/1.1/matcher.subtitle.get?q_track=${encodeURIComponent(title)}&q_artist=${encodeURIComponent(artist)}&apikey=${apiKey}`
+      `https://api.musixmatch.com/ws/1.1/matcher.subtitle.get?q_track=${encodeURIComponent(title)}&q_artist=${encodeURIComponent(artist)}&apikey=${apiKey}`,
+      cached(CACHE.lyrics)
     );
     const subtitleData = await subtitleRes.json();
     const subtitle = subtitleData.message?.body?.subtitle;
@@ -123,7 +126,7 @@ async function fetchLrclib(
       url += `&duration=${Math.round(duration / 1000)}`;
     }
 
-    const res = await fetch(url);
+    const res = await fetch(url, cached(CACHE.lyrics));
     if (!res.ok) return null;
 
     const data = await res.json();

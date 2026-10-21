@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/api-guard";
 
 export async function GET(request: Request) {
+  // outside API calls: rate limited and cached (see src/lib/api-guard.ts)
+  const blocked = await guard(request, "game-search", { limit: 30, windowSec: 60, requireAuth: true });
+  if (blocked) return blocked;
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim();
   if (!q || q.length < 2) {

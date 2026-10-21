@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/api-guard";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { findOrCreateTrack } from "@/lib/music/search";
@@ -23,6 +24,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // outside API calls: rate limited and cached (see src/lib/api-guard.ts)
+  const blocked = await guard(request, "playlist-ingest", { limit: 20, windowSec: 600, requireAuth: true });
+  if (blocked) return blocked;
   try {
     const session = await auth();
     if (!session?.user?.id) {
