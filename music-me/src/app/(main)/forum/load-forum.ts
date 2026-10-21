@@ -29,6 +29,22 @@ const include = {
   _count: { select: { threads: true } },
 };
 
+/**
+ * A reply as one line of plain text for a tile: forum tags (bold, quotes,
+ * images, music cards...) are rendered by the thread page, not here.
+ */
+export function plainPreview(content: string): string {
+  return content
+    .replace(/\[music[^\]]*?title="([^"]*)"[^\]]*?artist="([^"]*)"[^\]]*\][\s\S]*?\[\/music\]/gi, "♪ $1 by $2 ")
+    .replace(/\[music[^\]]*\][\s\S]*?\[\/music\]/gi, "♪ a song ")
+    .replace(/\[img[^\]]*\][\s\S]*?\[\/img\]/gi, "(image) ")
+    .replace(/\[quote[^\]]*\][\s\S]*?\[\/quote\]/gi, "")
+    .replace(/\[\/?[a-z0-9*]+(?:=[^\]]*)?\]/gi, "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const findTopLevel = () =>
   db.forumCategory.findMany({ where: { parentId: null }, orderBy: { sortOrder: "asc" }, include });
 
@@ -60,7 +76,7 @@ export async function loadForumCategories() {
       threads: sub.threads.map((t) => ({
         ...t,
         createdAt: t.createdAt.toISOString(),
-        replies: t.replies.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+        replies: t.replies.map((r) => ({ ...r, content: plainPreview(r.content), createdAt: r.createdAt.toISOString() })),
       })),
     })),
   }));
