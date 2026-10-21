@@ -5,6 +5,7 @@ import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 // Sign-in with Spotify was removed: Spotify only lets an app in development
 // mode sign in 25 hand-picked users, and lifting that needs an established
@@ -68,8 +69,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // slow down password guessing: per address and per account
+        const email = String(credentials.email).toLowerCase();
+        const byIp = rateLimit(`login:ip:${getClientIp(request)}`, { limit: 20, windowSec: 15 * 60 });
+        const byEmail = rateLimit(`login:email:${email}`, { limit: 10, windowSec: 15 * 60 });
+        if (!byIp.success || !byEmail.success) return null;
 
         const user = await db.user.findUnique({
           where: { email: credentials.email as string },
@@ -104,6 +111,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ]
       : []),
   ],
+  events: {
+    // Sign-up with email + password doesn't prove the address belongs to the
+    // person. If someone else pre-registered your address, then you sign in
+    // with Google (which does prove it) and the accounts are linked, their
+    // password would still open your account. So when Google is linked to an
+    // account whose address was never verified, that password is removed.
+    async linkAccount({ user, account }) {
+      if (account.provider !== "google" || !user.id) return;
+      const existing = await db.user.findUnique({ where: { id: user.id }, select: { emailVerified: true, passwordHash: true } });
+      if (existing && !existing.emailVerified) {
+        await db.user.update({
+          where: { id: user.id },
+          data: { emailVerified: new Date(), ...(existing.passwordHash ? { passwordHash: null } : {}) },
+        });
+      }
+    },
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

@@ -25,6 +25,26 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ["sharp", "bullmq"],
+  // don't advertise the framework
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // nobody else may put the site in a frame (clickjacking)
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self' https://accounts.google.com" },
+          // browsers must trust the declared file type
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // other sites see only "remixd.tech", not full page addresses
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // features the site never uses
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

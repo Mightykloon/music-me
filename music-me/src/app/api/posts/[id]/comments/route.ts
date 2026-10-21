@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { guard } from "@/lib/api-guard";
+import { canViewPost } from "@/lib/posts/visibility";
 import { createNotification } from "@/lib/notifications";
 
 export async function GET(
@@ -13,6 +15,13 @@ export async function GET(
     const cursor = searchParams.get("cursor");
     const limit = Math.min(Number(searchParams.get("limit") ?? 20), 50);
     const parentId = searchParams.get("parentId") ?? null;
+
+    // comments are only as visible as the post they're on
+    const session = await auth();
+    const target = await db.post.findUnique({ where: { id }, select: { visibility: true, authorId: true } });
+    if (!target || !(await canViewPost(target, session?.user?.id))) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
 
     const comments = await db.comment.findMany({
       where: {
@@ -55,6 +64,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const blocked = await guard(request, "comment", { limit: 15, windowSec: 60, requireAuth: true });
+    if (blocked) return blocked;
     const { id } = await params;
     const session = await auth();
     if (!session?.user?.id) {
@@ -81,9 +92,9 @@ export async function POST(
     // Verify post exists
     const post = await db.post.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, visibility: true, authorId: true },
     });
-    if (!post) {
+    if (!post || !(await canViewPost(post, session.user.id))) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 

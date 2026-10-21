@@ -1168,10 +1168,17 @@ export default function ProfileEditorPage() {
       {cropImage && (
         <ImageCropEditor
           imageSrc={cropImage}
-          onComplete={(croppedUrl) => {
-            update("profilePictureUrl", croppedUrl);
+          onComplete={async (croppedUrl) => {
             setCropImage(null);
-            toast.success("Avatar updated");
+            try {
+              toast.loading("Uploading avatar...", { id: "avatar-upload" });
+              const blob = await (await fetch(croppedUrl)).blob();
+              const file = new File([blob], "avatar.jpg", { type: blob.type || "image/jpeg" });
+              update("profilePictureUrl", await uploadFileToStorage(file, "avatars"));
+              toast.success("Avatar updated", { id: "avatar-upload" });
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Upload failed", { id: "avatar-upload" });
+            }
           }}
           onCancel={() => setCropImage(null)}
           aspectRatio={1}

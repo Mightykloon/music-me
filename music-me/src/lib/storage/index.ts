@@ -32,7 +32,7 @@ const MAX_SIZES: Record<UploadCategory, number> = {
   avatars: 5 * 1024 * 1024,
   banners: 10 * 1024 * 1024,
   backgrounds: 50 * 1024 * 1024,
-  posts: 10 * 1024 * 1024,
+  posts: 50 * 1024 * 1024, // images or a short video
   misc: 10 * 1024 * 1024,
 };
 
@@ -45,7 +45,7 @@ const ALLOWED_IMAGE_TYPES = [
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm"];
 
 export function getAllowedTypes(category: UploadCategory): string[] {
-  if (category === "backgrounds") {
+  if (category === "backgrounds" || category === "posts") {
     return [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES];
   }
   return ALLOWED_IMAGE_TYPES;
@@ -54,8 +54,13 @@ export function getAllowedTypes(category: UploadCategory): string[] {
 export async function createPresignedUploadUrl(
   category: UploadCategory,
   contentType: string,
-  userId: string
+  userId: string,
+  /** exact size of the file; it's signed into the URL, so S3 refuses anything else */
+  fileSize: number
 ): Promise<{ uploadUrl: string; publicUrl: string; key: string }> {
+  if (!Number.isInteger(fileSize) || fileSize <= 0 || fileSize > MAX_SIZES[category]) {
+    throw new Error("File too large");
+  }
   const allowed = getAllowedTypes(category);
   if (!allowed.includes(contentType)) {
     throw new Error(`File type ${contentType} not allowed for ${category}`);
@@ -68,6 +73,7 @@ export async function createPresignedUploadUrl(
     Bucket: BUCKET,
     Key: key,
     ContentType: contentType,
+    ContentLength: fileSize,
   });
 
   const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 600 });

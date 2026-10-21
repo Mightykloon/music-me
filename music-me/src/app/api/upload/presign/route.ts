@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
+import { guard } from "@/lib/api-guard";
 import {
   createPresignedUploadUrl,
   getAllowedTypes,
@@ -11,10 +12,12 @@ import {
 const presignSchema = z.object({
   category: z.enum(["avatars", "banners", "backgrounds", "posts", "misc"]),
   contentType: z.string(),
-  fileSize: z.number().positive(),
+  fileSize: z.number().int().positive(),
 });
 
 export async function POST(request: Request) {
+  const blocked = await guard(request, "upload", { limit: 20, windowSec: 600, requireAuth: true });
+  if (blocked) return blocked;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -53,7 +56,8 @@ export async function POST(request: Request) {
     const { uploadUrl, publicUrl, key } = await createPresignedUploadUrl(
       cat,
       contentType,
-      session.user.id
+      session.user.id,
+      fileSize
     );
 
     return NextResponse.json({ uploadUrl, publicUrl, key });
