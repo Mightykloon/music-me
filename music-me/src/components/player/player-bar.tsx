@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, X, ExternalLink, Music } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, X, ExternalLink, Music, MonitorPlay } from "lucide-react";
+import { VideoWindow } from "./video-window";
 import { SpotifyLogo } from "@phosphor-icons/react";
 import { usePlayerStore, type PlayerTrack } from "@/lib/player-store";
 import { loadYouTubeApi, YT_STATE, type YTPlayer } from "@/lib/music/embed-apis";
@@ -273,22 +274,12 @@ export function PlayerBar() {
     <>
       <audio ref={audioRef} onTimeUpdate={handleTimeUpdate} onLoadedMetadata={handleLoadedMetadata} onEnded={handleEnded} preload="auto" />
 
-      {/* The embedded players stay mounted once created (recreating them is
-          slow) and are only shown while in use. YouTube's must stay visible
-          and at least 200x200 while it plays. */}
-      <div
-        className={`fixed right-3 bottom-[76px] z-50 w-[min(356px,calc(100vw-24px))] border border-border bg-background shadow-2xl ${showVideo ? "" : "hidden"}`}
-      >
-        <div className="flex items-center justify-between px-2 py-1 text-[11px] text-muted-foreground">
-          <span>playing the full song from YouTube</span>
-          <button onClick={() => choose("preview")} className="hover:text-foreground" title="Switch to the 30s preview (hides the video)">
-            preview instead
-          </button>
-        </div>
-        <div className="aspect-video min-h-[200px] w-full">
-          <div ref={ytHost} className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
-        </div>
-      </div>
+      {/* The YouTube player stays mounted once created (recreating it is
+          slow) and is only shown while in use. It must stay visible while it
+          plays, so closing the window switches the song to its preview. */}
+      <VideoWindow visible={showVideo} onClose={() => choose("preview")}>
+        <div ref={ytHost} className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full" />
+      </VideoWindow>
 
       {currentTrack && (
         <>
@@ -373,6 +364,16 @@ export function PlayerBar() {
                 >
                   <div className="h-full rounded-full bg-muted-foreground/50" style={{ width: `${volume * 100}%` }} />
                 </div>
+                {current?.youtubeId && engine !== "youtube" && (
+                  <button
+                    onClick={() => choose("full")}
+                    className="p-1.5 rounded-full hover:bg-muted transition-colors"
+                    title="Show the video and play the full song"
+                    aria-label="Show video"
+                  >
+                    <MonitorPlay className="w-4 h-4 text-primary" />
+                  </button>
+                )}
                 {current?.spotifyId && (
                   <a
                     href={`https://open.spotify.com/track/${current.spotifyId}`}
