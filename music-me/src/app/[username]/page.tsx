@@ -39,9 +39,21 @@ export default async function ProfilePage({
 }) {
   const { username } = await params;
 
+  // Only public fields: everything here is sent to the visitor's browser, so
+  // never the email, password hash or other account data.
   const user = await db.user.findUnique({
     where: { username: username.toLowerCase() },
-    include: {
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      bio: true,
+      pronouns: true,
+      location: true,
+      website: true,
+      isVerified: true,
+      role: true,
+      createdAt: true,
       profile: true,
       links: {
         where: { isActive: true },
