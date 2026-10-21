@@ -132,18 +132,38 @@ interface YtItem {
   snippet: { title: string; channelTitle: string };
 }
 
-function scoreVideo(item: YtItem, artist: string, title: string): number {
+/** Matches made before this were scored more loosely (and picked e.g. fan-uploaded acoustic versions); they're re-checked once. */
+const MATCHER_SINCE = new Date("2026-10-21T07:00:00Z");
+
+// words that mean "a different version of the song" unless the song's own title has them
+const OTHER_VERSIONS = [
+  "acoustic", "live", "cover", "karaoke", "instrumental", "remix", "demo", "unplugged", "piano", "orchestral",
+  "sped up", "slowed", "reverb", "8d", "nightcore", "bass boosted", "reaction", "tutorial", "lesson",
+  "extended", "loop", "1 hour", "mashup", "version", "edit", "session", "rehearsal",
+];
+
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+export function scoreVideo(item: YtItem, artist: string, title: string): number {
   const vt = item.snippet.title.toLowerCase();
   const ch = item.snippet.channelTitle.toLowerCase();
-  const a = mainArtist(artist).toLowerCase();
+  const a = squash(mainArtist(artist));
   const t = cleanTitle(title).toLowerCase();
+  const original = title.toLowerCase();
+  const chSquash = squash(ch.replace(/ - topic$/, "").replace(/vevo$/, ""));
+  const artistChannel = a.length > 0 && (chSquash === a || chSquash.includes(a) || a.includes(chSquash));
+
   let s = 0;
-  if (ch.endsWith(" - topic")) s += 4; // YouTube's auto-generated "Artist - Topic" audio uploads
-  if (ch.includes(a.replace(/\s+/g, "")) || ch.includes(a)) s += 2;
+  // where it came from: YouTube's "Artist - Topic" audio uploads are the studio recording
+  if (ch.endsWith(" - topic") && artistChannel) s += 6;
+  else if (artistChannel) s += 4; // the artist's own channel or their VEVO
+  else s -= 3; // someone else's upload
+  if (ch.endsWith("vevo")) s += 1;
+  // what it is
   if (vt.includes(t)) s += 3;
-  if (vt.includes("official audio")) s += 1;
-  for (const bad of ["live", "cover", "karaoke", "instrumental", "sped up", "slowed", "8d", "reaction", "remix", "nightcore"]) {
-    if (vt.includes(bad) && !title.toLowerCase().includes(bad)) s -= 4;
+  if (vt.includes("official audio")) s += 2;
+  for (const word of OTHER_VERSIONS) {
+    if (new RegExp(`\\b${word}\\b`).test(vt) && !original.includes(word)) s -= 6;
   }
   if (vt.includes("music video") || vt.includes("official video")) s -= 0.5; // skits and intros
   return s;
@@ -162,7 +182,8 @@ async function searchYouTube(track: MusicTrack): Promise<string | null | "budget
     type: "video",
     videoEmbeddable: "true",
     videoCategoryId: "10",
-    maxResults: "6",
+    // a search costs the same quota for 1 result or 50, so look at plenty
+    maxResults: "15",
     q: `${mainArtist(track.artist)} ${cleanTitle(track.title)}`,
     key,
   });
@@ -170,7 +191,8 @@ async function searchYouTube(track: MusicTrack): Promise<string | null | "budget
   const ranked = (d?.items ?? [])
     .map((it) => ({ id: it.id.videoId, score: scoreVideo(it, track.artist, track.title) }))
     .sort((x, y) => y.score - x.score);
-  return ranked[0] && ranked[0].score >= 2 ? ranked[0].id : NO_MATCH;
+  // needs to be the right song from the right artist; otherwise better to play the preview
+  return ranked[0] && ranked[0].score >= 5 ? ranked[0].id : NO_MATCH;
 }
 
 // ---------------------------------------------------------------- spotify
@@ -220,8 +242,11 @@ async function searchSpotify(track: MusicTrack): Promise<string | null> {
 export async function resolveSources(track: MusicTrack): Promise<TrackSources> {
   const save: Partial<Pick<MusicTrack, "youtubeVideoId" | "youtubeSearchedAt" | "spotifyTrackId" | "albumArtUrl" | "previewUrl">> = {};
 
-  const [yt, sp, preview, art] = await Promise.all([
-    track.youtubeVideoId ? Promise.resolve(track.youtubeVideoId) : searchYouTube(track),
+  // no match yet, or one made by the older, looser matcher
+  const ytStale = !track.youtubeVideoId || !track.youtubeSearchedAt || track.youtubeSearchedAt < MATCHER_SINCE;
+
+  const [ytFound, sp, preview, art] = await Promise.all([
+    ytStale ? searchYouTube(track) : Promise.resolve(track.youtubeVideoId),
     track.spotifyTrackId ? Promise.resolve(track.spotifyTrackId) : searchSpotify(track),
     freshPreview(track),
     track.albumArtUrl
@@ -231,10 +256,12 @@ export async function resolveSources(track: MusicTrack): Promise<TrackSources> {
         : itunesSearch(track.artist, track.title).then((h) => bigArt(h?.artworkUrl100)),
   ]);
 
-  if (!track.youtubeVideoId && yt && yt !== "budget") {
-    save.youtubeVideoId = yt;
+  if (ytStale && ytFound && ytFound !== "budget") {
+    save.youtubeVideoId = ytFound;
     save.youtubeSearchedAt = new Date();
   }
+  // over today's search budget: keep whatever match there was until tomorrow
+  const yt = ytFound === "budget" ? track.youtubeVideoId : ytFound;
   if (!track.spotifyTrackId && sp) save.spotifyTrackId = sp;
   if (!track.albumArtUrl && art) save.albumArtUrl = art;
   if (preview.persist && preview.url) save.previewUrl = preview.url;
