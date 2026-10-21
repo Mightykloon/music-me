@@ -10,6 +10,13 @@ export async function POST(request: Request) {
     if (!rl.success) return rateLimitResponse(rl.retryAfterSec);
 
     const body = await request.json();
+
+    // bot checks: the hidden "company" field is only ever filled by bots, and
+    // people take more than a couple of seconds to fill in the form
+    const elapsed = Date.now() - Number(body?.startedAt ?? 0);
+    if (body?.company || !Number.isFinite(elapsed) || elapsed < 2500 || elapsed > 86_400_000) {
+      return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 400 });
+    }
     const result = registerSchema.safeParse(body);
 
     if (!result.success) {
