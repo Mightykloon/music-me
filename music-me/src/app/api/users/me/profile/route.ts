@@ -88,16 +88,17 @@ export async function PATCH(request: Request) {
       });
     }
 
+    // only public fields back (never the email or password hash)
     const updated = await db.user.findUnique({
       where: { id: session.user.id },
-      include: { profile: true },
+      select: { id: true, username: true, displayName: true, bio: true, pronouns: true, location: true, website: true, profile: true },
     });
 
     return NextResponse.json(updated);
   } catch (err) {
     console.error("Profile update error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Something went wrong" },
+      { error: "Something went wrong" },
       { status: 500 }
     );
   }
