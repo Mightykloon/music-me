@@ -88,6 +88,8 @@ model User {
   role          Role      @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  // last heartbeat from an open tab; "online" = seen in the last few minutes
+  lastSeenAt   DateTime?
 
   profile          UserProfile?
   musicConnections MusicConnection[]
@@ -117,9 +119,11 @@ model User {
   bestFriendOf       BestFriend[]       @relation("BestFriendTarget")
   wallComments       WallComment[]      @relation("WallOwner")
   wallCommentsLeft   WallComment[]      @relation("WallAuthor")
+  chatMessages       ChatMessage[]
 
   @@index([username])
   @@index([email])
+  @@index([lastSeenAt])
 }
 
 model Account {
@@ -647,4 +651,16 @@ model WallComment {
 
   @@index([profileUserId, createdAt])
   @@index([authorId])
+}
+
+// community live chat, kept so every server and visitor sees the same room
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  content   String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
 }

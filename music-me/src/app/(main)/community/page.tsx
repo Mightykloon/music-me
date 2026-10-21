@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CommunityClient } from "./community-client";
 import { loadForumCategories } from "../forum/load-forum";
+import { onlineUsers } from "@/lib/presence";
 
 export const metadata = {
   title: "Community",
@@ -67,18 +68,8 @@ export default async function CommunityPage() {
     };
   });
 
-  // Fetch some recent active users for online sidebar
-  const recentUsers = await db.user.findMany({
-    take: 20,
-    orderBy: { updatedAt: "desc" },
-    where: userId ? { id: { not: userId } } : undefined,
-    select: {
-      id: true,
-      username: true,
-      displayName: true,
-      profile: { select: { profilePictureUrl: true } },
-    },
-  });
+  // people with the site open right now (see lib/presence.ts)
+  const recentUsers = await onlineUsers(userId);
 
   return (
     <CommunityClient

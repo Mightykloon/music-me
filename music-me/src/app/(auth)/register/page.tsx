@@ -16,6 +16,9 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // bot checks: when the form appeared, and a field only bots fill in
+  const [startedAt] = useState(() => Date.now());
+  const [company, setCompany] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +31,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, username, password }),
+        body: JSON.stringify({ email, username, password, company, startedAt }),
       });
 
       const data = await res.json();
@@ -74,6 +77,17 @@ export default function RegisterPage() {
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
+          {/* hidden from people (and screen readers); bots fill every field */}
+          <input
+            type="text"
+            name="company"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden
+            className="absolute -left-[9999px] h-px w-px opacity-0"
+          />
           <div>
             <label htmlFor="email" className="block text-sm lowercase text-muted-foreground mb-1.5">
               Email

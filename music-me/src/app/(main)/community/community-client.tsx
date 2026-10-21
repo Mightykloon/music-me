@@ -20,6 +20,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { ForumHome, type ForumCategoryData } from "../forum/forum-home";
 import { JoinPrompt } from "@/components/auth/join-prompt";
+import toast from "react-hot-toast";
 
 interface ConversationItem {
   id: string;
@@ -459,25 +460,38 @@ function LiveChatTab({ currentUserId, onlineUsers }: { currentUserId: string; on
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
 
-  // Fetch messages on mount and poll every 3 seconds
+  // Load the room once, then ask only for messages newer than the last one
+  // we have: every 5s while the tab is visible, not at all while it's hidden.
+  const newest = useRef<string | null>(null);
   const fetchMessages = useCallback(async () => {
     try {
-      const res = await fetch("/api/live-chat");
+      const after = newest.current ? `?after=${encodeURIComponent(newest.current)}` : "";
+      const res = await fetch(`/api/live-chat${after}`);
       if (!res.ok) return;
       const data = await res.json();
-      const fetched: LiveMessage[] = (data.messages ?? []).map((m: { id: string; username: string; displayName: string | null; avatar: string | null; content: string; timestamp: string }) => ({
-        ...m,
-        timestamp: new Date(m.timestamp),
-      }));
-      setMessages(fetched);
+      const raw: { id: string; username: string; displayName: string | null; avatar: string | null; content: string; timestamp: string }[] =
+        data.messages ?? [];
+      if (raw.length === 0) return;
+      newest.current = raw[raw.length - 1].timestamp;
+      const fetched: LiveMessage[] = raw.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }));
+      setMessages((prev) => {
+        const seen = new Set(prev.map((m) => m.id));
+        return [...prev, ...fetched.filter((m) => !seen.has(m.id))].slice(-200);
+      });
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { fetchMessages(); }, [fetchMessages]);
-
   useEffect(() => {
-    const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
+    fetchMessages();
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") fetchMessages();
+    }, 5000);
+    const onVisible = () => document.visibilityState === "visible" && fetchMessages();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [fetchMessages]);
 
   // Auto-scroll only when new messages arrive
@@ -500,6 +514,9 @@ function LiveChatTab({ currentUserId, onlineUsers }: { currentUserId: string; on
       if (res.ok) {
         setInput("");
         fetchMessages();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (data.error) toast.error(data.error);
       }
     } catch { /* ignore */ } finally { setSending(false); }
   };
@@ -512,7 +529,7 @@ function LiveChatTab({ currentUserId, onlineUsers }: { currentUserId: string; on
       <div className="flex items-center gap-2 pb-3 border-b border-border/30 mb-3">
         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live</span>
-        <span className="text-xs text-muted-foreground">&middot; {onlineUsers.length + 1} listening</span>
+        <span className="text-xs text-muted-foreground">&middot; {onlineUsers.length + (currentUserId ? 1 : 0)} online</span>
       </div>
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
         {allMessages.map((msg) => (
