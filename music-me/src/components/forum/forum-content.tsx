@@ -124,8 +124,8 @@ function parseBBCode(raw: string): string {
         large: "1.25rem",
         xlarge: "1.5rem",
       };
-      const fontSize = sizeMap[size] || size;
-      return `<span style="font-size:${fontSize}">${text}</span>`;
+      const fontSize = sizeMap[size.trim().toLowerCase()];
+      return fontSize ? `<span style="font-size:${fontSize}">${text}</span>` : text;
     }
   );
 
@@ -240,12 +240,13 @@ function parseMusicEmbeds(content: string): MusicEmbed[] {
   const embeds: MusicEmbed[] = [];
   let match;
   while ((match = regex.exec(content)) !== null) {
+    const web = (u: string | undefined) => (u && /^https?:\/\//i.test(u) ? u : null);
     embeds.push({
       title: match[1] || "",
       artist: match[2] || "",
-      art: match[3] || null,
-      preview: match[4] || null,
-      url: match[5] || null,
+      art: web(match[3]),
+      preview: web(match[4]),
+      url: web(match[5]),
       displayText: match[6] || "",
     });
   }

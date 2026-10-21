@@ -4,6 +4,7 @@ import { MusicProviderType } from "@prisma/client";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { guard } from "@/lib/api-guard";
+import { httpUrl } from "@/lib/auth/validation";
 
 const track = z.object({
   provider: z.nativeEnum(MusicProviderType),
@@ -11,10 +12,10 @@ const track = z.object({
   title: z.string().min(1).max(300),
   artist: z.string().min(1).max(300),
   album: z.string().max(300).nullable().optional(),
-  albumArtUrl: z.string().url().max(1000).nullable().optional(),
-  previewUrl: z.string().url().max(1000).nullable().optional(),
+  albumArtUrl: httpUrl.max(1000).nullable().optional(),
+  previewUrl: httpUrl.max(1000).nullable().optional(),
   duration: z.number().int().nonnegative().nullable().optional(),
-  externalUrl: z.string().url().max(1000).nullable().optional(),
+  externalUrl: httpUrl.max(1000).nullable().optional(),
 });
 
 /** PUT { track } sets the profile song (saving the track if it's new); { track: null } clears it. */

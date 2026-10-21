@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getMusicProvider, type ProviderName } from "@/lib/music";
@@ -44,6 +45,18 @@ export async function GET(
       return NextResponse.redirect(
         new URL("/settings/connections?error=no_code", APP_URL)
       );
+    }
+
+    // The state must match the one we set when this user started connecting;
+    // otherwise someone could trick a signed-in user into finishing a
+    // connection the attacker started, attaching the attacker's account.
+    const jar = await cookies();
+    const stateCookie = `oauth_state_${provider.toLowerCase()}`;
+    const expected = jar.get(stateCookie)?.value;
+    const state = searchParams.get("state");
+    jar.delete({ name: stateCookie, path: "/api/auth/connect" }); // single use
+    if (!expected || !state || state !== expected) {
+      return NextResponse.redirect(new URL("/settings/connections?error=invalid_state", APP_URL));
     }
 
     const providerType = PROVIDER_MAP[provider.toLowerCase()];

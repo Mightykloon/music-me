@@ -71,7 +71,8 @@ export async function GET(
 
   // Store state in a cookie for CSRF protection
   const response = NextResponse.redirect(authUrl);
-  response.cookies.set(`oauth_state_${provider}`, state, {
+  response.cookies.set(`oauth_state_${provider.toLowerCase()}`, state, {
+    path: "/api/auth/connect",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     maxAge: 600, // 10 minutes

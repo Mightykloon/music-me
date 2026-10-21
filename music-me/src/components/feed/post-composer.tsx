@@ -1,5 +1,6 @@
 "use client";
 
+import toast from "react-hot-toast";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -92,13 +93,12 @@ export function PostComposer({ user, onPost }: PostComposerProps) {
       const res = await fetch("/api/upload/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          category: "post",
-        }),
+        body: JSON.stringify({ category: "posts", contentType: file.type, fileSize: file.size }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return void toast.error(err.error ?? "Couldn't upload that video");
+      }
       const { uploadUrl, publicUrl } = await res.json();
       await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
       setVideoUrl(publicUrl);

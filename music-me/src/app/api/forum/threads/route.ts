@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { guard } from "@/lib/api-guard";
 import { z } from "zod";
 
 const createThreadSchema = z.object({
@@ -54,6 +55,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const blocked = await guard(request, "forum-thread", { limit: 5, windowSec: 600, requireAuth: true });
+    if (blocked) return blocked;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -13,6 +13,15 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
+    if (body && typeof body === "object") {
+      const current = await db.userProfile.findUnique({
+        where: { userId: session.user.id },
+        select: { profilePictureUrl: true, bannerUrl: true, bannerVideoUrl: true, backgroundImageUrl: true },
+      });
+      for (const key of ["profilePictureUrl", "bannerUrl", "bannerVideoUrl", "backgroundImageUrl"] as const) {
+        if (current && body[key] === current[key]) delete body[key];
+      }
+    }
     const result = profileUpdateSchema.safeParse(body);
 
     if (!result.success) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { guard } from "@/lib/api-guard";
 
 export async function GET(_request: Request) {
   try {
@@ -68,12 +69,17 @@ export async function GET(_request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const blocked = await guard(request, "message", { limit: 20, windowSec: 60, requireAuth: true });
+    if (blocked) return blocked;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { recipientId, content } = await request.json();
+    if (typeof content !== "string" || !content.trim() || content.length > 2000) {
+      return NextResponse.json({ error: "Messages must be 1 to 2000 characters." }, { status: 400 });
+    }
     if (!recipientId || !content?.trim()) {
       return NextResponse.json(
         { error: "Recipient and content required" },

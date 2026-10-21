@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { canViewPost } from "@/lib/posts/visibility";
 import { auth } from "@/lib/auth";
 import { PostDetailClient } from "./post-detail-client";
 
@@ -16,7 +17,8 @@ export async function generateMetadata({
     },
   });
 
-  if (!post) return { title: "Post not found" };
+  // titles and link previews are public, so only public posts get their text in them
+  if (!post || post.visibility !== "PUBLIC") return { title: "Post not found" };
 
   const name = post.author.displayName ?? post.author.username;
   const snippet = post.content?.slice(0, 100) ?? "Post";
@@ -94,21 +96,7 @@ export default async function PostDetailPage({
 
   if (!post) notFound();
 
-  // Check visibility
-  if (post.visibility !== "PUBLIC" && post.authorId !== userId) {
-    if (post.visibility === "PRIVATE") notFound();
-    if (post.visibility === "FOLLOWERS" && userId) {
-      const isFollowing = await db.follow.findUnique({
-        where: {
-          followerId_followingId: {
-            followerId: userId,
-            followingId: post.authorId,
-          },
-        },
-      });
-      if (!isFollowing) notFound();
-    }
-  }
+  if (!(await canViewPost(post, userId))) notFound();
 
   // Get user reactions
   let userReactions: string[] = [];

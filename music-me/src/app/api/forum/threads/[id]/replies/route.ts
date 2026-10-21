@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { guard } from "@/lib/api-guard";
 import { z } from "zod";
 import { createNotification } from "@/lib/notifications";
 
@@ -16,6 +17,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const blocked = await guard(request, "forum-reply", { limit: 15, windowSec: 60, requireAuth: true });
+    if (blocked) return blocked;
     const { id } = await params;
     const session = await auth();
     if (!session?.user?.id) {

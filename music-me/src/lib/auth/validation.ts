@@ -22,18 +22,37 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// Allow regular URLs, data URLs, and empty strings
-const urlOrDataUrl = z.string().refine(
-  (v) => v === "" || v.startsWith("data:") || v.startsWith("http://") || v.startsWith("https://"),
-  { message: "Must be a valid URL" }
-).optional().or(z.literal(""));
+/**
+ * A web link. z.string().url() on its own also accepts javascript: and data:
+ * URLs, which must never end up in an href.
+ */
+export const httpUrl = z
+  .string()
+  .url()
+  .refine((v) => /^https?:\/\//i.test(v), { message: "Links must start with http:// or https://" });
+
+// Images: a web URL, or an inline image (older avatars were saved that way).
+// Inline ones must really be images and are capped, since they're sent with
+// every page that shows them.
+const MAX_INLINE_IMAGE = 1_500_000;
+const urlOrDataUrl = z
+  .string()
+  .refine(
+    (v) =>
+      v === "" ||
+      /^https?:\/\//i.test(v) ||
+      (/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(v) && v.length <= MAX_INLINE_IMAGE),
+    { message: "Images must be a web link or an image under 1MB" }
+  )
+  .optional()
+  .or(z.literal(""));
 
 export const profileUpdateSchema = z.object({
   displayName: z.string().max(50).optional(),
   bio: z.string().max(500).optional(),
   pronouns: z.string().max(30).optional(),
   location: z.string().max(100).optional(),
-  website: z.string().url().max(200).optional().or(z.literal("")),
+  website: httpUrl.max(200).optional().or(z.literal("")),
   profilePictureUrl: urlOrDataUrl,
   bannerUrl: urlOrDataUrl,
   bannerVideoUrl: urlOrDataUrl,
@@ -64,7 +83,7 @@ export const profileUpdateSchema = z.object({
 
 export const linkSchema = z.object({
   title: z.string().min(1).max(100),
-  url: z.string().url().max(500),
+  url: httpUrl.max(500),
   iconType: z.string().max(30).optional(),
 });
 

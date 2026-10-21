@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { canViewPost } from "@/lib/posts/visibility";
 import { auth } from "@/lib/auth";
 
 const POST_INCLUDE = {
@@ -69,27 +70,8 @@ export async function GET(
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    // Check visibility
-    if (post.visibility !== "PUBLIC" && post.authorId !== userId) {
-      if (post.visibility === "PRIVATE") {
-        return NextResponse.json({ error: "Post not found" }, { status: 404 });
-      }
-      if (post.visibility === "FOLLOWERS" && userId) {
-        const isFollowing = await db.follow.findUnique({
-          where: {
-            followerId_followingId: {
-              followerId: userId,
-              followingId: post.authorId,
-            },
-          },
-        });
-        if (!isFollowing) {
-          return NextResponse.json(
-            { error: "Post not found" },
-            { status: 404 }
-          );
-        }
-      }
+    if (!(await canViewPost(post, userId))) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     // Attach user reactions
