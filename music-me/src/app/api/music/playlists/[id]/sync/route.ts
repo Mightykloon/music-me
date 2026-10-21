@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/api-guard";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { getMusicProvider } from "@/lib/music";
@@ -22,6 +23,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // outside API calls: rate limited and cached (see src/lib/api-guard.ts)
+  const blocked = await guard(request, "playlist-sync", { limit: 10, windowSec: 600, requireAuth: true });
+  if (blocked) return blocked;
   try {
     const session = await auth();
     if (!session?.user?.id) {

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/api-guard";
 import { getLyrics } from "@/lib/music/lyrics";
 
 export async function GET(request: Request) {
+  // outside API calls: rate limited and cached (see src/lib/api-guard.ts)
+  const blocked = await guard(request, "lyrics", { limit: 30, windowSec: 60 });
+  if (blocked) return blocked;
   const { searchParams } = new URL(request.url);
   const title = searchParams.get("title");
   const artist = searchParams.get("artist");

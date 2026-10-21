@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/api-guard";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
@@ -11,6 +12,9 @@ const createGroupSchema = z.object({
 
 // Create a sync group
 export async function POST(request: Request) {
+  // outside API calls: rate limited and cached (see src/lib/api-guard.ts)
+  const blocked = await guard(request, "sync-group", { limit: 10, windowSec: 600, requireAuth: true });
+  if (blocked) return blocked;
   try {
     const session = await auth();
     if (!session?.user?.id) {

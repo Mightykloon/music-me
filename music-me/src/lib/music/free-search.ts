@@ -1,3 +1,4 @@
+import { CACHE, cached } from "@/lib/api-guard";
 import type { MusicTrackResult } from "./types";
 
 interface ITunesResult {
@@ -29,7 +30,7 @@ export async function freeSearch(
 
     const res = await fetch(
       `https://itunes.apple.com/search?${params}`,
-      { cache: "no-store" }
+      cached(CACHE.search)
     );
 
     if (!res.ok) return [];
