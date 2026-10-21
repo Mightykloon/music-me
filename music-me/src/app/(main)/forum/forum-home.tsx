@@ -217,7 +217,16 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
 
 // `embedded`: shown inside another page (the community forum tab), so no
 // page title and no full-screen sizing.
-export function ForumHome({ categories, embedded = false }: { categories: ForumCategoryData[]; embedded?: boolean }) {
+export function ForumHome({
+  categories,
+  embedded = false,
+  stripClassName = "",
+}: {
+  categories: ForumCategoryData[];
+  embedded?: boolean;
+  /** extra classes for the scrolling strip (padding, edge fades) */
+  stripClassName?: string;
+}) {
   const strip = useRef<HTMLDivElement>(null);
   const outlined = useRoamingOutlines(categories.flatMap((c) => c.children.map((s) => s.id)));
 
@@ -257,7 +266,7 @@ export function ForumHome({ categories, embedded = false }: { categories: ForumC
         role="region"
         aria-label="forum sections"
         tabIndex={0}
-        className={`flex flex-col gap-8 pb-8 pt-4 outline-none sm:min-h-0 sm:flex-1 sm:flex-row sm:gap-12 sm:overflow-x-auto sm:pb-6 [scrollbar-width:thin] ${embedded ? "" : "px-4 sm:px-10"}`}
+        className={`flex flex-col gap-8 pb-8 pt-4 outline-none sm:min-h-0 sm:flex-1 sm:flex-row sm:gap-12 sm:overflow-x-auto sm:pb-6 [scrollbar-width:thin] ${embedded ? "" : "px-4 sm:px-10"} ${stripClassName}`}
       >
         {categories.map((category) => (
           <section key={category.id} className="shrink-0 sm:flex sm:flex-col">

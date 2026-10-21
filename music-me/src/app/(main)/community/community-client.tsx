@@ -106,10 +106,17 @@ export function CommunityClient({
     { id: "live", label: "live chat", icon: <Radio className="w-4 h-4" /> },
   ];
 
+  // The forum runs edge to edge (its strip scrolls sideways and fades out
+  // before the online list); the heading stays where the other tabs put it.
+  const forumWide = activeTab === "forum";
+
   return (
-    <div className="max-w-6xl mx-auto flex">
+    <div
+      className={cn("mx-auto flex", forumWide ? "max-w-none" : "max-w-6xl")}
+      style={{ ["--edge" as string]: "max(1rem, calc((100vw - 72rem) / 2 + 1rem))" }}
+    >
       <div className="flex-1 min-w-0">
-        <div className="px-4 pt-4 pb-0">
+        <div className={cn("px-4 pt-4 pb-0", forumWide && "lg:pl-[var(--edge)]")}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="metro-header text-4xl sm:text-5xl">community</h1>
@@ -149,8 +156,14 @@ export function CommunityClient({
           </div>
         </div>
 
-        <div className="p-4">
-          {activeTab === "forum" && <ForumHome categories={categories} embedded />}
+        <div className={forumWide ? "py-4" : "p-4"}>
+          {activeTab === "forum" && (
+            <ForumHome
+              categories={categories}
+              embedded
+              stripClassName="px-4 lg:pl-[var(--edge)] lg:pr-28 lg:scroll-pl-[var(--edge)] lg:[mask-image:linear-gradient(to_right,#000_calc(100%-8rem),transparent)]"
+            />
+          )}
           {activeTab === "messages" &&
             (currentUserId ? (
               <MessagesTab conversations={conversations} currentUserId={currentUserId} onlineUsers={onlineUsers} />
