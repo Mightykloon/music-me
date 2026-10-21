@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { PlaylistDetail } from "./playlist-detail";
+import { fillMissingArt } from "@/lib/music/sources";
 
 export async function generateMetadata({
   params,
@@ -51,6 +52,9 @@ export default async function PlaylistPage({
     const session = await auth();
     if (session?.user?.id !== playlist.userId) notFound();
   }
+
+  // older imports came without per-song covers; fetched once, then saved
+  await fillMissingArt(playlist.tracks.map((pt) => pt.track));
 
   const serialized = {
     ...playlist,
