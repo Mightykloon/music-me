@@ -16,7 +16,12 @@ import { mapLimit, spotifyTrackArt } from "./sources";
 // from Deezer when they're first played (see the player), not here, so an
 // import is a single request however long the playlist.
 
+/** Songs read in the first request of an import (a source may give fewer). */
 export const MAX_IMPORT_TRACKS = 200;
+/** Songs per follow-up batch when a big playlist is read in parts (see readMore). */
+export const PAGE_SIZE = 100;
+/** Most songs kept per playlist, however long the source is. */
+export const MAX_PLAYLIST_TRACKS = 5000;
 
 export interface ImportedTrack {
   sourceId: string;
@@ -38,6 +43,11 @@ export interface ImportedPlaylist {
   coverImageUrl: string | null;
   url: string;
   tracks: ImportedTrack[];
+  /**
+   * Where to pick up for the next batch (pass to readMore), or null when the
+   * whole playlist has been read. Opaque: "kind:position-or-page-token".
+   */
+  next: string | null;
 }
 
 export interface PlaylistLink {
@@ -52,6 +62,26 @@ export class ImportError extends Error {}
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
 
 /** Recognise a supported playlist/album link, or null. */
+/**
+ * Links to try for a playlist saved earlier (only its service and id are
+ * stored). Spotify and Deezer ids don't say whether they're a playlist or an
+ * album, so both are offered, playlist first.
+ */
+export function linksFor(provider: MusicProviderType, id: string): PlaylistLink[] {
+  const make = (url: string) => parsePlaylistLink(url);
+  const urls: string[] =
+    provider === "SPOTIFY"
+      ? [`https://open.spotify.com/playlist/${id}`, `https://open.spotify.com/album/${id}`]
+      : provider === "DEEZER"
+        ? [`https://www.deezer.com/playlist/${id}`, `https://www.deezer.com/album/${id}`]
+        : provider === "APPLE_MUSIC"
+          ? [id.startsWith("pl.") ? `https://music.apple.com/us/playlist/playlist/${id}` : `https://music.apple.com/us/album/album/${id}`]
+          : provider === "YOUTUBE_MUSIC"
+            ? [`https://www.youtube.com/playlist?list=${id}`]
+            : [];
+  return urls.map(make).filter((l): l is PlaylistLink => !!l);
+}
+
 export function parsePlaylistLink(raw: string): PlaylistLink | null {
   let u: URL;
   try {
@@ -162,6 +192,8 @@ async function readSpotify(link: PlaylistLink): Promise<ImportedPlaylist> {
     coverImageUrl: cover,
     url: link.url,
     tracks,
+    // the embed stops at 100 songs; past that needs a Spotify login (readMore)
+    next: tracks.length >= 100 ? `${link.kind}:100` : null,
   };
 }
 
@@ -220,6 +252,7 @@ async function readApple(link: PlaylistLink): Promise<ImportedPlaylist> {
       duration: t.duration ?? null,
       externalUrl: t.contentDescriptor?.url ?? null,
     })),
+    next: null, // Apple's public page is all there is without an Apple developer key
   };
 }
 
@@ -235,6 +268,26 @@ interface DeezerTrack {
   album?: { title?: string; cover_medium?: string };
 }
 
+const mapDeezer = (t: DeezerTrack, kind: PlaylistLink["kind"], albumTitle: string | null, cover: string | null): ImportedTrack => ({
+  sourceId: String(t.id),
+  title: t.title,
+  artist: t.artist.name,
+  album: t.album?.title ?? (kind === "album" ? albumTitle : null),
+  albumArtUrl: t.album?.cover_medium ?? (kind === "album" ? cover : null),
+  previewUrl: t.preview || null,
+  duration: t.duration ? t.duration * 1000 : null,
+  externalUrl: t.link ?? null,
+});
+
+/** One batch of a Deezer playlist or album, starting at `index`. */
+async function deezerPage(kind: PlaylistLink["kind"], id: string, index: number, albumTitle: string | null, cover: string | null) {
+  const res = await getJson<{ data?: DeezerTrack[]; next?: string; error?: unknown }>(
+    `https://api.deezer.com/${kind}/${id}/tracks?index=${index}&limit=${PAGE_SIZE}`
+  );
+  const tracks = (res.data ?? []).map((t) => mapDeezer(t, kind, albumTitle, cover));
+  return { tracks, next: res.next && tracks.length > 0 ? `${kind}:${index + PAGE_SIZE}` : null };
+}
+
 async function readDeezer(link: PlaylistLink): Promise<ImportedPlaylist> {
   const data = await getJson<{
     error?: { message?: string };
@@ -242,10 +295,10 @@ async function readDeezer(link: PlaylistLink): Promise<ImportedPlaylist> {
     description?: string;
     picture_medium?: string;
     cover_medium?: string;
-    tracks?: { data?: DeezerTrack[] };
-  }>(`https://api.deezer.com/${link.kind}/${link.id}?limit=${MAX_IMPORT_TRACKS}`);
+  }>(`https://api.deezer.com/${link.kind}/${link.id}`);
   if (data.error) throw new ImportError("Deezer couldn't find that playlist. Is it public?");
   const cover = data.picture_medium ?? data.cover_medium ?? null;
+  const first = await deezerPage(link.kind, link.id, 0, data.title ?? null, cover);
   return {
     provider: "DEEZER",
     sourceId: link.id,
@@ -253,16 +306,8 @@ async function readDeezer(link: PlaylistLink): Promise<ImportedPlaylist> {
     description: data.description || null,
     coverImageUrl: cover,
     url: link.url,
-    tracks: (data.tracks?.data ?? []).map((t) => ({
-      sourceId: String(t.id),
-      title: t.title,
-      artist: t.artist.name,
-      album: t.album?.title ?? (link.kind === "album" ? data.title ?? null : null),
-      albumArtUrl: t.album?.cover_medium ?? (link.kind === "album" ? cover : null),
-      previewUrl: t.preview || null,
-      duration: t.duration ? t.duration * 1000 : null,
-      externalUrl: t.link ?? null,
-    })),
+    tracks: first.tracks,
+    next: first.next,
   };
 }
 
@@ -287,17 +332,7 @@ async function readYouTube(link: PlaylistLink): Promise<ImportedPlaylist> {
   const meta = info.items?.[0]?.snippet;
   if (!meta) throw new ImportError("YouTube couldn't find that playlist. Is it public or unlisted?");
 
-  const items: YouTubeItem[] = [];
-  let page = "";
-  // 50 per page; stop at the import cap
-  for (let i = 0; i < Math.ceil(MAX_IMPORT_TRACKS / 50); i++) {
-    const res = await getJson<{ items?: YouTubeItem[]; nextPageToken?: string }>(
-      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${link.id}&key=${key}${page ? `&pageToken=${page}` : ""}`
-    );
-    items.push(...(res.items ?? []));
-    if (!res.nextPageToken) break;
-    page = res.nextPageToken;
-  }
+  const first = await youtubePage(link.id, "");
 
   return {
     provider: "YOUTUBE_MUSIC",
@@ -306,26 +341,112 @@ async function readYouTube(link: PlaylistLink): Promise<ImportedPlaylist> {
     description: meta.description || null,
     coverImageUrl: meta.thumbnails?.medium?.url ?? null,
     url: link.url,
-    tracks: items
-      .filter((it) => it.snippet.resourceId?.videoId && it.snippet.title !== "Deleted video" && it.snippet.title !== "Private video")
-      .map((it) => {
-        // music videos are usually titled "Artist - Song (Official Video)"
-        const clean = it.snippet.title.replace(/\s*[([](official|lyric|audio|music|hd|4k)[^)\]]*[)\]]/gi, "").trim();
-        const [a, ...rest] = clean.split(" - ");
-        const artist = rest.length ? a : (it.snippet.videoOwnerChannelTitle ?? "").replace(/ - Topic$/, "");
-        const title = rest.length ? rest.join(" - ") : clean;
-        return {
-          sourceId: it.snippet.resourceId!.videoId!,
-          title,
-          artist: artist || "Unknown artist",
-          album: null,
-          albumArtUrl: it.snippet.thumbnails?.medium?.url ?? null,
-          previewUrl: null,
-          duration: null,
-          externalUrl: `https://www.youtube.com/watch?v=${it.snippet.resourceId!.videoId}`,
-        };
-      }),
+    tracks: first.tracks,
+    next: first.next,
   };
+}
+
+const mapYouTube = (it: YouTubeItem): ImportedTrack => {
+  // music videos are usually titled "Artist - Song (Official Video)"
+  const clean = it.snippet.title.replace(/\s*[([](official|lyric|audio|music|hd|4k)[^)\]]*[)\]]/gi, "").trim();
+  const [a, ...rest] = clean.split(" - ");
+  const artist = rest.length ? a : (it.snippet.videoOwnerChannelTitle ?? "").replace(/ - Topic$/, "");
+  const title = rest.length ? rest.join(" - ") : clean;
+  return {
+    sourceId: it.snippet.resourceId!.videoId!,
+    title,
+    artist: artist || "Unknown artist",
+    album: null,
+    albumArtUrl: it.snippet.thumbnails?.medium?.url ?? null,
+    previewUrl: null,
+    duration: null,
+    externalUrl: `https://www.youtube.com/watch?v=${it.snippet.resourceId!.videoId}`,
+  };
+};
+
+/** About PAGE_SIZE videos of a YouTube playlist (50 per call), from a page token. */
+async function youtubePage(playlistId: string, pageToken: string) {
+  const key = process.env.YOUTUBE_API_KEY!;
+  const items: YouTubeItem[] = [];
+  let page = pageToken;
+  for (let i = 0; i < PAGE_SIZE / 50; i++) {
+    const res = await getJson<{ items?: YouTubeItem[]; nextPageToken?: string }>(
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${key}${page ? `&pageToken=${page}` : ""}`
+    );
+    items.push(...(res.items ?? []));
+    page = res.nextPageToken ?? "";
+    if (!page) break;
+  }
+  const tracks = items
+    .filter((it) => it.snippet.resourceId?.videoId && it.snippet.title !== "Deleted video" && it.snippet.title !== "Private video")
+    .map(mapYouTube);
+  return { tracks, next: page ? `playlist:${page}` : null };
+}
+
+interface SpotifyItem {
+  track?: SpotifyApiTrack | null;
+  item?: SpotifyApiTrack | null;
+}
+interface SpotifyApiTrack {
+  id?: string;
+  type?: string;
+  name: string;
+  duration_ms?: number;
+  preview_url?: string | null;
+  artists?: { name: string }[];
+  album?: { name?: string; images?: { url: string }[] };
+}
+
+export interface MoreTracks {
+  tracks: ImportedTrack[];
+  next: string | null;
+  /** Spotify only lists more than 100 songs to a signed-in Spotify account */
+  needsSpotifyLogin?: boolean;
+}
+
+/**
+ * The next batch of a playlist, from the cursor a previous read returned.
+ * Spotify needs the owner's Spotify login for this (`spotifyToken`); Deezer
+ * and YouTube don't.
+ */
+export async function readMore(link: PlaylistLink, cursor: string, spotifyToken?: string | null): Promise<MoreTracks> {
+  const sep = cursor.indexOf(":");
+  const kind = (cursor.slice(0, sep) === "album" ? "album" : "playlist") as PlaylistLink["kind"];
+  const at = cursor.slice(sep + 1);
+
+  if (link.provider === "DEEZER") return deezerPage(kind, link.id, Number(at) || 0, null, null);
+  if (link.provider === "YOUTUBE_MUSIC") return at ? youtubePage(link.id, at) : { tracks: [], next: null };
+  if (link.provider !== "SPOTIFY") return { tracks: [], next: null };
+
+  if (!spotifyToken) return { tracks: [], next: null, needsSpotifyLogin: true };
+  const offset = Number(at) || 0;
+  const tracks: ImportedTrack[] = [];
+  let more = true;
+  for (let o = offset; o < offset + PAGE_SIZE && more; o += 50) {
+    const res = await fetch(
+      `https://api.spotify.com/v1/${kind === "album" ? "albums" : "playlists"}/${link.id}/${kind === "album" ? "tracks" : "items"}?offset=${o}&limit=50&market=US`,
+      { headers: { authorization: `Bearer ${spotifyToken}` }, signal: AbortSignal.timeout(10000) }
+    );
+    if (res.status === 401 || res.status === 403) return { tracks, next: null, needsSpotifyLogin: true };
+    if (!res.ok) throw new ImportError(`Spotify didn't respond (${res.status}). Try again in a bit.`);
+    const data = (await res.json()) as { items?: (SpotifyItem & SpotifyApiTrack)[]; next?: string | null };
+    for (const it of data.items ?? []) {
+      const t = (kind === "album" ? it : it.track ?? it.item) as SpotifyApiTrack | null | undefined;
+      if (!t?.id || (t.type && t.type !== "track")) continue;
+      tracks.push({
+        sourceId: t.id,
+        title: t.name,
+        artist: (t.artists ?? []).map((a) => a.name).join(", "),
+        album: t.album?.name ?? null,
+        albumArtUrl: t.album?.images?.[0]?.url ?? null,
+        previewUrl: t.preview_url ?? null,
+        duration: t.duration_ms ?? null,
+        externalUrl: `https://open.spotify.com/track/${t.id}`,
+      });
+    }
+    more = !!data.next;
+  }
+  return { tracks, next: more ? `${kind}:${offset + PAGE_SIZE}` : null };
 }
 
 /** Read a playlist from a supported link. Throws ImportError with a message fit for the user. */
