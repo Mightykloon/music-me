@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Link2, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { SPOTIFY_LIMIT_NOTE, loadRemaining } from "@/lib/music/load-remaining";
 
 // Paste a public Spotify / Apple Music / Deezer / YouTube playlist or album
 // link to bring it into your library. No account connection needed.
@@ -27,8 +28,18 @@ export function ImportByLink() {
         toast.error(data.error ?? "Import failed.");
         return;
       }
-      toast.success(`Imported "${data.name}" (${data.trackCount} songs)`);
       setUrl("");
+      router.refresh();
+      const toastId = "import-" + data.id;
+      if (!data.next) return void toast.success(`Imported "${data.name}" (${data.trackCount} songs)`, { id: toastId });
+      // big playlist: keep loading the rest in batches
+      toast.loading(`Imported ${data.trackCount} songs from "${data.name}", loading more...`, { id: toastId });
+      const result = await loadRemaining(data.id, data.next, data.trackCount, (n) =>
+        toast.loading(`Imported ${n} songs from "${data.name}", loading more...`, { id: toastId })
+      );
+      if (result.error) toast.error(`Imported ${result.trackCount} songs. ${result.error}`, { id: toastId });
+      else if (result.needsSpotifyLogin) toast(`Imported ${result.trackCount} songs. ${SPOTIFY_LIMIT_NOTE}`, { id: toastId, duration: 9000 });
+      else toast.success(`Imported "${data.name}" (${result.trackCount} songs)`, { id: toastId });
       router.refresh();
     } catch {
       toast.error("Import failed. Check your connection.");

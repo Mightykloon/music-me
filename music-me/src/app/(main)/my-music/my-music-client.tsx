@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ImportByLink } from "@/components/music/import-by-link";
 import { usePlayerStore } from "@/lib/player-store";
+import { SPOTIFY_LIMIT_NOTE, loadRemaining } from "@/lib/music/load-remaining";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 // Using native <img> for external CDN cover art (Spotify uses many subdomains)
@@ -182,152 +183,39 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
 
   const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null);
 
-  // Map a Spotify track for ingest
-  function mapSpotifyTrack(t: Record<string, unknown>) {
-    const artists = t.artists as { name: string }[] | undefined;
-    const album = t.album as { name?: string; images?: { url: string }[] } | undefined;
-    const externalIds = t.external_ids as { isrc?: string } | undefined;
-    const externalUrls = t.external_urls as { spotify?: string } | undefined;
-    return {
-      provider: "SPOTIFY",
-      providerTrackId: t.id as string,
-      title: t.name as string,
-      artist: artists?.map(a => a.name).join(", ") ?? "",
-      album: album?.name ?? null,
-      albumArtUrl: album?.images?.[0]?.url ?? null,
-      previewUrl: (t.preview_url as string) ?? null,
-      duration: (t.duration_ms as number) ?? null,
-      isrc: externalIds?.isrc ?? null,
-      externalUrl: externalUrls?.spotify ?? null,
-    };
-  }
-
-  // Try browser-direct Spotify fetch for a playlist, ingest results
-  async function syncPlaylistBrowserSide(
-    token: string,
-    pl: PlaylistItem
-  ): Promise<number> {
-    const fields = "tracks(items(added_at,track(id,name,type,artists(name),album(name,images),preview_url,duration_ms,external_ids,external_urls)),total)";
-    const r = await fetch(
-      `https://api.spotify.com/v1/playlists/${pl.providerPlaylistId}?fields=${encodeURIComponent(fields)}&market=US`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!r.ok) return 0;
-    const data = await r.json();
-    const items = (data.tracks?.items ?? []) as Record<string, unknown>[];
-    const total = data.tracks?.total ?? 0;
-    if (items.length === 0) return 0;
-
-    // Don't follow pagination — next URL uses /tracks endpoint which is 403 in Dev Mode
-
-    const tracks = items
-      .filter((item) => {
-        const t = item.track as Record<string, unknown> | null;
-        return t && t.type === "track" && t.id;
-      })
-      .map((item, i) => ({
-        track: mapSpotifyTrack(item.track as Record<string, unknown>),
-        position: i,
-        addedAt: (item.added_at as string) || new Date().toISOString(),
-      }));
-
-    let synced = 0;
-    for (let i = 0; i < tracks.length; i += 25) {
-      const batch = tracks.slice(i, i + 25);
-      const ingestRes = await fetch(`/api/music/playlists/${pl.id}/ingest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tracks: batch, total }),
-      });
-      if (ingestRes.ok) {
-        const r = await ingestRes.json();
-        synced += r.synced ?? 0;
-      }
-    }
-    return synced;
-  }
-
+  // Re-read every playlist from its public page, one after another, loading
+  // big ones in batches. No Spotify login needed (Spotify stops at 100 songs
+  // per playlist without one).
   const handleSyncAll = async () => {
+    if (playlists.length === 0) return void toast("Nothing to sync yet. Import a playlist first.");
     setSyncing(true);
+    let songs = 0;
+    let done = 0;
+    let failed = 0;
+    let spotifyCapped = false;
     try {
-      // Step 1: Refresh playlist metadata
-      toast.loading("Refreshing playlists from Spotify...", { id: "sync-all" });
-      const spotifyConnections = connections.filter(c => c.provider === "SPOTIFY");
-      for (const conn of spotifyConnections) {
-        try {
-          await fetch(`/api/music/connections/${conn.id}/sync`, { method: "POST" });
-        } catch { /* ignore */ }
-      }
-
-      // Step 2: Get Spotify token for browser-side fallback
-      const tokenRes = await fetch("/api/music/token");
-      const spotifyToken = tokenRes.ok ? (await tokenRes.json()).accessToken : null;
-
-      // Step 3: Get updated local playlists
-      const res = await fetch("/api/music/playlists");
-      if (!res.ok) {
-        toast.error("Failed to fetch playlists", { id: "sync-all" });
-        return;
-      }
-      const data = await res.json();
-      const allPlaylists: PlaylistItem[] = Array.isArray(data) ? data : (data.items ?? []);
-      const spotifyPlaylists = allPlaylists.filter(p => p.provider === "SPOTIFY" && p.providerPlaylistId);
-
-      if (spotifyPlaylists.length === 0) {
-        toast.success("No Spotify playlists found", { id: "sync-all" });
-        return;
-      }
-
-      // Step 4: Sync playlists that need tracks (skip already-synced)
-      const needsSync = spotifyPlaylists.filter(p => p._count.tracks === 0);
-      const alreadySynced = spotifyPlaylists.length - needsSync.length;
-
-      if (needsSync.length === 0) {
-        toast.success(`All ${spotifyPlaylists.length} playlists already have tracks synced!`, { id: "sync-all" });
-        router.refresh();
-        return;
-      }
-
-      toast.loading(`Syncing ${needsSync.length} playlists (${alreadySynced} already synced)...`, { id: "sync-all" });
-      setSyncProgress({ current: 0, total: needsSync.length });
-      let completed = 0;
-      let failed = 0;
-      let totalTracksSynced = 0;
-
-      // Skip server-side entirely (always blocked by Dev Mode) — go straight to browser
-      for (const pl of needsSync) {
-        let synced = 0;
-        if (spotifyToken) {
-          try {
-            synced = await syncPlaylistBrowserSide(spotifyToken, pl);
-          } catch (err) {
-            console.error(`Browser sync failed for "${pl.name}":`, err);
-          }
+      for (const pl of playlists) {
+        setSyncProgress({ current: done + failed, total: playlists.length });
+        toast.loading(`${done + failed}/${playlists.length} playlists · ${songs} songs`, { id: "sync-all" });
+        const res = await fetch(`/api/music/playlists/${pl.id}/refresh`, { method: "POST" });
+        if (res.status === 429) {
+          toast.error("That's a lot of syncing for one hour. The rest will sync if you try again later.", { id: "sync-all", duration: 7000 });
+          break;
         }
-
-        if (synced > 0) {
-          completed++;
-          totalTracksSynced += synced;
-        } else {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
           failed++;
-          console.log(`[Sync] "${pl.name}" returned 0 tracks, extending delay`);
+          continue;
         }
-
-        setSyncProgress({ current: completed + failed, total: needsSync.length });
-        toast.loading(`${completed}/${needsSync.length} playlists · ${totalTracksSynced} tracks`, { id: "sync-all" });
-        // 5s delay between playlists to avoid Spotify rate limiting
-        await new Promise(r => setTimeout(r, 5000));
+        const result = data.next ? await loadRemaining(pl.id, data.next, data.trackCount) : { trackCount: data.trackCount, needsSpotifyLogin: false };
+        if (result.needsSpotifyLogin) spotifyCapped = true;
+        songs += result.trackCount;
+        done++;
       }
-
-      if (completed > 0) {
-        toast.success(`Done! ${completed} playlists · ${totalTracksSynced} tracks${failed > 0 ? ` (${failed} hit Spotify's rate limit, try again later)` : ""}`, { id: "sync-all", duration: 6000 });
-      } else if (failed > 0) {
-        toast.error(`All ${failed} playlists hit Spotify's rate limit. Wait a minute and try again.`, { id: "sync-all", duration: 6000 });
-      }
+      const summary = `Synced ${done} playlist${done === 1 ? "" : "s"} · ${songs} songs${failed ? ` (${failed} couldn't be read; are they still public?)` : ""}`;
+      if (spotifyCapped) toast(`${summary}. ${SPOTIFY_LIMIT_NOTE}`, { id: "sync-all", duration: 9000 });
+      else toast.success(summary, { id: "sync-all", duration: 6000 });
       router.refresh();
-    } catch (err) {
-      console.error("Sync all error:", err);
-      toast.error(`Sync failed: ${err instanceof Error ? err.message : "Unknown error"}`, { id: "sync-all" });
     } finally {
       setSyncing(false);
       setSyncProgress(null);
@@ -426,7 +314,7 @@ export function MyMusicClient({ playlists, connections, syncGroups, recentTracks
         <div className="flex items-center gap-2">
           <button
             onClick={handleSyncAll}
-            disabled={syncing || connections.length === 0}
+            disabled={syncing || playlists.length === 0}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
