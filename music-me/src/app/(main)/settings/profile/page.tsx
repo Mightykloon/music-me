@@ -1364,6 +1364,8 @@ function SearchTagInput({
 
   const addTag = (title: string, cover?: string | null) => {
     const v = title.trim();
+    // typed and added by hand: use the cover of a search result with the same title
+    cover ??= results.find((r) => r.title.toLowerCase() === v.toLowerCase())?.coverUrl;
     if (v && cover) onCover?.(v, cover);
     if (!v) return;
     if (containsProfanity(v)) {
