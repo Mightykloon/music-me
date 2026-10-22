@@ -55,8 +55,10 @@ function sizeOf(activity: number, rank: number, max: number): Size {
   return activity >= max / 3 ? "wide" : "small";
 }
 const SIZE_CLASS: Record<Size, { cell: string; tile: string }> = {
-  large: { cell: "col-span-2 sm:row-span-2", tile: "aspect-square" },
-  wide: { cell: "col-span-2", tile: "aspect-[2/1]" },
+  // on phones a 2x2 square would fill the whole screen, so it is as short as a wide tile
+  large: { cell: "col-span-2 sm:row-span-2", tile: "aspect-[2/1] sm:aspect-square" },
+  // wide tiles are half-width squares on phones, two to a row
+  wide: { cell: "sm:col-span-2", tile: "aspect-square sm:aspect-[2/1]" },
   small: { cell: "", tile: "aspect-square" },
 };
 
@@ -156,10 +158,10 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
       <div className="flex h-full flex-col justify-between">
         {/* a solid icon in the text colour (white on dark), on both the solid
             and the outlined tiles */}
-        <Icon aria-hidden className="text-foreground" size={iconSize} weight="fill" />
+        <Icon aria-hidden className={`text-foreground ${large ? "max-sm:h-10 max-sm:w-10" : ""}`} size={iconSize} weight="fill" />
 
         {wide && sub.description && (
-          <p className={`${large ? "text-xl font-light" : "text-sm"} leading-snug opacity-90`}>{sub.description.toLowerCase()}</p>
+          <p className={`${large ? "text-sm sm:text-xl sm:font-light" : "hidden text-sm sm:block"} line-clamp-2 leading-snug opacity-90`}>{sub.description.toLowerCase()}</p>
         )}
       </div>
     ),
@@ -177,7 +179,7 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
       <p className="min-w-0 flex-1 text-[0.7rem] uppercase leading-tight tracking-wider opacity-80">{kicker}</p>
       <span
         aria-hidden
-        className="shrink-0 text-xs lowercase leading-tight opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        className="shrink-0 text-xs lowercase leading-tight opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 max-sm:hidden"
       >
         browse →
       </span>
@@ -216,11 +218,11 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
             {topRow(`${reply ? "latest reply" : "latest thread"} · ${count}`)}
             {reply ? (
               <>
-                <p className={`leading-snug ${wide ? "line-clamp-3 text-base" : "line-clamp-2 text-sm"}`}>{reply.content}</p>
+                <p className={`leading-snug ${large ? "line-clamp-3 text-base" : wide ? "line-clamp-2 text-sm sm:line-clamp-3 sm:text-base" : "line-clamp-2 text-sm"}`}>{reply.content}</p>
                 <p className="mt-auto truncate text-xs opacity-80">in {thread.title}</p>
               </>
             ) : (
-              <p className={`font-light leading-tight ${wide ? "line-clamp-3 text-xl" : "line-clamp-3 text-base"}`}>{thread.title}</p>
+              <p className={`font-light leading-tight ${large ? "line-clamp-3 text-xl" : wide ? "line-clamp-3 text-base sm:text-xl" : "line-clamp-3 text-base"}`}>{thread.title}</p>
             )}
           </div>
         ),
@@ -297,7 +299,7 @@ export function ForumHome({
             <h2 className="metro-header text-3xl mb-3 flex items-baseline gap-2">
               {category.name}
             </h2>
-            <div className="grid grid-cols-2 gap-2 sm:grid-flow-col-dense sm:grid-rows-3 sm:auto-cols-[clamp(8.5rem,calc((100dvh-19rem)/3),11.5rem)] sm:grid-cols-none">
+            <div className="grid grid-flow-row-dense grid-cols-2 gap-2 sm:grid-flow-col-dense sm:grid-rows-3 sm:auto-cols-[clamp(8.5rem,calc((100dvh-19rem)/3),11.5rem)] sm:grid-cols-none">
               {byActivity(category.children).map((sub, i, all) => {
                 // slow, scattered flips: each tile turns every ~14s, starts spread over ~14s
                 const offset = (tileIndex++ * 1931) % 14000;
