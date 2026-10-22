@@ -1,6 +1,6 @@
 import type { ProfileLayoutProps } from "./types";
 
-type Favorites = { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[] };
+type Favorites = { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[]; covers?: Record<string, string> };
 
 export function favoritesOf(user: ProfileLayoutProps["user"]): Favorites | null {
   return (user.profile?.favorites as Favorites) ?? null;

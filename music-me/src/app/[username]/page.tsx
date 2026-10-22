@@ -8,6 +8,7 @@ import { GuestNotice } from "@/components/auth/guest-notice";
 import { isGuest } from "@/lib/guest";
 import type { ProfileLayoutProps } from "@/components/profile/layouts/types";
 import { readCustomization } from "@/lib/profile/customization";
+import { recentThreads } from "@/lib/profile/threads";
 
 export async function generateMetadata({
   params,
@@ -133,7 +134,7 @@ export default async function ProfilePage({
   const custom = readCustomization(user.profile?.customization);
 
   // Top 8, the first page of the comment wall, and whether the visitor follows them
-  const [top8, wallRows, viewerFollow] = await Promise.all([
+  const [top8, wallRows, viewerFollow, threads] = await Promise.all([
     custom.showTop8
       ? db.bestFriend.findMany({
           where: { userId: user.id },
@@ -164,6 +165,7 @@ export default async function ProfilePage({
           select: { createdAt: true },
         })
       : null,
+    recentThreads(user.id),
   ]);
   const wall = {
     comments: wallRows.slice(0, 20).map((c) => ({
@@ -186,6 +188,7 @@ export default async function ProfilePage({
   const profileData = {
     ...user,
     isFollowedByViewer: !!viewerFollow,
+    threads,
     top8: top8.map(({ friend }) => ({
       id: friend.id,
       username: friend.username,

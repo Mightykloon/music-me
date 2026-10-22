@@ -17,13 +17,27 @@ import {
   MAX_CSS_LENGTH,
   OVERLAYS,
   SONG_SKINS,
-  THEME_PRESETS,
+  PROFILE_TEMPLATES,
+  LAYOUTS,
+  MOODS,
+  SOCIAL_STYLES,
+  TICKER_STYLES,
+  TICKER_SPEEDS,
+  BLOCK_TYPES,
+  BLOCK_INFO,
+  BLOCK_WIDTHS,
+  BLOCK_HEIGHTS,
+  MAX_BLOCKS,
   TRAILS,
   cursorCss,
+  newBlock,
   readCustomization,
+  type Block,
+  type BlockType,
   type Customization,
-  type ThemePreset,
+  type ProfileTemplate,
 } from "@/lib/profile/customization";
+import type { ArrangeControls } from "@/components/profile/layouts/blocks-layout";
 import type { ProfileLayoutProps, Top8Friend } from "@/components/profile/layouts/types";
 import type { TrackInfo } from "@/types";
 
@@ -66,25 +80,35 @@ function Choices<T extends string>({
   );
 }
 
-// ---------------------------------------------------------------- presets
+// ---------------------------------------------------------------- templates
 
-export function ThemePresets({ onApply }: { onApply: (p: ThemePreset) => void }) {
+const LAYOUT_LABEL = Object.fromEntries(LAYOUTS.map((l) => [l.id, l.label]));
+
+/** Complete looks: colours, fonts, name effect, style and arrangement in one click. */
+export function ProfileTemplates({ onApply }: { onApply: (t: ProfileTemplate) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {THEME_PRESETS.map((p) => (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-4">
+      {PROFILE_TEMPLATES.map((t) => (
         <button
-          key={p.id}
+          key={t.id}
           type="button"
-          onClick={() => onApply(p)}
-          className="group border-2 border-border p-2 text-left transition-colors hover:border-primary"
+          onClick={() => onApply(t)}
+          className="group border-2 border-border text-left transition-colors hover:border-primary"
         >
-          <div className="flex h-10 overflow-hidden">
-            {p.swatch.map((c) => (
-              <span key={c} className="flex-1" style={{ background: c }} />
-            ))}
+          {/* a tiny mock of the look: background, a "name" bar and two boxes in the theme colours */}
+          <div className="relative h-16 overflow-hidden p-2" style={{ background: t.colors.backgroundColor }}>
+            <div className="h-2.5 w-2/3" style={{ background: t.colors.primaryColor }} />
+            <div className="mt-1 h-1.5 w-1/3 opacity-70" style={{ background: t.customization.textColor || "#ffffff" }} />
+            <div className="absolute bottom-2 left-2 right-2 flex gap-1">
+              <span className="h-4 flex-[2] border" style={{ borderColor: t.colors.secondaryColor }} />
+              <span className="h-4 flex-1" style={{ background: t.colors.accentColor }} />
+            </div>
           </div>
-          <p className="mt-1.5 text-sm font-semibold">{p.name}</p>
-          <p className="text-xs text-muted-foreground">{p.blurb}</p>
+          <div className="p-2">
+            <p className="text-sm font-semibold">{t.name}</p>
+            <p className="text-xs text-muted-foreground">{t.blurb}</p>
+            <p className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground/70">{LAYOUT_LABEL[t.layout]}</p>
+          </div>
         </button>
       ))}
     </div>
@@ -186,7 +210,7 @@ export function StylePanel({ value, onChange }: { value: Customization; onChange
 
       <div>
         <label className={label}>cursor trail</label>
-        <Choices options={TRAILS} value={value.trail} onChange={(v) => set("trail", v)} />
+        <Choices options={TRAILS} value={value.trail} onChange={(v) => set("trail", v)} names={TRAIL_NAMES} />
       </div>
 
       <div>
@@ -197,9 +221,9 @@ export function StylePanel({ value, onChange }: { value: Customization; onChange
             <span className="text-xs text-muted-foreground">strength</span>
             <input
               type="range"
-              min={0.05}
-              max={1}
-              step={0.05}
+              min={0.03}
+              max={0.6}
+              step={0.01}
               value={value.overlayStrength}
               onChange={(e) => set("overlayStrength", parseFloat(e.target.value))}
               className="flex-1"
@@ -217,6 +241,11 @@ export function StylePanel({ value, onChange }: { value: Customization; onChange
           <label className={label}>corners</label>
           <Choices options={CORNERS} value={value.corners} onChange={(v) => set("corners", v)} />
         </div>
+      </div>
+
+      <div>
+        <label className={label}>links under your name</label>
+        <Choices options={SOCIAL_STYLES} value={value.socialStyle} onChange={(v) => set("socialStyle", v)} names={{ icons: "logo icons", badges: "labelled badges", off: "hide" }} />
       </div>
 
       <div>
@@ -240,8 +269,19 @@ export function StylePanel({ value, onChange }: { value: Customization; onChange
   );
 }
 
-export function ExtrasPanel({ value, onChange }: { value: Customization; onChange: (v: Customization) => void }) {
+const TRAIL_NAMES: Partial<Record<Customization["trail"], string>> = {
+  sparkle: "sparkle (twinkles)",
+  stars: "stars (fall)",
+  hearts: "hearts (float up)",
+  bubbles: "bubbles (pop)",
+  pixels: "pixels (snake)",
+  comet: "comet (streak)",
+};
+
+export function ExtrasPanel({ value, onChange, usingBlocks }: { value: Customization; onChange: (v: Customization) => void; usingBlocks: boolean }) {
   const set = <K extends keyof Customization>(k: K, v: Customization[K]) => onChange({ ...value, [k]: v });
+  const preset = MOODS.find((m) => m.emoji === value.moodEmoji && m.text === value.moodText);
+  const [customMood, setCustomMood] = useState(!!value.moodText && !preset);
   const toggle = (k: "showTop8" | "showWall" | "showCounter", text: string) => (
     <label className="flex cursor-pointer items-center gap-2 text-sm">
       <input type="checkbox" checked={value[k]} onChange={(e) => set(k, e.target.checked)} className="h-4 w-4 accent-[var(--primary)]" />
@@ -249,36 +289,285 @@ export function ExtrasPanel({ value, onChange }: { value: Customization; onChang
     </label>
   );
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-[4.5rem_1fr] gap-2">
-        <div>
-          <label className={label}>mood</label>
-          <input value={value.moodEmoji} onChange={(e) => set("moodEmoji", e.target.value)} placeholder="🎧" maxLength={8} className="input-field text-center" />
+    <div className="space-y-6">
+      <div>
+        <label className={label}>mood (shows as a badge under your name)</label>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              setCustomMood(false);
+              onChange({ ...value, moodEmoji: "", moodText: "" });
+            }}
+            className={`border-2 px-2.5 py-1 text-sm ${!value.moodText && !customMood ? "border-primary bg-primary/15" : "border-border hover:border-muted-foreground"}`}
+          >
+            none
+          </button>
+          {MOODS.map((m) => (
+            <button
+              key={m.text}
+              type="button"
+              onClick={() => {
+                setCustomMood(false);
+                onChange({ ...value, moodEmoji: m.emoji, moodText: m.text });
+              }}
+              className={`border-2 px-2.5 py-1 text-sm ${preset === m && !customMood ? "border-primary bg-primary/15" : "border-border hover:border-muted-foreground"}`}
+            >
+              {m.emoji} {m.text}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setCustomMood(true)}
+            className={`border-2 px-2.5 py-1 text-sm ${customMood ? "border-primary bg-primary/15" : "border-border hover:border-muted-foreground"}`}
+          >
+            ✏️ custom…
+          </button>
         </div>
-        <div>
-          <label className={label}>&nbsp;</label>
-          <input value={value.moodText} onChange={(e) => set("moodText", e.target.value)} placeholder="listening to the same song on repeat" maxLength={40} className="input-field" />
-        </div>
+        {customMood && (
+          <div className="mt-2 space-y-2">
+            <input
+              value={value.moodText}
+              onChange={(e) => set("moodText", e.target.value)}
+              placeholder="how are you feeling?"
+              maxLength={40}
+              className="input-field"
+            />
+            <div className="flex flex-wrap gap-1">
+              {Array.from(new Set(MOODS.map((m) => m.emoji))).map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => set("moodEmoji", e)}
+                  className={`h-8 w-8 border-2 text-base ${value.moodEmoji === e ? "border-primary" : "border-transparent hover:border-border"}`}
+                  aria-label={`mood emoji ${e}`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div>
-        <label className={label}>scrolling marquee</label>
-        <input value={value.marquee} onChange={(e) => set("marquee", e.target.value)} placeholder="thanks 4 the add ♥ pc4pc" maxLength={140} className="input-field" />
+        <label className={label}>ticker (scrolls across the top of your profile)</label>
+        <input value={value.marquee} onChange={(e) => set("marquee", e.target.value)} placeholder="thanks 4 the add ♥ new single out friday" maxLength={140} className="input-field" />
+        {value.marquee && (
+          <div className="mt-2 space-y-2">
+            <Choices options={TICKER_STYLES} value={value.tickerStyle} onChange={(v) => set("tickerStyle", v)} names={{ led: "LED sign", tape: "caution tape" }} />
+            <Choices options={TICKER_SPEEDS} value={value.tickerSpeed} onChange={(v) => set("tickerSpeed", v)} />
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
-        {toggle("showTop8", "show my Top 8")}
-        {value.showTop8 && (
-          <input value={value.top8Title} onChange={(e) => set("top8Title", e.target.value)} placeholder="Top 8" maxLength={30} className="input-field ml-6 w-[calc(100%-1.5rem)]" />
+        <label className={label}>sections</label>
+        {usingBlocks ? (
+          <p className="text-xs text-muted-foreground">Your layout is made of blocks, so add or remove the Top 8 and comment wall as blocks.</p>
+        ) : (
+          <>
+            {toggle("showTop8", "show my Top 8")}
+            {value.showTop8 && (
+              <input value={value.top8Title} onChange={(e) => set("top8Title", e.target.value)} placeholder="Top 8" maxLength={30} className="input-field ml-6 w-[calc(100%-1.5rem)]" />
+            )}
+          </>
         )}
-        {toggle("showWall", "let people comment on my profile")}
-        {toggle("showCounter", "show a visitor counter")}
+        {toggle("showWall", usingBlocks ? "let people comment (for the comment wall block)" : "let people comment on my profile")}
+        {toggle("showCounter", "show a visitor counter at the bottom")}
         {value.showCounter && (
           <div className="ml-6">
             <Choices options={COUNTER_STYLES} value={value.counterStyle} onChange={(v) => set("counterStyle", v)} />
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- layout & blocks
+
+/** Fixed layouts and block arrangements side by side; picking an arrangement loads its blocks. */
+export function LayoutPicker({
+  layoutStyle,
+  blocks,
+  onFixed,
+  onBlocks,
+}: {
+  layoutStyle: string;
+  blocks: Block[];
+  onFixed: (id: string) => void;
+  onBlocks: (blocks: Block[]) => void;
+}) {
+  const usingBlocks = blocks.length > 0;
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {LAYOUTS.map((l) => {
+        const active = l.blocks ? false : !usingBlocks && layoutStyle === l.id;
+        return (
+          <button
+            key={l.id}
+            type="button"
+            onClick={() => (l.blocks ? onBlocks(l.blocks()) : onFixed(l.id))}
+            className={`border-2 p-3 text-left transition-colors ${active ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"}`}
+          >
+            <p className="text-sm font-medium">{l.label}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{l.desc}</p>
+            {l.blocks && <p className="mt-1 text-[10px] uppercase tracking-wider text-primary">blocks · arrangeable</p>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Add, edit and order blocks. The live preview's arrange mode does the dragging and resizing. */
+export function BlocksPanel({
+  blocks,
+  selectedId,
+  onSelect,
+  onChange,
+  onUploadImage,
+}: {
+  blocks: Block[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  onChange: (blocks: Block[]) => void;
+  onUploadImage: (file: File) => Promise<string>;
+}) {
+  const selected = blocks.find((b) => b.id === selectedId) ?? null;
+  const [uploading, setUploading] = useState(false);
+  const patch = (change: Partial<Block>) => selected && onChange(blocks.map((b) => (b.id === selected.id ? { ...b, ...change } : b)));
+  const move = (i: number, d: -1 | 1) => {
+    const next = [...blocks];
+    [next[i], next[i + d]] = [next[i + d], next[i]];
+    onChange(next);
+  };
+  const add = (type: BlockType) => {
+    if (blocks.length >= MAX_BLOCKS) return void toast.error(`Up to ${MAX_BLOCKS} blocks`);
+    const b = newBlock(type);
+    onChange([...blocks, b]);
+    onSelect(b.id);
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        In the live preview, turn on <strong>arrange</strong>: drag blocks by their handle to move them, drag a block&apos;s right edge to resize it,
+        and click one to edit it here.
+      </p>
+
+      <div>
+        <label className={label}>add a block</label>
+        <div className="flex flex-wrap gap-1.5">
+          {BLOCK_TYPES.map((t) => (
+            <button key={t} type="button" onClick={() => add(t)} title={BLOCK_INFO[t].hint} className="border-2 border-border px-2.5 py-1 text-xs hover:border-primary">
+              + {BLOCK_INFO[t].label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <ol className="space-y-1">
+        {blocks.map((b, i) => (
+          <li
+            key={b.id}
+            className={`flex items-center gap-2 border-2 px-2 py-1 text-sm ${b.id === selectedId ? "border-primary bg-primary/10" : "border-border"}`}
+          >
+            <button type="button" onClick={() => onSelect(b.id)} className="min-w-0 flex-1 truncate text-left">
+              {BLOCK_INFO[b.type].label}
+              {b.title && <span className="text-muted-foreground"> · {b.title}</span>}
+            </button>
+            <span className="text-xs text-muted-foreground">{({ 2: "⅓", 3: "½", 4: "⅔", 6: "full" } as Record<number, string>)[b.w]}</span>
+            <button type="button" disabled={i === 0} onClick={() => move(i, -1)} className="p-1 disabled:opacity-30" aria-label="Move up">
+              <ArrowUp className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" disabled={i === blocks.length - 1} onClick={() => move(i, 1)} className="p-1 disabled:opacity-30" aria-label="Move down">
+              <ArrowDown className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onChange(blocks.filter((x) => x.id !== b.id));
+                if (b.id === selectedId) onSelect(null);
+              }}
+              className="p-1 hover:text-destructive"
+              aria-label="Remove"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </li>
+        ))}
+      </ol>
+
+      {selected && (
+        <div className="space-y-3 border-2 border-primary/40 p-3">
+          <p className="text-sm font-semibold">{BLOCK_INFO[selected.type].label}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={label}>width</label>
+              <Choices
+                options={BLOCK_WIDTHS.map(String) as unknown as readonly ("2" | "3" | "4" | "6")[]}
+                value={String(selected.w) as "2" | "3" | "4" | "6"}
+                onChange={(v) => patch({ w: Number(v) })}
+                names={{ "2": "⅓", "3": "½", "4": "⅔", "6": "full" }}
+              />
+            </div>
+            <div>
+              <label className={label}>height</label>
+              <Choices options={BLOCK_HEIGHTS} value={selected.h} onChange={(v) => patch({ h: v })} names={{ s: "small", m: "medium", l: "large" }} />
+            </div>
+          </div>
+          {selected.type !== "spacer" && selected.type !== "header" && selected.type !== "song" && (
+            <div>
+              <label className={label}>{selected.type === "image" ? "caption" : "title"}</label>
+              <input value={selected.title} onChange={(e) => patch({ title: e.target.value })} maxLength={60} className="input-field" placeholder={BLOCK_INFO[selected.type].label} />
+            </div>
+          )}
+          {selected.type === "text" && (
+            <div>
+              <label className={label}>text</label>
+              <textarea value={selected.text} onChange={(e) => patch({ text: e.target.value })} maxLength={2000} rows={5} className="input-field resize-y" />
+            </div>
+          )}
+          {selected.type === "image" && (
+            <div className="space-y-2">
+              <label className={label}>image</label>
+              <div className="flex gap-2">
+                <input value={selected.src} onChange={(e) => patch({ src: e.target.value.trim() })} placeholder="https://..." className="input-field flex-1" />
+                <label className="flex cursor-pointer items-center border-2 border-border px-3 text-sm hover:border-primary">
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : "upload"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!f) return;
+                      setUploading(true);
+                      try {
+                        patch({ src: await onUploadImage(f) });
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Upload failed");
+                      } finally {
+                        setUploading(false);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              {selected.src && !/^https:\/\//.test(selected.src) && <p className="text-xs text-destructive">Image links need to start with https://</p>}
+            </div>
+          )}
+          {(selected.type === "image" || selected.type === "text") && (
+            <div>
+              <label className={label}>link (optional)</label>
+              <input value={selected.href} onChange={(e) => patch({ href: e.target.value.trim() })} placeholder="https://..." className="input-field" />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -599,12 +888,41 @@ export function CssEditor({ value, onChange }: { value: string; onChange: (v: st
  * gives `position: fixed` (backgrounds, overlays) the preview box as its
  * frame instead of the whole window.
  */
-export function LivePreview(props: Omit<ProfileLayoutProps, "custom" | "isOwn" | "posts"> & { customization: unknown; posts?: ProfileLayoutProps["posts"] }) {
+export function LivePreview(
+  props: Omit<ProfileLayoutProps, "custom" | "isOwn" | "posts"> & {
+    customization: unknown;
+    posts?: ProfileLayoutProps["posts"];
+    arrange?: ArrangeControls;
+  }
+) {
   const custom = readCustomization(props.customization);
+  const [arranging, setArranging] = useState(false);
+  const canArrange = !!props.arrange && custom.blocks.length > 0;
   return (
-    <div className="relative h-[calc(100dvh-9rem)] overflow-hidden border-2 border-border" style={{ transform: "translateZ(0)" }}>
-      <div className="h-full overflow-y-auto overscroll-contain">
-        <ProfileCanvas {...props} posts={props.posts ?? []} isOwn custom={custom} preview />
+    <div>
+      {canArrange && (
+        <div className="mb-2 flex items-center justify-between gap-2 text-sm">
+          <span className="text-muted-foreground">{arranging ? "drag, resize, click to edit" : "your blocks"}</span>
+          <button
+            type="button"
+            onClick={() => setArranging((a) => !a)}
+            className={`border-2 px-3 py-1 lowercase ${arranging ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary"}`}
+          >
+            {arranging ? "done arranging" : "arrange"}
+          </button>
+        </div>
+      )}
+      <div className="relative h-[calc(100dvh-9rem)] overflow-hidden border-2 border-border" style={{ transform: "translateZ(0)" }}>
+        <div className="h-full overflow-y-auto overscroll-contain">
+          <ProfileCanvas
+            {...props}
+            posts={props.posts ?? []}
+            isOwn
+            custom={custom}
+            preview
+            arrange={canArrange && arranging ? props.arrange : undefined}
+          />
+        </div>
       </div>
     </div>
   );

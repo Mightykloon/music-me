@@ -230,22 +230,33 @@ export function VisitorCounter({
 
 // ---------------------------------------------------------------- mood, marquee
 
+/** "mood: 🎧 vibing", MySpace style: a small badge under the name */
 export function Mood({ custom }: { custom: Customization }) {
   if (!custom.moodText && !custom.moodEmoji) return null;
   return (
-    <p className="profile-mood text-sm">
-      <span className="font-semibold opacity-70">mood:</span> {custom.moodEmoji} {custom.moodText}
+    <p className="profile-mood inline-flex items-center gap-2 border border-[var(--profile-primary)]/30 bg-[var(--profile-primary)]/10 py-1 pl-1 pr-3 text-sm">
+      <span className="bg-[var(--profile-primary)] px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-[var(--profile-bg)]">mood</span>
+      {custom.moodEmoji && <span className="text-lg leading-none" aria-hidden>{custom.moodEmoji}</span>}
+      <span>{custom.moodText}</span>
     </p>
   );
 }
 
-export function Marquee({ text }: { text: string }) {
+const TICKER_SECONDS = { slow: 40, normal: 24, fast: 12 } as const;
+
+/** The scrolling ticker across the top: a plain strip, an LED sign, caution tape or glitter. */
+export function Marquee({ custom }: { custom: Customization }) {
+  const text = custom.marquee;
   if (!text) return null;
   return (
-    <div className="profile-marquee relative -mx-4 mb-4 overflow-hidden border-y border-[var(--profile-primary)]/30 bg-black/30 py-1.5 @2xl:mx-0" aria-label={text}>
-      <div className="profile-marquee-track flex w-max gap-12 whitespace-nowrap text-sm font-semibold" aria-hidden>
+    <div
+      className={`profile-marquee profile-ticker-${custom.tickerStyle} relative -mx-4 mb-4 overflow-hidden @2xl:mx-0`}
+      style={{ ["--ticker-time" as string]: `${TICKER_SECONDS[custom.tickerSpeed]}s` }}
+      aria-label={text}
+    >
+      <div className="profile-marquee-track flex w-max whitespace-nowrap" aria-hidden>
         {Array.from({ length: 6 }, (_, i) => (
-          <span key={i}>{text}</span>
+          <span key={i} className="profile-ticker-item">{text}</span>
         ))}
       </div>
     </div>

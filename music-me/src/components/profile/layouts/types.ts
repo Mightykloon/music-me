@@ -8,6 +8,15 @@ export interface Top8Friend {
   profilePictureUrl: string | null;
 }
 
+export interface ThreadInfo {
+  id: string;
+  title: string;
+  createdAt: string;
+  categorySlug: string;
+  categoryName: string;
+  replies: number;
+}
+
 export interface WallCommentInfo {
   id: string;
   content: string;
@@ -52,7 +61,7 @@ export interface ProfileLayoutProps {
       layoutStyle: string;
       autoplayProfileSong: boolean;
       vibeBoard: unknown[] | null;
-      favorites: { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[] } | null;
+      favorites: { books?: string[]; games?: string[]; hobbies?: string[]; interests?: string[]; covers?: Record<string, string> } | null;
     } | null;
     links: {
       id: string;
@@ -77,6 +86,8 @@ export interface ProfileLayoutProps {
     /** whether the signed-in visitor follows this person */
     isFollowedByViewer?: boolean;
     top8?: Top8Friend[];
+    /** forum threads they started, newest first */
+    threads?: ThreadInfo[];
     _count: {
       followers: number;
       following: number;

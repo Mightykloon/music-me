@@ -10,32 +10,37 @@ import { Avatar } from "@/components/ui/avatar";
 import { ImageCropEditor } from "@/components/ui/image-crop-editor";
 import { useUpload } from "@/hooks/use-upload";
 import { containsProfanity } from "@/lib/utils/profanity";
-import { DEFAULT_CUSTOMIZATION, readCustomization, type Customization, type ThemePreset } from "@/lib/profile/customization";
-import { CssEditor, ExtrasPanel, FontPicker, LivePreview, ProfileSongPicker, StylePanel, ThemePresets, Top8Picker } from "@/components/profile/editor/customize-panels";
+import { DEFAULT_CUSTOMIZATION, LAYOUTS, readCustomization, type Block, type Customization, type ProfileTemplate } from "@/lib/profile/customization";
+import {
+  BlocksPanel,
+  CssEditor,
+  ExtrasPanel,
+  FontPicker,
+  LayoutPicker,
+  LivePreview,
+  ProfileSongPicker,
+  ProfileTemplates,
+  StylePanel,
+  Top8Picker,
+} from "@/components/profile/editor/customize-panels";
 import type { ProfileLayoutProps, Top8Friend } from "@/components/profile/layouts/types";
 import type { TrackInfo } from "@/types";
 
-const LAYOUT_OPTIONS = [
-  { value: "CLASSIC", label: "Classic", desc: "Traditional, top to bottom" },
-  { value: "BENTO", label: "Bento", desc: "Grid card layout" },
-  { value: "MINIMAL", label: "Minimal", desc: "Clean and centered" },
-  { value: "MAGAZINE", label: "Magazine", desc: "Editorial, in two columns" },
-  { value: "MYSPACE", label: "MySpace", desc: "Throwback bordered sections" },
+/** name effects, and which colour pickers each one uses */
+const TEXT_EFFECTS: { value: string; label: string; colors: number; speed?: boolean }[] = [
+  { value: "", label: "none", colors: 0 },
+  { value: "glow", label: "glow", colors: 1 },
+  { value: "neon", label: "neon", colors: 1 },
+  { value: "gradient", label: "gradient", colors: 3, speed: true },
+  { value: "rainbow", label: "rainbow", colors: 0, speed: true },
+  { value: "chrome", label: "chrome", colors: 0, speed: true },
+  { value: "glitch", label: "glitch", colors: 2, speed: true },
+  { value: "retro", label: "retro 3D", colors: 1 },
+  { value: "wave", label: "wave", colors: 0, speed: true },
+  { value: "typewriter", label: "typewriter", colors: 0 },
 ];
-
-const TEXT_EFFECTS = [
-  { value: "", label: "None" },
-  { value: "glow", label: "Glow" },
-  { value: "neon", label: "Neon" },
-  { value: "animated-gradient", label: "Animated Gradient" },
-  { value: "glitch", label: "Glitch (RGB Split)" },
-  { value: "typewriter", label: "Typewriter" },
-  { value: "wave", label: "Wave" },
-  { value: "pulse", label: "Pulse" },
-  { value: "flicker", label: "Flicker" },
-  { value: "shadow-pop", label: "Shadow Pop" },
-  { value: "rainbow", label: "Rainbow Cycle" },
-];
+// effects that were renamed when they were redone
+const EFFECT_ALIASES: Record<string, string> = { "animated-gradient": "gradient", flicker: "neon", pulse: "glow", "shadow-pop": "retro" };
 
 const LINK_ICON_OPTIONS = [
   { value: "globe", label: "Website", icon: Globe },
@@ -127,6 +132,7 @@ interface ProfileFormData {
     games: string[];
     hobbies: string[];
     interests: string[];
+    covers: Record<string, string>;
   };
 }
 
@@ -156,7 +162,7 @@ const defaultForm: ProfileFormData = {
   textEffects: { type: "", color: "#8b5cf6", color2: "#ec4899", color3: "#f59e0b", speed: 4, brightness: 1, displayEmoji: "" },
   layoutStyle: "CLASSIC",
   autoplayProfileSong: false,
-  favorites: { books: [], games: [], hobbies: [], interests: [] },
+  favorites: { books: [], games: [], hobbies: [], interests: [], covers: {} },
 };
 
 export default function ProfileEditorPage() {
@@ -173,6 +179,12 @@ export default function ProfileEditorPage() {
   const [profileSong, setProfileSong] = useState<TrackInfo | null>(null);
   const [top8, setTop8] = useState<Top8Friend[]>([]);
   const [mobilePreview, setMobilePreview] = useState(false);
+  const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
+  const setBlocks = (blocks: Block[]) => setForm((prev) => ({ ...prev, customization: { ...prev.customization, blocks } }));
+  // favorites change in two steps when a book or game is picked (title, then cover),
+  // so each step builds on the latest state rather than a stale copy
+  const updateFavorites = (fn: (f: ProfileFormData["favorites"]) => ProfileFormData["favorites"]) =>
+    setForm((prev) => ({ ...prev, favorites: fn(prev.favorites) }));
 
   // Load current profile data
   useEffect(() => {
@@ -204,13 +216,15 @@ export default function ProfileEditorPage() {
           customCSS: user.profile?.customCSS ?? "",
           customization: readCustomization(user.profile?.customization),
           textEffects: {
-            type: "",
             color: "#8b5cf6",
             color2: "#ec4899",
             color3: "#f59e0b",
             speed: 4,
-            brightness: 1,
             ...(user.profile?.textEffects as Record<string, unknown> ?? {}),
+            type: (() => {
+              const t = String((user.profile?.textEffects as Record<string, unknown> | null)?.type ?? "");
+              return EFFECT_ALIASES[t] ?? t;
+            })(),
           },
           layoutStyle: user.profile?.layoutStyle ?? "CLASSIC",
           autoplayProfileSong: user.profile?.autoplayProfileSong ?? false,
@@ -219,6 +233,7 @@ export default function ProfileEditorPage() {
             games: (user.profile?.favorites as Record<string, string[]>)?.games ?? [],
             hobbies: (user.profile?.favorites as Record<string, string[]>)?.hobbies ?? [],
             interests: (user.profile?.favorites as Record<string, string[]>)?.interests ?? [],
+            covers: (user.profile?.favorites as { covers?: Record<string, string> })?.covers ?? {},
           },
         });
         setLoadedUser(user);
@@ -248,17 +263,20 @@ export default function ProfileEditorPage() {
     []
   );
 
-  const applyPreset = (p: ThemePreset) => {
+  const applyTemplate = (t: ProfileTemplate) => {
+    const layout = LAYOUTS.find((l) => l.id === t.layout);
     setForm((prev) => ({
       ...prev,
-      ...p.colors,
-      fontFamily: p.fontFamily,
-      headingFont: p.headingFont,
-      layoutStyle: p.layoutStyle,
-      textEffects: { ...prev.textEffects, type: p.textEffect },
-      customization: { ...prev.customization, ...p.customization },
+      ...t.colors,
+      fontFamily: t.fontFamily,
+      headingFont: t.headingFont,
+      fontWeight: t.fontWeight,
+      layoutStyle: layout?.blocks ? prev.layoutStyle : t.layout,
+      textEffects: { ...prev.textEffects, color: undefined, color2: undefined, color3: undefined, speed: undefined, ...t.effect },
+      customization: { ...prev.customization, ...t.customization, blocks: layout?.blocks ? layout.blocks() : [] },
     }));
-    toast.success(`"${p.name}" applied. Save to keep it.`);
+    setSelectedBlock(null);
+    toast.success(`"${t.name}" applied. Tweak anything, then save.`);
   };
 
   const fileToDataUrl = (file: File): Promise<string> =>
@@ -489,9 +507,9 @@ export default function ProfileEditorPage() {
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-8">
           {/* Editor panel */}
           <div className="space-y-8">
-            <Section title="Themes">
-              <p className="text-sm text-muted-foreground -mt-2">One click starting points. They set colours, fonts, layout and style; tweak anything after.</p>
-              <ThemePresets onApply={applyPreset} />
+            <Section title="Profile Templates">
+              <p className="text-sm text-muted-foreground -mt-2">Complete looks in one click: colours, fonts, name effect, style and layout. Everything stays editable.</p>
+              <ProfileTemplates onApply={applyTemplate} />
             </Section>
 
             {/* Basic Info */}
@@ -740,222 +758,85 @@ export default function ProfileEditorPage() {
               </Field>
 
               <Field label="Display Name Effect">
-                <select
-                  value={form.textEffects.type}
-                  onChange={(e) =>
-                    update("textEffects", { ...form.textEffects, type: e.target.value })
-                  }
-                  className="input-field"
-                >
-                  {TEXT_EFFECTS.map((e) => (
-                    <option key={e.value} value={e.value}>
-                      {e.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {TEXT_EFFECTS.map((e) => {
+                    const sample = form.displayName || "your name";
+                    const style = {
+                      ["--te-color" as string]: form.textEffects.color,
+                      ["--te-color2" as string]: form.textEffects.color2,
+                      ["--te-color3" as string]: form.textEffects.color3,
+                      ["--te-speed" as string]: form.textEffects.speed ? `${form.textEffects.speed}s` : undefined,
+                      ["--chars" as string]: String(sample.length),
+                    };
+                    return (
+                      <button
+                        key={e.value}
+                        type="button"
+                        onClick={() => update("textEffects", { ...form.textEffects, type: e.value })}
+                        className={`overflow-hidden border-2 px-3 py-2 text-left ${form.textEffects.type === e.value ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"}`}
+                      >
+                        <span
+                          className={`block truncate text-lg lowercase ${e.value ? `text-effect-${e.value}` : ""}`}
+                          style={style}
+                          {...(e.value === "glitch" ? { "data-text": sample } : {})}
+                        >
+                          {e.value === "wave"
+                            ? [...sample].map((ch, i) => (
+                                <span key={i} className="text-effect-wave-char" style={{ ["--char-index" as string]: i }}>
+                                  {ch === " " ? "\u00A0" : ch}
+                                </span>
+                              ))
+                            : e.value === "typewriter"
+                              ? <span className="te-typed">{sample}</span>
+                              : sample}
+                        </span>
+                        <span className="mt-1 block text-[11px] uppercase tracking-wider text-muted-foreground">{e.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </Field>
 
-              {/* Effect-specific controls */}
-              {(form.textEffects.type === "glow" || form.textEffects.type === "neon" || form.textEffects.type === "shadow-pop") && (
-                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Color</label>
-                    <input
-                      type="color"
-                      value={form.textEffects.color ?? "#8b5cf6"}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
-                      className="w-8 h-8 rounded border border-border cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={form.textEffects.color ?? "#8b5cf6"}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
-                      className="input-field flex-1 text-xs"
-                    />
+              {(() => {
+                const fx = TEXT_EFFECTS.find((e) => e.value === form.textEffects.type);
+                if (!fx || (!fx.colors && !fx.speed)) return null;
+                const colorKeys = (["color", "color2", "color3"] as const).slice(0, fx.colors);
+                const fallback = { color: form.primaryColor, color2: form.accentColor, color3: form.secondaryColor };
+                return (
+                  <div className="space-y-3 border-l-2 border-primary/30 pl-3">
+                    {colorKeys.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-xs lowercase text-muted-foreground">colours</span>
+                        {colorKeys.map((k) => (
+                          <input
+                            key={k}
+                            type="color"
+                            value={form.textEffects[k] ?? fallback[k]}
+                            onChange={(ev) => update("textEffects", { ...form.textEffects, [k]: ev.target.value })}
+                            className="h-8 w-8 cursor-pointer border border-border"
+                            aria-label={`effect ${k}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {fx.speed && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs lowercase text-muted-foreground">{form.textEffects.type === "glitch" ? "every" : "speed"}</span>
+                        <input
+                          type="range"
+                          min={1}
+                          max={12}
+                          step={0.5}
+                          value={form.textEffects.speed ?? 4}
+                          onChange={(ev) => update("textEffects", { ...form.textEffects, speed: parseFloat(ev.target.value) })}
+                          className="flex-1"
+                        />
+                        <span className="w-10 text-xs text-muted-foreground">{form.textEffects.speed ?? 4}s</span>
+                      </div>
+                    )}
                   </div>
-                  {form.textEffects.type === "neon" && (
-                    <div className="flex items-center gap-3">
-                      <label className="text-xs lowercase text-muted-foreground w-20">Brightness</label>
-                      <input
-                        type="range"
-                        min={0.3}
-                        max={2}
-                        step={0.05}
-                        value={form.textEffects.brightness ?? 1}
-                        onChange={(e) => update("textEffects", { ...form.textEffects, brightness: parseFloat(e.target.value) })}
-                        className="flex-1 accent-primary"
-                      />
-                      <span className="text-xs text-muted-foreground w-10 text-right">
-                        {((form.textEffects.brightness ?? 1) * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {form.textEffects.type === "animated-gradient" && (
-                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Start</label>
-                    <input
-                      type="color"
-                      value={form.textEffects.color ?? "#8b5cf6"}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
-                      className="w-8 h-8 rounded border border-border cursor-pointer"
-                    />
-                    <input type="text" value={form.textEffects.color ?? "#8b5cf6"} onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })} className="input-field flex-1 text-xs" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Middle</label>
-                    <input
-                      type="color"
-                      value={form.textEffects.color2 ?? "#ec4899"}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, color2: e.target.value })}
-                      className="w-8 h-8 rounded border border-border cursor-pointer"
-                    />
-                    <input type="text" value={form.textEffects.color2 ?? "#ec4899"} onChange={(e) => update("textEffects", { ...form.textEffects, color2: e.target.value })} className="input-field flex-1 text-xs" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">End</label>
-                    <input
-                      type="color"
-                      value={form.textEffects.color3 ?? "#f59e0b"}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, color3: e.target.value })}
-                      className="w-8 h-8 rounded border border-border cursor-pointer"
-                    />
-                    <input type="text" value={form.textEffects.color3 ?? "#f59e0b"} onChange={(e) => update("textEffects", { ...form.textEffects, color3: e.target.value })} className="input-field flex-1 text-xs" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
-                    <input
-                      type="range"
-                      min={0.5}
-                      max={15}
-                      step={0.5}
-                      value={form.textEffects.speed ?? 4}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
-                      className="flex-1 accent-primary"
-                    />
-                    <span className="text-xs text-muted-foreground w-10 text-right">
-                      {form.textEffects.speed ?? 4}s
-                    </span>
-                  </div>
-                  {/* Gradient preview bar */}
-                  <div
-                    className="h-4 rounded-full"
-                    style={{
-                      background: `linear-gradient(90deg, ${form.textEffects.color ?? "#8b5cf6"}, ${form.textEffects.color2 ?? "#ec4899"}, ${form.textEffects.color3 ?? "#f59e0b"})`,
-                    }}
-                  />
-                </div>
-              )}
-
-              {form.textEffects.type === "rainbow" && (
-                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
-                    <input
-                      type="range"
-                      min={1}
-                      max={15}
-                      step={0.5}
-                      value={form.textEffects.speed ?? 6}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
-                      className="flex-1 accent-primary"
-                    />
-                    <span className="text-xs text-muted-foreground w-10 text-right">
-                      {form.textEffects.speed ?? 6}s
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {form.textEffects.type === "glitch" && (
-                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Color 1</label>
-                    <input
-                      type="color"
-                      value={form.textEffects.color ?? "#ff0000"}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
-                      className="w-8 h-8 rounded border border-border cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Color 2</label>
-                    <input
-                      type="color"
-                      value={form.textEffects.color2 ?? "#00ffff"}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, color2: e.target.value })}
-                      className="w-8 h-8 rounded border border-border cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
-                    <input
-                      type="range"
-                      min={0.5}
-                      max={5}
-                      step={0.1}
-                      value={form.textEffects.speed ?? 2}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
-                      className="flex-1 accent-primary"
-                    />
-                    <span className="text-xs text-muted-foreground w-10 text-right">
-                      {form.textEffects.speed ?? 2}s
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {(form.textEffects.type === "pulse" || form.textEffects.type === "flicker") && (
-                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Color</label>
-                    <input
-                      type="color"
-                      value={form.textEffects.color ?? "#8b5cf6"}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, color: e.target.value })}
-                      className="w-8 h-8 rounded border border-border cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
-                    <input
-                      type="range"
-                      min={0.5}
-                      max={5}
-                      step={0.1}
-                      value={form.textEffects.speed ?? 2}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
-                      className="flex-1 accent-primary"
-                    />
-                    <span className="text-xs text-muted-foreground w-10 text-right">
-                      {form.textEffects.speed ?? 2}s
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {form.textEffects.type === "wave" && (
-                <div className="space-y-3 pl-3 border-l-2 border-primary/30">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs lowercase text-muted-foreground w-20">Speed</label>
-                    <input
-                      type="range"
-                      min={1}
-                      max={8}
-                      step={0.5}
-                      value={form.textEffects.speed ?? 3}
-                      onChange={(e) => update("textEffects", { ...form.textEffects, speed: parseFloat(e.target.value) })}
-                      className="flex-1 accent-primary"
-                    />
-                    <span className="text-xs text-muted-foreground w-10 text-right">
-                      {form.textEffects.speed ?? 3}s
-                    </span>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               <Field label="Bio Font Size">
                 <div className="flex gap-2">
@@ -978,24 +859,27 @@ export default function ProfileEditorPage() {
 
             {/* Layout */}
             <Section title="Layout">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {LAYOUT_OPTIONS.map((l) => (
-                  <button
-                    key={l.value}
-                    onClick={() => update("layoutStyle", l.value)}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      form.layoutStyle === l.value
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:bg-muted"
-                    }`}
-                  >
-                    <p className="text-sm font-medium">{l.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {l.desc}
-                    </p>
-                  </button>
-                ))}
-              </div>
+              <LayoutPicker
+                layoutStyle={form.layoutStyle}
+                blocks={form.customization.blocks}
+                onFixed={(id) => {
+                  setForm((prev) => ({ ...prev, layoutStyle: id, customization: { ...prev.customization, blocks: [] } }));
+                  setSelectedBlock(null);
+                }}
+                onBlocks={(blocks) => {
+                  setBlocks(blocks);
+                  setSelectedBlock(null);
+                }}
+              />
+              {form.customization.blocks.length > 0 && (
+                <BlocksPanel
+                  blocks={form.customization.blocks}
+                  selectedId={selectedBlock}
+                  onSelect={setSelectedBlock}
+                  onChange={setBlocks}
+                  onUploadImage={(file) => uploadFileToStorage(file, "posts")}
+                />
+              )}
             </Section>
 
             <Section title="Style">
@@ -1021,7 +905,7 @@ export default function ProfileEditorPage() {
             </Section>
 
             <Section title="Mood & Extras">
-              <ExtrasPanel value={form.customization} onChange={(v) => update("customization", v)} />
+              <ExtrasPanel value={form.customization} onChange={(v) => update("customization", v)} usingBlocks={form.customization.blocks.length > 0} />
             </Section>
 
             <Section title="Top 8">
@@ -1052,14 +936,18 @@ export default function ProfileEditorPage() {
                 label="Favorite Books"
                 placeholder="Search for a book title..."
                 tags={form.favorites.books}
-                onChange={(tags) => update("favorites", { ...form.favorites, books: tags })}
+                onChange={(tags) => updateFavorites((f) => ({ ...f, books: tags }))}
+                covers={form.favorites.covers}
+                onCover={(title, url) => updateFavorites((f) => ({ ...f, covers: setCover(f.covers, title, url) }))}
                 searchEndpoint="/api/search/books"
               />
               <SearchTagInput
                 label="Favorite Games"
                 placeholder="Search for a game title..."
                 tags={form.favorites.games}
-                onChange={(tags) => update("favorites", { ...form.favorites, games: tags })}
+                onChange={(tags) => updateFavorites((f) => ({ ...f, games: tags }))}
+                covers={form.favorites.covers}
+                onCover={(title, url) => updateFavorites((f) => ({ ...f, covers: setCover(f.covers, title, url) }))}
                 searchEndpoint="/api/search/games"
               />
             </Section>
@@ -1148,7 +1036,14 @@ export default function ProfileEditorPage() {
           <div className="hidden xl:block">
             <div className="sticky top-24">
               <h2 className="metro-header text-2xl text-muted-foreground mb-4">live preview</h2>
-              {previewUser && <LivePreview user={previewUser} customization={form.customization} genres={[]} wall={EMPTY_WALL} viewerId={loadedUser?.id} />}
+              {previewUser && <LivePreview
+                  user={previewUser}
+                  customization={form.customization}
+                  genres={[]}
+                  wall={EMPTY_WALL}
+                  viewerId={loadedUser?.id}
+                  arrange={{ selectedId: selectedBlock, onSelect: setSelectedBlock, onChange: setBlocks }}
+                />}
             </div>
           </div>
         </div>
@@ -1160,7 +1055,14 @@ export default function ProfileEditorPage() {
             <span className="metro-header text-2xl">preview</span>
             <Button variant="outline" onClick={() => setMobilePreview(false)}>Close</Button>
           </div>
-          <LivePreview user={previewUser} customization={form.customization} genres={[]} wall={EMPTY_WALL} viewerId={loadedUser?.id} />
+          <LivePreview
+                  user={previewUser}
+                  customization={form.customization}
+                  genres={[]}
+                  wall={EMPTY_WALL}
+                  viewerId={loadedUser?.id}
+                  arrange={{ selectedId: selectedBlock, onSelect: setSelectedBlock, onChange: setBlocks }}
+                />
         </div>
       )}
 
@@ -1404,18 +1306,30 @@ interface SearchResult {
   platforms?: string[];
 }
 
+/** covers keyed by title; only https images are kept */
+function setCover(covers: Record<string, string>, title: string, url: string | null) {
+  const next = { ...covers };
+  if (url && /^https:\/\//.test(url)) next[title] = url;
+  else delete next[title];
+  return next;
+}
+
 function SearchTagInput({
   label,
   placeholder,
   tags,
   onChange,
   searchEndpoint,
+  covers = {},
+  onCover,
 }: {
   label: string;
   placeholder: string;
   tags: string[];
   onChange: (tags: string[]) => void;
   searchEndpoint: string;
+  covers?: Record<string, string>;
+  onCover?: (title: string, url: string | null) => void;
 }) {
   const [input, setInput] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -1448,8 +1362,9 @@ function SearchTagInput({
     [searchEndpoint]
   );
 
-  const addTag = (title: string) => {
+  const addTag = (title: string, cover?: string | null) => {
     const v = title.trim();
+    if (v && cover) onCover?.(v, cover);
     if (!v) return;
     if (containsProfanity(v)) {
       toast.error("That contains inappropriate language");
@@ -1481,10 +1396,14 @@ function SearchTagInput({
             key={tag}
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-medium"
           >
+            {covers[tag] && <img src={covers[tag]} alt="" className="-ml-1 h-5 w-[0.85rem] rounded-sm object-cover" />}
             {tag}
             <button
               type="button"
-              onClick={() => onChange(tags.filter((t) => t !== tag))}
+              onClick={() => {
+                onChange(tags.filter((t) => t !== tag));
+                onCover?.(tag, null);
+              }}
               className="hover:text-red-400 transition-colors"
             >
               <X className="w-3 h-3" />
@@ -1532,7 +1451,7 @@ function SearchTagInput({
               <button
                 key={`${r.title}-${i}`}
                 type="button"
-                onClick={() => addTag(r.title)}
+                onClick={() => addTag(r.title, r.coverUrl)}
                 className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-3"
               >
                 {r.coverUrl ? (

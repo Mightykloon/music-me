@@ -8,6 +8,17 @@
 .profile-root {
   --profile-radius: 12px;
   --card-border: color-mix(in srgb, var(--profile-primary) 28%, transparent);
+
+  /* Body weight moves every weight up or down together, so bold stays bolder
+     than body text but the whole page gets lighter or heavier. Tailwind's
+     font-* classes read these variables. */
+  --weight-shift: 0;
+  --font-weight-light: clamp(100, calc(300 + var(--weight-shift)), 900);
+  --font-weight-normal: clamp(100, calc(400 + var(--weight-shift)), 900);
+  --font-weight-medium: clamp(100, calc(500 + var(--weight-shift)), 900);
+  --font-weight-semibold: clamp(100, calc(600 + var(--weight-shift)), 900);
+  --font-weight-bold: clamp(100, calc(700 + var(--weight-shift)), 900);
+  font-weight: var(--font-weight-normal);
 }
 
 /* ---------------------------------------------------------------- cards */
@@ -176,23 +187,144 @@
 
 /* ---------------------------------------------------------------- trail */
 
-.profile-trail-dot {
+.profile-trail {
   position: absolute;
-  font-size: 14px;
   line-height: 1;
   translate: -50% -50%;
-  text-shadow: 0 0 6px currentColor;
-  animation: trail-fall 0.9s ease-out forwards;
+  font-size: calc(15px * var(--size, 1));
+  pointer-events: none;
 }
-@keyframes trail-fall {
-  from { opacity: 1; transform: translate(0, 0) scale(1); }
-  to { opacity: 0; transform: translate(var(--drift, 0), 26px) scale(0.4) rotate(90deg); }
+
+/* sparkle: flares up and dies out where it was born */
+.profile-trail-sparkle {
+  text-shadow: 0 0 8px currentColor, 0 0 2px #fff;
+  animation: trail-twinkle 0.7s ease-out forwards;
+}
+@keyframes trail-twinkle {
+  0% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  30% { opacity: 1; transform: scale(1.3) rotate(45deg); }
+  100% { opacity: 0; transform: scale(0.1) rotate(90deg); }
+}
+
+/* stars: tumble downward, picking up speed */
+.profile-trail-stars {
+  text-shadow: 0 0 4px currentColor;
+  animation: trail-tumble 1.1s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+@keyframes trail-tumble {
+  from { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  to { opacity: 0; transform: translate(var(--drift), 90px) rotate(var(--spin)); }
+}
+
+/* hearts: float up and sway like a balloon */
+.profile-trail-hearts {
+  animation: trail-float 1.6s ease-out forwards;
+}
+@keyframes trail-float {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  15% { opacity: 1; transform: translate(0, -6px) scale(1); }
+  40% { transform: translate(calc(var(--drift) * 0.5), -30px) rotate(-8deg); }
+  70% { transform: translate(calc(var(--drift) * -0.3), -55px) rotate(8deg); }
+  100% { opacity: 0; transform: translate(var(--drift), -80px) scale(0.8); }
+}
+
+/* bubbles: drift up slowly, then pop */
+.profile-trail-bubbles {
+  width: calc(14px * var(--size, 1));
+  height: calc(14px * var(--size, 1));
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  background: radial-gradient(circle at 30% 30%, rgb(255 255 255 / 0.7) 0 15%, transparent 25%);
+  animation: trail-bubble 1.4s ease-in forwards;
+}
+@keyframes trail-bubble {
+  0% { opacity: 0.9; transform: translate(0, 0) scale(0.6); }
+  85% { opacity: 0.9; transform: translate(calc(var(--drift) * 0.4), -60px) scale(1); }
+  100% { opacity: 0; transform: translate(calc(var(--drift) * 0.4), -64px) scale(1.8); border-width: 0.5px; }
+}
+
+/* pixels: square blocks on a grid that shrink away in order, like a snake's tail */
+.profile-trail-pixels {
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  box-shadow: inset -2px -2px 0 rgb(0 0 0 / 0.35);
+  animation: trail-shrink 0.6s steps(4) forwards;
+}
+@keyframes trail-shrink {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(0); opacity: 0.6; }
 }
 
 /* ---------------------------------------------------------------- marquee */
 
-.profile-marquee-track { animation: marquee-scroll 22s linear infinite; }
+.profile-marquee-track { animation: marquee-scroll var(--ticker-time, 24s) linear infinite; }
 .profile-marquee:hover .profile-marquee-track { animation-play-state: paused; }
+.profile-ticker-item { padding: 0 2.5rem; }
+
+/* strip: a quiet band in the theme colours */
+.profile-ticker-strip {
+  padding: 0.4rem 0;
+  border-block: 1px solid color-mix(in srgb, var(--profile-primary) 35%, transparent);
+  background: rgb(0 0 0 / 0.3);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* led: a dot-matrix shop sign */
+.profile-ticker-led {
+  padding: 0.35rem 0;
+  background:
+    radial-gradient(circle, rgb(255 255 255 / 0.06) 0 1px, transparent 1.2px) 0 0 / 4px 4px,
+    #050505;
+  border: 3px solid #1d1d1d;
+  box-shadow: inset 0 0 12px #000;
+  font-family: "VT323", "Courier New", monospace;
+  font-size: 1.35rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--profile-accent);
+  text-shadow: 0 0 6px var(--profile-accent), 0 0 1px #fff;
+}
+
+/* tape: caution tape across the page */
+.profile-ticker-tape {
+  padding: 0.35rem 0;
+  rotate: -1deg;
+  background: repeating-linear-gradient(-45deg, #f6d32d 0 18px, #141414 18px 36px);
+  box-shadow: 0 4px 10px -4px rgb(0 0 0 / 0.6);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.profile-ticker-tape .profile-ticker-item {
+  margin: 0 1.5rem;
+  padding: 0.1rem 0.8rem;
+  background: #f6d32d;
+  color: #141414;
+}
+
+/* glitter: sparkly text, 2007 forever */
+.profile-ticker-glitter {
+  padding: 0.4rem 0;
+  font-size: 1rem;
+  font-weight: 800;
+  background: rgb(0 0 0 / 0.35);
+}
+.profile-ticker-glitter .profile-ticker-item {
+  background:
+    radial-gradient(circle, #fff 0 0.6px, transparent 1px) 0 0 / 7px 7px,
+    linear-gradient(90deg, var(--profile-primary), var(--profile-accent), var(--profile-secondary), var(--profile-primary));
+  background-size: 7px 7px, 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: glitter-text 3s linear infinite;
+}
+@keyframes glitter-text {
+  to { background-position: 7px 7px, -200% 0; }
+}
 @keyframes marquee-scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }

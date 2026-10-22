@@ -76,6 +76,8 @@ export const profileUpdateSchema = z.object({
   favorites: z.object({
     books: z.array(z.string()).optional(),
     games: z.array(z.string()).optional(),
+    /** cover image per book or game title */
+    covers: z.record(z.string().max(300), httpUrl.max(500)).optional(),
     hobbies: z.array(z.string()).optional(),
     interests: z.array(z.string()).optional(),
   }).optional(),

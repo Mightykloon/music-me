@@ -252,191 +252,188 @@ body {
   background: var(--muted-foreground);
 }
 
-/* Text effects for profile display names */
+/* =====================================================================
+   Profile name effects. Colours come from --te-color / --te-color2 /
+   --te-color3 and speed from --te-speed (set by ProfileHeader). Sizes are
+   in em so they scale with the name. Nothing here moves the text's box, so
+   the glitch layers line up exactly with the letters.
+   ===================================================================== */
 
-/* Base: prevent glow cutoff on mobile */
 [class*="text-effect-"] {
   overflow: visible !important;
-  padding: 4px 8px;
-  margin: -4px -8px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  will-change: filter, text-shadow;
 }
 
-/* --- Glow --- */
+/* --- glow: a soft, steady halo --- */
 .text-effect-glow {
   text-shadow:
-    0 0 10px var(--te-color, var(--profile-primary)),
-    0 0 20px var(--te-color, var(--profile-primary)),
-    0 0 40px var(--te-color, var(--profile-primary));
+    0 0 0.08em var(--te-color, var(--profile-primary)),
+    0 0 0.3em color-mix(in srgb, var(--te-color, var(--profile-primary)) 70%, transparent),
+    0 0 0.75em color-mix(in srgb, var(--te-color, var(--profile-primary)) 40%, transparent);
 }
 
-/* --- Neon --- */
+/* --- neon: white-hot tube, coloured halo, and the odd buzz of a real sign --- */
 .text-effect-neon {
+  color: color-mix(in srgb, var(--te-color, var(--profile-primary)) 22%, #fff);
   text-shadow:
-    0 0 5px rgba(255,255,255, calc(0.8 * var(--te-brightness, 1))),
-    0 0 10px rgba(255,255,255, calc(0.6 * var(--te-brightness, 1))),
-    0 0 20px var(--te-color, var(--profile-primary)),
-    0 0 40px var(--te-color, var(--profile-primary)),
-    0 0 80px var(--te-color, var(--profile-primary));
-  filter: brightness(var(--te-brightness, 1));
-  -webkit-filter: brightness(var(--te-brightness, 1));
+    0 0 0.03em #fff,
+    0 0 0.1em var(--te-color, var(--profile-primary)),
+    0 0 0.25em var(--te-color, var(--profile-primary)),
+    0 0 0.6em var(--te-color, var(--profile-primary)),
+    0 0 1.2em color-mix(in srgb, var(--te-color, var(--profile-primary)) 55%, transparent);
+  animation: te-buzz 7s infinite;
+}
+@keyframes te-buzz {
+  0%, 90%, 100% { opacity: 1; }
+  91% { opacity: 0.55; }
+  92% { opacity: 1; }
+  95% { opacity: 0.75; }
+  96% { opacity: 1; }
 }
 
-/* --- Animated Gradient --- */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* --- gradient / rainbow / chrome: colour flowing through the letters --- */
+.text-effect-gradient,
+.text-effect-rainbow,
+.text-effect-chrome {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
-.text-effect-animated-gradient {
-  background: linear-gradient(
-    270deg,
+.text-effect-gradient {
+  background-image: linear-gradient(
+    90deg,
     var(--te-color, var(--profile-primary)),
     var(--te-color2, var(--profile-accent)),
     var(--te-color3, var(--profile-secondary)),
     var(--te-color, var(--profile-primary))
   );
-  background-size: 300% 300%;
-  animation: gradient-shift var(--te-speed, 4s) ease infinite;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background-size: 200% 100%;
+  animation: te-flow var(--te-speed, 6s) linear infinite;
+}
+.text-effect-rainbow {
+  background-image: linear-gradient(90deg, #ff4d4d, #ffa64d, #ffe14d, #5dff7a, #4dc3ff, #9b6bff, #ff4dc4, #ff4d4d);
+  background-size: 200% 100%;
+  animation: te-flow var(--te-speed, 6s) linear infinite;
+}
+/* moving the 200%-wide gradient by exactly one tile loops with no jump */
+@keyframes te-flow {
+  from { background-position: 0% 50%; }
+  to { background-position: -200% 50%; }
+}
+.text-effect-chrome {
+  background-image:
+    linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.95) 50%, transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #c4cfdb 30%, #46515e 47%, #2b333d 50%, #dfe6ee 53%, #8995a3 74%, #f4f7fa 100%);
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0.03em 0 rgb(0 0 0 / 0.6)) drop-shadow(0 0 0.15em rgb(160 200 255 / 0.25));
+  animation: te-sheen var(--te-speed, 4s) ease-in-out infinite;
+}
+@keyframes te-sheen {
+  0%, 55% { background-position: 150% 0, 0 0; }
+  100% { background-position: -50% 0, 0 0; }
 }
 
-/* --- Glitch (TikTok-style RGB split) --- */
-@keyframes glitch-main {
-  0%, 100% { transform: translate(0); }
-  20% { transform: translate(-1px, 1px); }
-  40% { transform: translate(1px, -1px); }
-  60% { transform: translate(-1px, -1px); }
-  80% { transform: translate(1px, 1px); }
-}
-@keyframes glitch-r {
-  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
-  10% { clip-path: inset(20% 0 60% 0); transform: translate(3px, -1px); }
-  20% { clip-path: inset(50% 0 20% 0); transform: translate(-3px, 1px); }
-  30% { clip-path: inset(10% 0 70% 0); transform: translate(2px, 0); }
-  40% { clip-path: inset(80% 0 5% 0); transform: translate(-2px, -1px); }
-  50% { clip-path: inset(30% 0 40% 0); transform: translate(3px, 1px); }
-  60% { clip-path: inset(60% 0 10% 0); transform: translate(-1px, 0); }
-  70% { clip-path: inset(5% 0 85% 0); transform: translate(2px, -1px); }
-  80% { clip-path: inset(45% 0 30% 0); transform: translate(-3px, 1px); }
-  90% { clip-path: inset(70% 0 15% 0); transform: translate(1px, 0); }
-}
+/* --- glitch: steady text; every few seconds it tears into RGB slices --- */
 .text-effect-glitch {
   position: relative;
-  animation: glitch-main var(--te-speed, 2s) infinite;
+  animation: te-glitch-skew var(--te-speed, 4s) steps(1) infinite;
 }
 .text-effect-glitch::before,
 .text-effect-glitch::after {
   content: attr(data-text);
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
+  clip-path: inset(50% 0 50% 0);
 }
 .text-effect-glitch::before {
-  color: var(--te-color, #ff0000);
-  animation: glitch-r var(--te-speed, 2s) infinite linear alternate-reverse;
-  mix-blend-mode: screen;
-  opacity: 0.8;
+  color: var(--te-color, #ff2a6d);
+  animation: te-glitch-a var(--te-speed, 4s) steps(1) infinite;
 }
 .text-effect-glitch::after {
-  color: var(--te-color2, #00ffff);
-  animation: glitch-r var(--te-speed, 2s) infinite linear reverse;
-  mix-blend-mode: screen;
-  opacity: 0.8;
+  color: var(--te-color2, #05d9e8);
+  animation: te-glitch-b var(--te-speed, 4s) steps(1) infinite;
+}
+@keyframes te-glitch-a {
+  0%, 84%, 100% { clip-path: inset(50% 0 50% 0); transform: none; }
+  85% { clip-path: inset(8% 0 70% 0); transform: translateX(-0.06em); }
+  88% { clip-path: inset(58% 0 22% 0); transform: translateX(0.05em); }
+  91% { clip-path: inset(30% 0 48% 0); transform: translateX(-0.04em); }
+  94% { clip-path: inset(78% 0 6% 0); transform: translateX(0.07em); }
+  97% { clip-path: inset(15% 0 75% 0); transform: translateX(-0.03em); }
+}
+@keyframes te-glitch-b {
+  0%, 85%, 100% { clip-path: inset(50% 0 50% 0); transform: none; }
+  86% { clip-path: inset(65% 0 12% 0); transform: translateX(0.06em); }
+  89% { clip-path: inset(20% 0 62% 0); transform: translateX(-0.05em); }
+  92% { clip-path: inset(44% 0 36% 0); transform: translateX(0.04em); }
+  95% { clip-path: inset(4% 0 86% 0); transform: translateX(-0.07em); }
+  98% { clip-path: inset(70% 0 18% 0); transform: translateX(0.03em); }
+}
+@keyframes te-glitch-skew {
+  0%, 84%, 100% { transform: none; }
+  86% { transform: skewX(-6deg); }
+  90% { transform: skewX(4deg) translateX(0.02em); }
+  94% { transform: none; }
 }
 
-/* --- Typewriter --- */
-@keyframes typewriter {
-  from { width: 0; }
-  to { width: 100%; }
-}
-.text-effect-typewriter {
-  overflow: hidden;
-  white-space: nowrap;
-  animation: typewriter 2s steps(20) 1s forwards;
-  width: 0;
+/* --- retro: a solid 3D extrusion, like a 70s record sleeve --- */
+.text-effect-retro {
+  text-shadow:
+    0.02em 0.02em 0 var(--te-color, var(--profile-secondary)),
+    0.04em 0.04em 0 var(--te-color, var(--profile-secondary)),
+    0.06em 0.06em 0 var(--te-color, var(--profile-secondary)),
+    0.08em 0.08em 0 var(--te-color, var(--profile-secondary)),
+    0.1em 0.1em 0 var(--te-color, var(--profile-secondary)),
+    0.12em 0.12em 0.04em rgb(0 0 0 / 0.35);
 }
 
-/* --- Wave (per-character bounce) --- */
-@keyframes wave-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-.text-effect-wave {
-  display: inline-flex;
-}
+/* --- wave: letters ripple one after another --- */
 .text-effect-wave-char {
   display: inline-block;
-  animation: wave-bounce var(--te-speed, 3s) ease-in-out infinite;
-  animation-delay: calc(var(--char-index, 0) * 0.08s);
+  animation: te-wave var(--te-speed, 2.4s) ease-in-out infinite;
+  animation-delay: calc(var(--char-index, 0) * 0.07s);
+}
+@keyframes te-wave {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-0.14em); }
 }
 
-/* --- Pulse --- */
-@keyframes pulse-glow {
-  0%, 100% {
-    text-shadow: 0 0 4px transparent;
-    opacity: 1;
-  }
-  50% {
-    text-shadow: 0 0 12px var(--te-color, var(--profile-primary)),
-                 0 0 24px var(--te-color, var(--profile-primary));
-    opacity: 0.9;
-  }
+/* --- typewriter: types itself out once, then the caret keeps blinking --- */
+.text-effect-typewriter {
+  position: relative;
 }
-.text-effect-pulse {
-  animation: pulse-glow var(--te-speed, 2s) ease-in-out infinite;
+.text-effect-typewriter > .te-typed {
+  clip-path: inset(0 100% 0 0);
+  animation: te-type calc(var(--chars, 10) * 0.09s) steps(var(--chars, 10)) 0.3s forwards;
 }
-
-/* --- Flicker --- */
-@keyframes flicker {
-  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-    text-shadow: 0 0 4px var(--te-color, var(--profile-primary)),
-                 0 0 10px var(--te-color, var(--profile-primary));
-    opacity: 1;
-  }
-  20%, 24%, 55% {
-    text-shadow: none;
-    opacity: 0.4;
-  }
+.text-effect-typewriter::after {
+  content: "";
+  display: inline-block;
+  width: 0.06em;
+  height: 0.85em;
+  margin-left: 0.06em;
+  vertical-align: -0.08em;
+  background: currentColor;
+  animation: te-caret 1s steps(1) infinite;
 }
-.text-effect-flicker {
-  animation: flicker var(--te-speed, 2s) infinite;
+@keyframes te-type {
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes te-caret {
+  50% { opacity: 0; }
 }
 
-/* --- Shadow Pop --- */
-@keyframes shadow-pop {
-  0%, 100% {
-    text-shadow: 2px 2px 0 var(--te-color, var(--profile-primary));
-    transform: translate(0, 0);
+@media (prefers-reduced-motion: reduce) {
+  [class*="text-effect-"],
+  [class*="text-effect-"]::before,
+  [class*="text-effect-"]::after,
+  .text-effect-wave-char,
+  .text-effect-typewriter > .te-typed {
+    animation: none !important;
   }
-  50% {
-    text-shadow: 4px 4px 0 var(--te-color, var(--profile-primary)),
-                 6px 6px 0 color-mix(in srgb, var(--te-color, var(--profile-primary)) 50%, transparent);
-    transform: translate(-2px, -2px);
-  }
-}
-.text-effect-shadow-pop {
-  animation: shadow-pop 3s ease-in-out infinite;
-  text-shadow: 2px 2px 0 var(--te-color, var(--profile-primary));
-}
-
-/* --- Rainbow Cycle --- */
-@keyframes rainbow-hue {
-  0% { filter: hue-rotate(0deg); }
-  100% { filter: hue-rotate(360deg); }
-}
-.text-effect-rainbow {
-  background: linear-gradient(90deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0088, #ff0000);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gradient-shift var(--te-speed, 6s) linear infinite;
+  .text-effect-typewriter > .te-typed { clip-path: none; }
 }
