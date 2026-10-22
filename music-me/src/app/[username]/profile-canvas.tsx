@@ -7,6 +7,7 @@ import { MinimalLayout } from "@/components/profile/layouts/minimal-layout";
 import { BentoLayout } from "@/components/profile/layouts/bento-layout";
 import { MagazineLayout } from "@/components/profile/layouts/magazine-layout";
 import { MyspaceLayout } from "@/components/profile/layouts/myspace-layout";
+import { BlocksLayout, type ArrangeControls } from "@/components/profile/layouts/blocks-layout";
 import { Marquee, VisitorCounter } from "@/components/profile/profile-extras";
 import { CursorTrail, ProfileOverlay } from "@/components/profile/profile-effects";
 import { SITE_DEFAULT_FONTS, buildProfileCss, cursorCss, googleFontHref } from "@/lib/profile/customization";
@@ -15,6 +16,8 @@ import type { ProfileLayoutProps } from "@/components/profile/layouts/types";
 type Props = ProfileLayoutProps & {
   /** rendering inside the profile editor: no back button, no view counting */
   preview?: boolean;
+  /** the editor's drag/resize controls for block layouts */
+  arrange?: ArrangeControls;
 };
 
 const layouts: Record<string, React.ComponentType<ProfileLayoutProps>> = {
@@ -34,7 +37,7 @@ const fontVar = (name: string | null | undefined) =>
 
 const RADIUS = { sharp: "0px", soft: "12px", round: "24px" } as const;
 
-export function ProfileCanvas({ preview = false, ...props }: Props) {
+export function ProfileCanvas({ preview = false, arrange, ...props }: Props) {
   const { user, custom } = props;
   const profile = user.profile;
   const LayoutComponent = layouts[profile?.layoutStyle ?? "CLASSIC"] ?? ClassicLayout;
@@ -64,7 +67,8 @@ export function ProfileCanvas({ preview = false, ...props }: Props) {
       style={{
         ...themeVars,
         fontFamily: "var(--profile-font)",
-        fontWeight: profile?.fontWeight && profile.fontWeight !== "400" ? Number(profile.fontWeight) : undefined,
+        // body weight shifts every weight on the profile (see profile.css)
+        ["--weight-shift" as string]: String((Number(profile?.fontWeight) || 400) - 400),
         color: custom.textColor || undefined,
         cursor: cursorCss(custom),
         backgroundColor: customBg ? background : undefined,
@@ -117,9 +121,9 @@ export function ProfileCanvas({ preview = false, ...props }: Props) {
 
       <div className="@container relative z-10 px-4 pt-12 pb-20 sm:px-6 sm:pt-14 sm:pb-12">
         <div className="mx-auto max-w-5xl">
-          <Marquee text={custom.marquee} />
+          <Marquee custom={custom} />
         </div>
-        <LayoutComponent {...props} />
+        {custom.blocks.length > 0 ? <BlocksLayout {...props} arrange={arrange} /> : <LayoutComponent {...props} />}
         {custom.showCounter && (
           <div className="mt-8">
             <VisitorCounter username={user.username} initial={profile?.profileViews ?? 0} style={custom.counterStyle} track={!preview} />

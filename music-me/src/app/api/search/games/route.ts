@@ -46,9 +46,8 @@ export async function GET(request: Request) {
     const results = (steamData.items ?? []).slice(0, 8).map(
       (item: { name: string; id: number; tiny_image?: string; metascore?: string }) => ({
         title: item.name,
-        coverUrl: item.tiny_image
-          ? `https://cdn.akamai.steamstatic.com/steam/apps/${item.id}/header.jpg`
-          : null,
+        // tall box art; the profile falls back to the wide header if a game has none
+        coverUrl: `https://cdn.akamai.steamstatic.com/steam/apps/${item.id}/library_600x900.jpg`,
         year: null,
         platforms: [] as string[],
       })

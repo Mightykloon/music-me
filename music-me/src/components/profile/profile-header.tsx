@@ -16,26 +16,24 @@ import {
   Loader2,
 } from "lucide-react";
 import { FollowListModal } from "@/components/profile/follow-list-modal";
+import { SocialLinks } from "@/components/profile/social-links";
+import { readCustomization } from "@/lib/profile/customization";
 
-const SOCIAL_ICONS: Record<string, { icon: string; color: string }> = {
-  twitter: { icon: "𝕏", color: "#fff" },
-  x: { icon: "𝕏", color: "#fff" },
-  instagram: { icon: "📷", color: "#E4405F" },
-  discord: { icon: "💬", color: "#5865F2" },
-  spotify: { icon: "🎵", color: "#1DB954" },
-  applemusic: { icon: "🎵", color: "#FC3C44" },
-  apple_music: { icon: "🎵", color: "#FC3C44" },
-  soundcloud: { icon: "☁️", color: "#FF5500" },
-  youtube: { icon: "▶️", color: "#FF0000" },
-  github: { icon: "🐙", color: "#f0f6fc" },
-  twitch: { icon: "📺", color: "#9146FF" },
-  tiktok: { icon: "🎵", color: "#ff0050" },
-  linkedin: { icon: "💼", color: "#0A66C2" },
-  reddit: { icon: "🟠", color: "#FF4500" },
-  distrokid: { icon: "🎶", color: "#00BFFF" },
-  deezer: { icon: "🎧", color: "#A238FF" },
-  globe: { icon: "🌐", color: "#a78bfa" },
+// effects renamed when they were redone; older profiles keep a close match
+const EFFECT_ALIASES: Record<string, string> = {
+  "animated-gradient": "gradient",
+  flicker: "neon",
+  pulse: "glow",
+  "shadow-pop": "retro",
 };
+
+/** letters as the reader sees them (keeps emoji and accents in one piece) */
+function graphemes(text: string): string[] {
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+    return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)].map((s) => s.segment);
+  }
+  return [...text];
+}
 
 interface ProfileHeaderProps {
   user: {
@@ -52,6 +50,7 @@ interface ProfileHeaderProps {
       profilePictureUrl: string | null;
       textEffects: Record<string, unknown> | null;
       bioFontSize: string | null;
+      customization?: unknown;
     } | null;
     links?: {
       id: string;
@@ -103,7 +102,8 @@ export function ProfileHeader({
     }
   };
   const te = (user.profile?.textEffects as { type?: string; color?: string; color2?: string; color3?: string; speed?: number; brightness?: number; displayEmoji?: string }) ?? {};
-  const textEffect = te.type;
+  const textEffect = te.type ? EFFECT_ALIASES[te.type] ?? te.type : "";
+  const socialStyle = readCustomization(user.profile?.customization).socialStyle;
   const bioSize = user.profile?.bioFontSize ?? "base";
   const displayName = user.displayName ?? user.username;
 
@@ -112,7 +112,7 @@ export function ProfileHeader({
     ["--te-color2" as string]: te.color2,
     ["--te-color3" as string]: te.color3,
     ["--te-speed" as string]: te.speed ? `${te.speed}s` : undefined,
-    ["--te-brightness" as string]: te.brightness != null ? `${te.brightness}` : undefined,
+    ["--chars" as string]: textEffect === "typewriter" ? String(Math.max(1, graphemes(displayName).length)) : undefined,
   } : {};
 
   const bioSizeClass = {
@@ -136,7 +136,8 @@ export function ProfileHeader({
 
   return (
     <div className={className}>
-      <div className="flex items-start gap-4 @2xl:gap-5">
+      {/* photo beside the name when there is room, above it in a narrow box */}
+      <div className="flex flex-col items-start gap-3 @sm:flex-row @sm:gap-4 @2xl:gap-5">
         <Avatar
           src={user.profile?.profilePictureUrl}
           alt={user.displayName ?? user.username}
@@ -144,7 +145,7 @@ export function ProfileHeader({
           className="profile-avatar h-24 w-24 @2xl:h-32 @2xl:w-32"
         />
         <div className="flex-1 min-w-0 pt-2">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
             <h1
               className={`profile-name min-w-0 max-w-full text-3xl @md:text-4xl @2xl:text-5xl font-light lowercase tracking-tight leading-none font-[family-name:var(--profile-heading-font)] [overflow-wrap:anywhere] ${
                 textEffect ? `text-effect-${textEffect}` : ""
@@ -152,43 +153,30 @@ export function ProfileHeader({
               style={teStyle}
               {...(textEffect === "glitch" ? { "data-text": displayName } : {})}
             >
-              {textEffect === "wave"
-                ? displayName.split("").map((ch, i) => (
-                    <span key={i} className="text-effect-wave-char" style={{ ["--char-index" as string]: i }}>
-                      {ch === " " ? "\u00A0" : ch}
-                    </span>
-                  ))
-                : displayName}
+              {textEffect === "wave" ? (
+                graphemes(displayName).map((ch, i) => (
+                  <span key={i} className="text-effect-wave-char" style={{ ["--char-index" as string]: i }}>
+                    {ch === " " ? "\u00A0" : ch}
+                  </span>
+                ))
+              ) : textEffect === "typewriter" ? (
+                <span className="te-typed">{displayName}</span>
+              ) : (
+                displayName
+              )}
             </h1>
-            {te.displayEmoji && <span className="flex-shrink-0">{te.displayEmoji}</span>}
-            {user.isVerified && <BadgeCheck className="w-5 h-5 text-[var(--profile-primary)] flex-shrink-0" />}
+            {te.displayEmoji && (
+              <span className="profile-name-emoji flex-shrink-0 text-3xl @md:text-4xl @2xl:text-5xl leading-none" aria-hidden>
+                {te.displayEmoji}
+              </span>
+            )}
+            {user.isVerified && <BadgeCheck className="h-[1.6rem] w-[1.6rem] text-[var(--profile-primary)] flex-shrink-0" aria-label="verified" />}
           </div>
           <div className="flex items-center gap-2 mt-1 opacity-70 text-sm">
             <span>@{user.username}</span>
             {user.pronouns && (<><span className="text-border">&middot;</span><span>{user.pronouns}</span></>)}
           </div>
-          {/* Social link icons */}
-          {(user.links?.length ?? 0) > 0 && (
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {user.links?.map((link) => {
-                const iconKey = (link.iconType || "globe").toLowerCase();
-                const social = SOCIAL_ICONS[iconKey] || SOCIAL_ICONS.globe;
-                return (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={link.title}
-                    className="w-7 h-7 rounded-full flex items-center justify-center bg-white/[0.08] hover:bg-white/[0.15] hover:scale-110 transition-all duration-200 text-xs"
-                    style={{ color: social.color }}
-                  >
-                    {social.icon}
-                  </a>
-                );
-              })}
-            </div>
-          )}
+          <SocialLinks links={user.links ?? []} style={socialStyle} />
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {isOwn ? (
               <Link href="/settings/profile" className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors">Edit profile</Link>

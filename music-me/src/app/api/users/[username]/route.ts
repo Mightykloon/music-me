@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { fixS3Url } from "@/lib/storage";
+import { recentThreads } from "@/lib/profile/threads";
 
 export async function GET(
   _request: Request,
@@ -49,7 +50,8 @@ export async function GET(
       user.profile.bannerVideoUrl = fixS3Url(user.profile.bannerVideoUrl);
     }
 
-    return NextResponse.json(user);
+    // the profile editor previews the threads block too
+    return NextResponse.json({ ...user, threads: await recentThreads(user.id) });
   } catch {
     return NextResponse.json(
       { error: "Something went wrong" },
