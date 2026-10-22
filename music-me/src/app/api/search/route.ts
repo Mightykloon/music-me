@@ -32,6 +32,8 @@ export async function GET(request: Request) {
           username: true,
           displayName: true,
           isVerified: true,
+          forumRank: true,
+          forumRankColor: true,
           bio: true,
           profile: { select: { profilePictureUrl: true } },
           _count: { select: { followers: true } },

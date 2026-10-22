@@ -67,6 +67,8 @@ export default async function DiscoverPage() {
       username: true,
       displayName: true,
       isVerified: true,
+      forumRank: true,
+      forumRankColor: true,
       bio: true,
       profile: { select: { profilePictureUrl: true } },
       _count: { select: { followers: true, posts: true } },

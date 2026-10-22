@@ -17,6 +17,7 @@ import {
   SmilePlus,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { RankBadge, rankNameStyle } from "@/components/rank-badge";
 import { ForumEditor } from "@/components/forum/forum-editor";
 import { ForumContent } from "@/components/forum/forum-content";
 
@@ -274,21 +275,6 @@ function ReactionBar({
   );
 }
 
-// --- Forum rank ---
-
-function RankBadge({ author, className = "" }: { author: Author; className?: string }) {
-  if (!author.forumRank) return null;
-  const color = author.forumRankColor ?? "var(--primary)";
-  return (
-    <span
-      className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${className}`}
-      style={{ color, border: `1px solid ${color}`, background: `color-mix(in srgb, ${color} 18%, transparent)` }}
-    >
-      {author.forumRank}
-    </span>
-  );
-}
-
 // --- Forum Post Block ---
 
 function ForumPostBlock({
@@ -335,11 +321,12 @@ function ForumPostBlock({
         <Link
           href={`/${author.username}`}
           className="mt-2 text-sm font-medium text-center hover:text-primary transition-colors"
+          style={rankNameStyle(author)}
         >
           {name}
         </Link>
         <span className="text-xs text-muted-foreground">@{author.username}</span>
-        <RankBadge author={author} className="mt-1.5" />
+        <RankBadge user={author} className="mt-1.5" />
         {author._count && (
           <div className="mt-2 text-xs text-muted-foreground text-center space-y-0.5">
             {author._count.forumThreads !== undefined && (
@@ -369,8 +356,8 @@ function ForumPostBlock({
             alt={name}
             size="sm"
           />
-          <span className="text-sm font-medium">{name}</span>
-          <RankBadge author={author} />
+          <span className="text-sm font-medium" style={rankNameStyle(author)}>{name}</span>
+          <RankBadge user={author} size="xs" />
           <span className="text-xs text-muted-foreground">
             {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
           </span>

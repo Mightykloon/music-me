@@ -9,11 +9,11 @@ const latestThread = {
     id: true,
     title: true,
     createdAt: true,
-    author: { select: { username: true } },
+    author: { select: { username: true, forumRank: true, forumRankColor: true } },
     replies: {
       orderBy: { createdAt: "desc" as const },
       take: 1,
-      select: { content: true, createdAt: true, author: { select: { username: true } } },
+      select: { content: true, createdAt: true, author: { select: { username: true, forumRank: true, forumRankColor: true } } },
     },
   },
 };

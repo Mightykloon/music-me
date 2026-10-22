@@ -41,6 +41,8 @@ export default async function ForumCategoryPage({
           id: true,
           username: true,
           displayName: true,
+          forumRank: true,
+          forumRankColor: true,
           profile: { select: { profilePictureUrl: true } },
         },
       },
