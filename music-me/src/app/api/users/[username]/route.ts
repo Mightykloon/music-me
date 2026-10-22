@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { fixS3Url } from "@/lib/storage";
 import { recentThreads } from "@/lib/profile/threads";
+import { withCovers } from "@/lib/profile/favorite-covers";
 
 export async function GET(
   _request: Request,
@@ -50,6 +51,7 @@ export async function GET(
       user.profile.bannerUrl = fixS3Url(user.profile.bannerUrl);
       user.profile.backgroundImageUrl = fixS3Url(user.profile.backgroundImageUrl);
       user.profile.bannerVideoUrl = fixS3Url(user.profile.bannerVideoUrl);
+      user.profile.favorites = await withCovers(user.profile.favorites);
     }
 
     // the profile editor previews the threads block too

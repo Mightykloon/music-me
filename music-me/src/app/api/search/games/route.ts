@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { guard } from "@/lib/api-guard";
+import { steamCover } from "@/lib/steam-cover";
 
 export async function GET(request: Request) {
   // outside API calls: rate limited and cached (see src/lib/api-guard.ts)
@@ -43,14 +44,13 @@ export async function GET(request: Request) {
     if (!steamRes.ok) return NextResponse.json({ results: [] });
     const steamData = await steamRes.json();
 
-    const results = (steamData.items ?? []).slice(0, 8).map(
-      (item: { name: string; id: number; tiny_image?: string; metascore?: string }) => ({
+    const results = await Promise.all(
+      (steamData.items ?? []).slice(0, 8).map(async (item: { name: string; id: number }) => ({
         title: item.name,
-        // tall box art; the profile falls back to the wide header if a game has none
-        coverUrl: `https://cdn.akamai.steamstatic.com/steam/apps/${item.id}/library_600x900.jpg`,
+        coverUrl: await steamCover(item.id),
         year: null,
         platforms: [] as string[],
-      })
+      }))
     );
 
     return NextResponse.json({ results });

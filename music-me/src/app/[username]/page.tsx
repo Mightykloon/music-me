@@ -9,6 +9,7 @@ import { isGuest } from "@/lib/guest";
 import type { ProfileLayoutProps } from "@/components/profile/layouts/types";
 import { readCustomization } from "@/lib/profile/customization";
 import { recentThreads } from "@/lib/profile/threads";
+import { withCovers } from "@/lib/profile/favorite-covers";
 
 export async function generateMetadata({
   params,
@@ -184,6 +185,7 @@ export default async function ProfilePage({
     user.profile.bannerUrl = fixS3Url(user.profile.bannerUrl);
     user.profile.backgroundImageUrl = fixS3Url(user.profile.backgroundImageUrl);
     user.profile.bannerVideoUrl = fixS3Url(user.profile.bannerVideoUrl);
+    user.profile.favorites = await withCovers(user.profile.favorites);
   }
 
   // Build the data object for the client component

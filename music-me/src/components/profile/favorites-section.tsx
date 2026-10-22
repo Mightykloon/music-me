@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Book, Gamepad2, Heart, Sparkles, Tag } from "lucide-react";
 
 interface FavoritesData {
@@ -29,23 +30,27 @@ const shelfSections = [
 
 /** A cover, or a typeset stand-in when there's no image (or it fails to load). */
 function Cover({ title, src }: { title: string; src?: string }) {
+  const [url, setUrl] = useState(src);
+  // Steam games without tall box art still have the wide header
+  const fail = () => setUrl((u) => (u?.includes("library_600x900") ? u.replace("library_600x900", "header") : undefined));
+  // an image that failed before React hydrated never fired onError
+  const checkLoaded = (el: HTMLImageElement | null) => {
+    if (el?.complete && el.naturalWidth === 0) queueMicrotask(fail);
+  };
   return (
     <figure className="profile-cover group w-full" title={title}>
       <div className="relative aspect-[2/3] overflow-hidden border border-white/10 bg-[color-mix(in_srgb,var(--profile-primary)_14%,transparent)] shadow-md transition-transform group-hover:-translate-y-1 group-hover:rotate-[-1.5deg]">
         <span className="absolute inset-0 flex items-end p-2 text-[0.7rem] font-semibold leading-tight">{title}</span>
-        {src && (
+        {url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={src}
+            ref={checkLoaded}
+            src={url}
             alt=""
-            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
             className="absolute inset-0 h-full w-full object-cover"
-            onError={(e) => {
-              const img = e.currentTarget;
-              // Steam games without tall box art still have the wide header
-              if (img.src.includes("library_600x900")) img.src = img.src.replace("library_600x900", "header");
-              else img.remove();
-            }}
+            onError={fail}
           />
         )}
       </div>
@@ -102,7 +107,7 @@ export function FavoritesSection({ favorites, className, title = "About Me" }: F
             </div>
             <div className="grid grid-cols-3 gap-3 @md:grid-cols-4 @2xl:grid-cols-5">
               {items.map((item) => (
-                <Cover key={item} title={item} src={covers[item]} />
+                <Cover key={`${item}:${covers[item] ?? ""}`} title={item} src={covers[item]} />
               ))}
             </div>
           </div>
