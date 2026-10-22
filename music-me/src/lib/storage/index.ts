@@ -20,6 +20,9 @@ const s3 = new S3Client({
   // forcePathStyle needed for S3-compatible services (R2, MinIO, etc.)
   // For real AWS S3, virtual-hosted style is preferred
   forcePathStyle: !!S3_ENDPOINT,
+  // newer SDKs sign a CRC32 of the (empty) body into presigned PUT URLs, so S3
+  // rejects the real file the browser uploads; only add checksums when required
+  requestChecksumCalculation: "WHEN_REQUIRED",
 });
 
 // Build public URL: explicit env var > endpoint-based > AWS default

@@ -67,8 +67,8 @@ export function SocialLinks({ links, style }: { links: SocialLink[]; style: Cust
             href={link.url}
             target="_blank"
             rel="noopener noreferrer me"
-            className="profile-social-badge inline-flex items-center gap-1.5 border border-current/20 bg-black/25 px-2.5 py-1 text-xs font-medium transition-transform hover:-translate-y-0.5"
-            style={{ borderColor: `color-mix(in srgb, ${brand.color} 45%, transparent)` }}
+            className="profile-social-badge inline-flex items-center gap-1.5 border border-[color-mix(in_srgb,var(--brand)_45%,transparent)] bg-black/25 px-2.5 py-1 text-xs font-medium transition-[transform,background-color,border-color,color] hover:-translate-y-0.5 hover:border-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_22%,transparent)] hover:text-[var(--brand)]"
+            style={{ ["--brand" as string]: brand.color }}
           >
             <Glyph weight="fill" className="h-3.5 w-3.5" style={{ color: brand.color }} aria-hidden />
             <span>{link.title || brand.name}</span>
@@ -81,7 +81,8 @@ export function SocialLinks({ links, style }: { links: SocialLink[]; style: Cust
             rel="noopener noreferrer me"
             title={link.title || brand.name}
             aria-label={link.title || brand.name}
-            className="profile-social-icon flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.08] transition-transform hover:scale-110 hover:bg-white/[0.15]"
+            className="profile-social-icon flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.08] transition-[transform,background-color,box-shadow] hover:scale-110 hover:bg-[color-mix(in_srgb,var(--brand)_25%,transparent)] hover:shadow-[0_0_0_1.5px_var(--brand)]"
+            style={{ ["--brand" as string]: brand.color }}
           >
             <Glyph weight="fill" className="h-4 w-4" style={{ color: brand.color }} aria-hidden />
           </a>

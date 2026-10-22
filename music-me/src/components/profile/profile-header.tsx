@@ -12,6 +12,7 @@ import {
   BadgeCheck,
   UserPlus,
   UserCheck,
+  UserMinus,
   MessageCircle,
   Loader2,
 } from "lucide-react";
@@ -186,10 +187,24 @@ export function ProfileHeader({
               <Link href="/settings/profile" className="inline-flex items-center justify-center h-8 px-3 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors">Edit profile</Link>
             ) : (
               <>
-                <Button variant={isFollowingNow ? "outline" : "primary"} size="sm" onClick={toggleFollow} disabled={followBusy}>
-                  {isFollowingNow ? (<><UserCheck className="w-4 h-4 mr-1.5" />Following</>) : (<><UserPlus className="w-4 h-4 mr-1.5" />Follow</>)}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleMessage} disabled={sendingMessage}>
+                {isFollowingNow ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleFollow}
+                    disabled={followBusy}
+                    aria-label="Unfollow"
+                    className="group/follow min-w-[7.5rem] hover:border-red-500 hover:bg-red-500/15 hover:text-red-400"
+                  >
+                    <span className="inline-flex items-center group-hover/follow:hidden"><UserCheck className="w-4 h-4 mr-1.5" />Following</span>
+                    <span className="hidden items-center group-hover/follow:inline-flex"><UserMinus className="w-4 h-4 mr-1.5" />Unfollow</span>
+                  </Button>
+                ) : (
+                  <Button variant="primary" size="sm" onClick={toggleFollow} disabled={followBusy}>
+                    <UserPlus className="w-4 h-4 mr-1.5" />Follow
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={handleMessage} disabled={sendingMessage} className="hover:border-[var(--profile-primary)] hover:bg-[color-mix(in_srgb,var(--profile-primary)_18%,transparent)] hover:text-[var(--profile-primary)]">
                   {sendingMessage ? <Loader2 className="w-4 h-4 animate-spin" /> : <><MessageCircle className="w-4 h-4 mr-1.5" />Message</>}
                 </Button>
               </>
