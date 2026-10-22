@@ -9,7 +9,7 @@ export type TileFace = {
   // the big content of the face (icon, number, image…)
   body: React.ReactNode;
   // the small lowercase label in the bottom-left corner
-  label?: string;
+  label?: React.ReactNode;
   // this face's own fill and text colour (accent with white text by default),
   // e.g. an outlined front that flips to solid accent
   className?: string;

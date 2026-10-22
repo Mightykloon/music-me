@@ -40,6 +40,8 @@ export interface ProfileLayoutProps {
     website: string | null;
     isVerified: boolean;
     role: string;
+    forumRank?: string | null;
+    forumRankColor?: string | null;
     profile: {
       profilePictureUrl: string | null;
       bannerUrl: string | null;

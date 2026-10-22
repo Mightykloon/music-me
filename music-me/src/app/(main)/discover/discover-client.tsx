@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { TrendingUp, Users, Search as SearchIcon, Loader2, Music, X, Disc3 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { RankBadge, rankNameStyle } from "@/components/rank-badge";
 import { PostCard, type PostCardData } from "@/components/feed/post-card";
 
 type SearchTab = "all" | "users" | "posts" | "tracks" | "playlists";
@@ -14,6 +15,8 @@ interface SuggestedUser {
   username: string;
   displayName: string | null;
   isVerified: boolean;
+  forumRank?: string | null;
+  forumRankColor?: string | null;
   bio: string | null;
   profile: { profilePictureUrl: string | null } | null;
   _count: { followers: number; posts: number };
@@ -24,6 +27,8 @@ interface SearchUser {
   username: string;
   displayName: string | null;
   isVerified: boolean;
+  forumRank?: string | null;
+  forumRankColor?: string | null;
   bio: string | null;
   profile: { profilePictureUrl: string | null } | null;
   _count: { followers: number };
@@ -203,11 +208,12 @@ export function DiscoverClient({
                       size="md"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {u.displayName ?? u.username}
+                      <p className="flex items-center gap-1.5 font-medium text-sm">
+                        <span className="truncate" style={rankNameStyle(u)}>{u.displayName ?? u.username}</span>
                         {u.isVerified && (
-                          <span className="ml-1 text-primary text-xs">✓</span>
+                          <span className="text-primary text-xs">✓</span>
                         )}
+                        <RankBadge user={u} size="xs" />
                       </p>
                       <p className="text-xs text-muted-foreground">
                         @{u.username} · {u._count.followers} followers
@@ -341,9 +347,10 @@ export function DiscoverClient({
                       size="lg"
                     />
                     <div className="min-w-0 w-full">
-                      <p className="font-medium text-sm truncate">
+                      <p className="font-medium text-sm truncate" style={rankNameStyle(user)}>
                         {user.displayName ?? user.username}
                       </p>
+                      <RankBadge user={user} size="xs" className="my-0.5" />
                       <p className="text-xs text-muted-foreground">
                         @{user.username}
                       </p>

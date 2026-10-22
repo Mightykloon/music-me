@@ -11,13 +11,14 @@ import {
   type Icon as PhosphorIcon,
 } from "@phosphor-icons/react";
 import { HOVER_OUTLINE, LiveTile, type TileFace } from "@/components/metro/live-tile";
+import type { Ranked } from "@/components/rank-badge";
 
 interface LatestThread {
   id: string;
   title: string;
   createdAt: string;
-  author: { username: string };
-  replies: { content: string; createdAt: string; author: { username: string } }[];
+  author: { username: string } & Ranked;
+  replies: { content: string; createdAt: string; author: { username: string } & Ranked }[];
 }
 
 interface SubCategory {
@@ -186,7 +187,30 @@ function faces(sub: SubCategory, front: Front, size: Size): TileFace[] {
   const backFace: TileFace = thread
     ? {
         className: BACK_CLASS,
-        label: reply ? `@${reply.author.username} replied ${ago(reply.createdAt)}` : `@${thread.author.username} · ${ago(thread.createdAt)}`,
+        label: (() => {
+          const who = reply ? reply.author : thread.author;
+          return (
+            <>
+              {/* the back is solid accent until hovered, so the rank colour only
+                  goes on the name over the hover's dark fill; the chip is solid */}
+              <span
+                className={who.forumRankColor ? "transition-colors group-hover:text-[var(--rank)]" : undefined}
+                style={who.forumRankColor ? ({ ["--rank" as string]: who.forumRankColor } as React.CSSProperties) : undefined}
+              >
+                @{who.username}
+              </span>
+              {who.forumRank && (
+                <span
+                  className="mx-1.5 inline-block px-1 py-px align-middle text-[0.6rem] font-bold uppercase leading-none tracking-widest text-white"
+                  style={{ background: who.forumRankColor ?? "var(--primary)", outline: "1px solid rgb(255 255 255 / 0.35)" }}
+                >
+                  {who.forumRank}
+                </span>
+              )}
+              {reply ? ` replied ${ago(reply.createdAt)}` : ` · ${ago(thread.createdAt)}`}
+            </>
+          );
+        })(),
         body: (
           <div className="flex h-full flex-col gap-1 overflow-hidden">
             {topRow(`${reply ? "latest reply" : "latest thread"} · ${count}`)}

@@ -16,6 +16,7 @@ import {
   Music,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { RankBadge, rankNameStyle } from "@/components/rank-badge";
 import { ForumEditor } from "@/components/forum/forum-editor";
 
 interface ThreadItem {
@@ -33,6 +34,8 @@ interface ThreadItem {
     id: string;
     username: string;
     displayName: string | null;
+    forumRank?: string | null;
+    forumRankColor?: string | null;
     profile: { profilePictureUrl: string | null } | null;
   };
   _count: { replies: number };
@@ -235,11 +238,12 @@ export function CategoryView({ category, threads }: CategoryViewProps) {
                   {thread.content.replace(/\[[^\]]*\]/g, "").substring(0, 120)}
                 </p>
                 <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                  <span>
+                  <span className="flex items-center gap-1.5">
                     by{" "}
-                    <span className="text-foreground/80">
+                    <span className="text-foreground/80" style={rankNameStyle(thread.author)}>
                       {thread.author.displayName ?? thread.author.username}
                     </span>
+                    <RankBadge user={thread.author} size="xs" />
                   </span>
                   <span>
                     {formatDistanceToNow(new Date(thread.createdAt), {

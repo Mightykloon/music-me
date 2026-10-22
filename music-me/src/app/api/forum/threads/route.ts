@@ -35,6 +35,8 @@ export async function GET(request: Request) {
             id: true,
             username: true,
             displayName: true,
+            forumRank: true,
+            forumRankColor: true,
             profile: { select: { profilePictureUrl: true } },
           },
         },

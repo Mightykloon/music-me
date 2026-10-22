@@ -54,6 +54,8 @@ export default async function ProfilePage({
       website: true,
       isVerified: true,
       role: true,
+      forumRank: true,
+      forumRankColor: true,
       createdAt: true,
       profile: true,
       links: {

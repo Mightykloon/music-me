@@ -22,6 +22,8 @@ export async function GET(
         website: true,
         isVerified: true,
         role: true,
+        forumRank: true,
+        forumRankColor: true,
         createdAt: true,
         profile: { include: { profileSong: true } },
         links: {

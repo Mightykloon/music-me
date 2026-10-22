@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { FollowListModal } from "@/components/profile/follow-list-modal";
 import { SocialLinks } from "@/components/profile/social-links";
+import { RankBadge } from "@/components/rank-badge";
 import { readCustomization } from "@/lib/profile/customization";
 
 // effects renamed when they were redone; older profiles keep a close match
@@ -45,6 +46,8 @@ interface ProfileHeaderProps {
     location: string | null;
     website: string | null;
     isVerified: boolean;
+    forumRank?: string | null;
+    forumRankColor?: string | null;
     isFollowedByViewer?: boolean;
     profile: {
       profilePictureUrl: string | null;
@@ -171,6 +174,7 @@ export function ProfileHeader({
               </span>
             )}
             {user.isVerified && <BadgeCheck className="h-[1.6rem] w-[1.6rem] text-[var(--profile-primary)] flex-shrink-0" aria-label="verified" />}
+            <RankBadge user={user} className="self-center" />
           </div>
           <div className="flex items-center gap-2 mt-1 opacity-70 text-sm">
             <span>@{user.username}</span>
