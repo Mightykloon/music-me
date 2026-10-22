@@ -32,6 +32,8 @@ interface Author {
   username: string;
   displayName: string | null;
   isVerified?: boolean;
+  forumRank?: string | null;
+  forumRankColor?: string | null;
   bio?: string | null;
   createdAt?: string;
   profile: { profilePictureUrl: string | null } | null;
@@ -272,6 +274,21 @@ function ReactionBar({
   );
 }
 
+// --- Forum rank ---
+
+function RankBadge({ author, className = "" }: { author: Author; className?: string }) {
+  if (!author.forumRank) return null;
+  const color = author.forumRankColor ?? "var(--primary)";
+  return (
+    <span
+      className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${className}`}
+      style={{ color, border: `1px solid ${color}`, background: `color-mix(in srgb, ${color} 18%, transparent)` }}
+    >
+      {author.forumRank}
+    </span>
+  );
+}
+
 // --- Forum Post Block ---
 
 function ForumPostBlock({
@@ -322,6 +339,7 @@ function ForumPostBlock({
           {name}
         </Link>
         <span className="text-xs text-muted-foreground">@{author.username}</span>
+        <RankBadge author={author} className="mt-1.5" />
         {author._count && (
           <div className="mt-2 text-xs text-muted-foreground text-center space-y-0.5">
             {author._count.forumThreads !== undefined && (
@@ -352,6 +370,7 @@ function ForumPostBlock({
             size="sm"
           />
           <span className="text-sm font-medium">{name}</span>
+          <RankBadge author={author} />
           <span className="text-xs text-muted-foreground">
             {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
           </span>
