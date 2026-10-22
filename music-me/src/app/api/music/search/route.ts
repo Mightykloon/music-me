@@ -36,11 +36,10 @@ export async function GET(request: Request) {
       // If db query fails, fall through to free search
     }
 
-    // Use connected services if available, otherwise fall back to free iTunes search
-    const results =
-      connectionCount > 0
-        ? await unifiedSearch(session.user.id, query, limit)
-        : await freeSearch(query, limit);
+    // Use connected services if available, otherwise (or when they come back
+    // empty, e.g. an expired token) fall back to free iTunes search
+    let results: unknown[] = connectionCount > 0 ? await unifiedSearch(session.user.id, query, limit) : [];
+    if (results.length === 0) results = await freeSearch(query, limit);
 
     return NextResponse.json(results);
   } catch (err) {

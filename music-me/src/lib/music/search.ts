@@ -72,9 +72,9 @@ export async function unifiedSearch(
   const deduplicated = deduplicateResults(flatResults);
   const limited = deduplicated.slice(0, limit);
 
-  // Cache
+  // Cache (not empty results: those usually mean a provider failed)
   try {
-    await redis.setex(cacheKey, SEARCH_CACHE_TTL, JSON.stringify(limited));
+    if (limited.length > 0) await redis.setex(cacheKey, SEARCH_CACHE_TTL, JSON.stringify(limited));
   } catch {
     // Redis unavailable
   }

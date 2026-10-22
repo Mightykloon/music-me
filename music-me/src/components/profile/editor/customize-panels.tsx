@@ -590,6 +590,7 @@ export function ProfileSongPicker({
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SongResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
 
   // search after a pause in typing, not on every key (each search is an outside API call)
@@ -602,10 +603,12 @@ export function ProfileSongPicker({
         const res = await fetch(`/api/music/search?q=${encodeURIComponent(term)}&limit=8`);
         const data = await res.json();
         setResults(Array.isArray(data) ? data : []);
+        if (!res.ok && data?.error) toast.error(data.error);
       } catch {
         setResults([]);
       } finally {
         setSearching(false);
+        setSearched(term);
       }
     }, 450);
     return () => clearTimeout(t);
@@ -667,6 +670,9 @@ export function ProfileSongPicker({
             </li>
           ))}
         </ul>
+      )}
+      {q.trim().length >= 2 && !searching && results.length === 0 && searched === q.trim() && (
+        <p className="text-sm text-muted-foreground">No songs found for &quot;{searched}&quot;. Try the artist and title together.</p>
       )}
 
       <div>
